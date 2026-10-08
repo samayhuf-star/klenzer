@@ -82,7 +82,7 @@ Klenzer needs permission to read your photos and videos to find clutter. You can
 ### Data safety answers
 - Data collected: **None**. Data shared: **None**.
 - Data encrypted in transit: n/a (no transmission). Deletion request: n/a (no data collected).
-- Privacy policy URL: required (host `store/privacy-policy.html`).
+- Privacy policy URL: required (hosted at https://klenzer-privacy-krosz.vercel.app, source in `store/privacy-policy.html`).
 
 ### Photo & Video permissions declaration (REQUIRED, high rejection risk)
 Play restricts `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`. In Play Console › App content › Photo and video permissions, declare:

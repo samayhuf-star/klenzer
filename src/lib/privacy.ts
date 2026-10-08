@@ -9,4 +9,5 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   { h: 'Permissions', p: 'Photo and video library access is the only sensitive permission Klenzer requests. You can change or revoke it at any time in your device Settings; Klenzer will still open but cannot scan.' },
   { h: 'Children', p: 'Klenzer collects no personal information from anyone, including children.' },
   { h: 'Changes', p: 'If this policy changes, the updated version will be shown here and in the store listing, with a new date.' },
+  { h: 'Contact', p: 'Questions about this policy? Email samayhuf@gmail.com.' },
 ];
