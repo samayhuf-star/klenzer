@@ -23,13 +23,18 @@ have() { command -v "$1" >/dev/null 2>&1; }
 say "1/9 Preflight"
 ###############################################################################
 if ! xcrun simctl help >/dev/null 2>&1; then
-  if [ -d /Applications/Xcode.app ]; then
-    echo "Pointing xcode-select at Xcode (may ask for your password)..."
-    sudo xcode-select -s /Applications/Xcode.app/Contents/Developer || die "xcode-select failed"
+  XCODE_APP="$(ls -d /Applications/Xcode*.app "$HOME"/Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)"
+  if [ -n "$XCODE_APP" ]; then
+    echo "Found $XCODE_APP: pointing xcode-select at it (may ask for your password)..."
+    sudo xcode-select -s "$XCODE_APP/Contents/Developer" || die "xcode-select failed"
     sudo xcodebuild -license accept 2>/dev/null || true
     sudo xcodebuild -runFirstLaunch 2>/dev/null || true
+    xcrun simctl help >/dev/null 2>&1 || die "simctl still unavailable after selecting Xcode"
   else
-    die "Xcode not found in /Applications"
+    echo "This Mac ($(scutil --get ComputerName 2>/dev/null || hostname)) has no Xcode."
+    echo "Run this script in Terminal on the Mac where Xcode is installed (the one that showed the Xcode welcome window)."
+    echo "If Xcode is still downloading in the App Store, wait until it finishes, open it once, accept the license, then re-run."
+    exit 1
   fi
 fi
 have node || die "node is required (brew install node)"
