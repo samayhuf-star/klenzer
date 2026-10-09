@@ -96,7 +96,7 @@ cd "$WORK/app" || die "no app dir"
 npm ci --no-audit --no-fund || die "npm ci failed"
 
 ###############################################################################
-say "3/9 Pick + boot the newest iPhone Pro Max simulator"
+say "3/9 Pick + boot the best available iPhone simulator (Pro Max preferred)"
 ###############################################################################
 cat > "$WORK/pick.py" <<'PY'
 import json, re, sys
@@ -107,20 +107,24 @@ for rt, devs in d.items():
         continue
     ver = [int(x) for x in re.findall(r"\d+", rt.split("iOS-")[-1])] or [0]
     for dev in devs:
-        m = re.match(r"iPhone (\d+) Pro Max$", dev["name"])
-        if m and dev.get("isAvailable", True):
-            key = (ver, int(m.group(1)))
-            if not best or key > best[0]:
-                best = (key, dev["udid"], dev["name"].replace(" ", "_"))
+        n = dev["name"]
+        if not n.startswith("iPhone") or not dev.get("isAvailable", True):
+            continue
+        score = 3 if "Pro Max" in n else 2 if "Plus" in n else 1
+        num = [int(x) for x in re.findall(r"\d+", n)] or [0]
+        key = (score, ver, num)
+        if not best or key > best[0]:
+            best = (key, dev["udid"], n.replace(" ", "_"))
 print(best[1] + " " + best[2] if best else "NONE NONE")
 PY
 PICK="$(xcrun simctl list devices available -j | python3 "$WORK/pick.py")"
 UDID="${PICK%% *}"; DEVICE_NAME="${PICK#* }"
-[ "$UDID" = "NONE" ] && die "No iPhone Pro Max simulator available. Open Xcode > Settings > Components and install an iOS Simulator runtime."
+[ "$UDID" = "NONE" ] && die "No iPhone simulator is installed. On MacinCloud, ask their help desk to install an iOS Simulator runtime; elsewhere use Xcode > Settings > Components."
 DEVICE_NAME="${DEVICE_NAME//_/ }"
 echo "Using: $DEVICE_NAME ($UDID)"
 xcrun simctl boot "$UDID" 2>/dev/null || true
-open -a Simulator --args -CurrentDeviceUDID "$UDID"
+SIM_APP="$(xcode-select -p)/Applications/Simulator.app"
+{ open -a "$SIM_APP" --args -CurrentDeviceUDID "$UDID" || open -a Simulator --args -CurrentDeviceUDID "$UDID"; } 2>/dev/null || echo "(Simulator window not opened; continuing headless)"
 xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1
 # Clean, consistent status bar for store screenshots
 xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularMode active --cellularBars 4 --wifiBars 3 2>/dev/null || true
