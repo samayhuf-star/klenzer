@@ -37,25 +37,48 @@ if ! xcrun simctl help >/dev/null 2>&1; then
     exit 1
   fi
 fi
-have node || die "node is required (brew install node)"
+export PATH="$HOME/tools/bin:$HOME/.maestro/bin:/opt/homebrew/bin:$PATH"
+mkdir -p "$HOME/tools/bin" "$HOME/tools/dl"
+have node || die "node is required (not found in PATH)"
+have npm  || die "npm is required"
 have git  || die "git is required"
-if ! have brew; then echo "WARNING: Homebrew not found; automatic installs of ffmpeg/exiftool/cocoapods/java will be skipped."; fi
+have pod  || die "CocoaPods (pod) is required to build the iOS app and was not found"
+ARCH="$(uname -m)"; [ "$ARCH" = "arm64" ] && GH_ARCH="arm64" || GH_ARCH="amd64"
 
-if ! have gh; then have brew && brew install gh; fi
-have gh || die "GitHub CLI (gh) required: https://cli.github.com"
+# GitHub CLI: download a user-local copy if missing (no admin, no Homebrew)
+if ! have gh; then
+  say "Installing GitHub CLI into ~/tools (no admin needed)"
+  GH_URL="$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | grep -o "\"browser_download_url\": *\"[^\"]*macOS_${GH_ARCH}.zip\"" | head -1 | sed 's/.*"\(https[^"]*\)"/\1/')"
+  [ -n "$GH_URL" ] || die "could not find the GitHub CLI download URL"
+  rm -rf "$HOME/tools/dl/gh" && mkdir -p "$HOME/tools/dl/gh"
+  curl -fsSL "$GH_URL" -o "$HOME/tools/dl/gh.zip" && unzip -q -o "$HOME/tools/dl/gh.zip" -d "$HOME/tools/dl/gh" || die "gh download failed"
+  cp "$(find "$HOME/tools/dl/gh" -type f -name gh -path '*bin*' | head -1)" "$HOME/tools/bin/gh" && chmod +x "$HOME/tools/bin/gh"
+fi
+have gh || die "GitHub CLI (gh) could not be installed"
 if ! gh auth status >/dev/null 2>&1; then
   say "GitHub login needed (one time) so screenshots can be sent back"
   gh auth login || die "gh auth login failed"
 fi
 gh auth setup-git >/dev/null 2>&1 || true
 
-have pod       || { have brew && brew install cocoapods; }
-have exiftool  || { have brew && brew install exiftool; }
-have ffmpeg    || { have brew && brew install ffmpeg; }
-if ! have java && ! /usr/libexec/java_home >/dev/null 2>&1; then
-  have brew && brew install openjdk@17 && export JAVA_HOME="$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home" && export PATH="$JAVA_HOME/bin:$PATH"
+# Java (Maestro needs 17+): macOS ships only a stub, so download Temurin 17 into ~/tools if needed
+if ! java -version >/dev/null 2>&1; then
+  if [ -x "$HOME/tools/jdk/Contents/Home/bin/java" ]; then
+    export JAVA_HOME="$HOME/tools/jdk/Contents/Home"
+  else
+    say "Installing a Java runtime into ~/tools (no admin needed)"
+    JDK_ARCH="aarch64"; [ "$ARCH" = "arm64" ] || JDK_ARCH="x64"
+    curl -fsSL -L "https://api.adoptium.net/v3/binary/latest/17/ga/mac/${JDK_ARCH}/jdk/hotspot/normal/eclipse" -o "$HOME/tools/dl/jdk.tar.gz" || die "JDK download failed"
+    rm -rf "$HOME/tools/jdk" && mkdir -p "$HOME/tools/jdk" && tar xzf "$HOME/tools/dl/jdk.tar.gz" -C "$HOME/tools/jdk" --strip-components=1 || die "JDK unpack failed"
+    export JAVA_HOME="$HOME/tools/jdk/Contents/Home"
+  fi
+  export PATH="$JAVA_HOME/bin:$PATH"
 fi
+java -version >/dev/null 2>&1 || die "Java is not usable"
+
+# Maestro installs into ~/.maestro (user-local)
 if ! have maestro; then
+  say "Installing Maestro (UI automation) into ~/.maestro"
   curl -fsSL "https://get.maestro.mobile.dev" | bash
 fi
 export PATH="$HOME/.maestro/bin:$PATH"
@@ -105,7 +128,7 @@ xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --
 ###############################################################################
 say "4/9 Generate seed media (synthetic images: no copyrighted content)"
 ###############################################################################
-cd "$SEED" && rm -rf ./* && npm init -y >/dev/null 2>&1 && npm i sharp --no-audit --no-fund >/dev/null 2>&1 || die "could not install sharp"
+cd "$SEED" && rm -rf ./* && npm init -y >/dev/null 2>&1 && npm i sharp ffmpeg-static exiftool-vendored --no-audit --no-fund >/dev/null 2>&1 || die "could not install seed tools (sharp / ffmpeg-static / exiftool-vendored)"
 cat > gen.mjs <<'JS'
 import sharp from 'sharp';
 const W = 3024, H = 4032;
@@ -134,24 +157,29 @@ JS
 node gen.mjs || die "seed generation failed"
 
 # Deterministic capture dates (one photo per day) so only the intended sets are "duplicates".
-if have exiftool; then
-  d=1
-  for f in photo_*.jpg; do
-    day=$(printf "%02d" $(( (d % 27) + 1 )))
-    exiftool -q -overwrite_original "-DateTimeOriginal=2026:09:${day} 1$((d % 9)):1$((d % 6)):2$((d % 9))" "-CreateDate=2026:09:${day} 1$((d % 9)):1$((d % 6)):2$((d % 9))" "$f"
-    d=$((d+1))
-  done
-else
-  echo "WARNING: exiftool missing: duplicate detection in the seed may be unreliable."
-fi
+cat > dates.mjs <<'JS'
+import { exiftool } from 'exiftool-vendored';
+import { readdirSync } from 'node:fs';
+let d = 1;
+for (const f of readdirSync('.').filter((f) => /^photo_.*\.jpg$/.test(f)).sort()) {
+  const day = String((d % 27) + 1).padStart(2, '0');
+  const t = `2026:09:${day} 1${d % 9}:1${d % 6}:2${d % 9}`;
+  await exiftool.write(f, { DateTimeOriginal: t, CreateDate: t }, ['-overwrite_original']);
+  d++;
+}
+await exiftool.end();
+console.log('dates set');
+JS
+node dates.mjs || echo "WARNING: could not write EXIF dates: duplicate detection in the seed may be unreliable."
 
-# Videos > 100 MB so the "Large videos" card has content
+# Videos > 100 MB so the "Large videos" card has content (ffmpeg binary comes from the ffmpeg-static npm package)
 VIDEOS=()
-if have ffmpeg; then
-  ffmpeg -loglevel error -y -f lavfi -i testsrc2=duration=70:size=1920x1080:rate=60 -b:v 28M -pix_fmt yuv420p -metadata creation_time="2026-09-05T10:00:00Z" big_1.mp4 && VIDEOS+=(big_1.mp4)
-  ffmpeg -loglevel error -y -f lavfi -i testsrc=duration=60:size=1920x1080:rate=60 -b:v 30M -pix_fmt yuv420p -metadata creation_time="2026-09-12T10:00:00Z" big_2.mp4 && VIDEOS+=(big_2.mp4)
+FFMPEG="$(node -e "console.log(require('ffmpeg-static') || '')" 2>/dev/null)"
+if [ -n "$FFMPEG" ] && [ -x "$FFMPEG" ]; then
+  "$FFMPEG" -loglevel error -y -f lavfi -i testsrc2=duration=70:size=1920x1080:rate=60 -b:v 28M -pix_fmt yuv420p -metadata creation_time="2026-09-05T10:00:00Z" big_1.mp4 && VIDEOS+=(big_1.mp4)
+  "$FFMPEG" -loglevel error -y -f lavfi -i testsrc=duration=60:size=1920x1080:rate=60 -b:v 30M -pix_fmt yuv420p -metadata creation_time="2026-09-12T10:00:00Z" big_2.mp4 && VIDEOS+=(big_2.mp4)
 else
-  echo "WARNING: ffmpeg missing: no large videos will be seeded."
+  echo "WARNING: ffmpeg unavailable: no large videos will be seeded."
 fi
 
 ###############################################################################
