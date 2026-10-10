@@ -1,0 +1,11 @@
+device: iPhone 17 Pro Max (3DCD4EA1-FC23-42AC-AF48-EC90A6CA5AEA)
+ios: iOS 26.5 (26.5 - 23F77) - com.apple.CoreSimulator.SimRuntime.iOS-26-5
+app commit: 22b9664
+maestro exit code: 1 (0 = every step passed)
+files:
+total 8
+drwxr-xr-x  3 user304727  _developer   96 Oct 11 04:42 .
+drwxr-xr-x  8 user304727  _developer  256 Oct 11 04:40 ..
+-rw-r--r--  1 user304727  _developer  212 Oct 11 04:42 REPORT.txt
+
+Image sizes:

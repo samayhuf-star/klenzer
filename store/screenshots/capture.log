@@ -1,0 +1,235 @@
+
+[1;36m== 1/9 Preflight[0m
+
+[1;36m== Installing a Java runtime into ~/tools (no admin needed)[0m
+
+[1;36m== Installing Maestro (UI automation) into ~/.maestro[0m
+* Create distribution directories...
+* Downloading...
+#=#=#                                                                          ##O#-#                                                                         ##O=#  #                                                                       #=#=-#  #                                                                      -#O#- #   #                                                                                                                                               0.7%#                                                                          1.6%#                                                                          2.4%##                                                                         3.3%###                                                                        4.2%###                                                                        5.0%####                                                                       5.9%####                                                                       6.8%#####                                                                      7.7%######                                                                     8.6%######                                                                     9.5%#######                                                                   10.4%########                                                                  11.3%########                                                                  12.2%#########                                                                 13.1%##########                                                                13.9%##########                                                                14.8%###########                                                               15.7%###########                                                               16.6%############                                                              17.5%#############                                                             18.3%#############                                                             19.0%##############                                                            19.7%##############                                                            20.4%###############                                                           21.0%###############                                                           21.7%################                                                          22.5%################                                                          23.1%#################                                                         23.8%#################                                                         24.5%##################                                                        25.3%##################                                                        26.0%###################                                                       26.7%###################                                                       27.4%####################                                                      28.1%####################                                                      28.8%#####################                                                     29.5%#####################                                                     30.2%######################                                                    31.0%######################                                                    31.7%#######################                                                   32.4%#######################                                                   33.1%########################                                                  33.8%########################                                                  34.5%#########################                                                 35.2%#########################                                                 35.9%##########################                                                36.5%##########################                                                37.2%###########################                                               38.3%############################                                              39.0%############################                                              39.7%#############################                                             40.4%#############################                                             41.1%##############################                                            41.7%##############################                                            42.4%###############################                                           43.1%###############################                                           43.9%################################                                          44.5%################################                                          45.2%#################################                                         45.9%#################################                                         46.8%##################################                                        47.7%###################################                                       48.6%###################################                                       49.5%####################################                                      50.3%####################################                                      51.2%#####################################                                     52.1%######################################                                    53.0%######################################                                    53.9%#######################################                                   54.7%########################################                                  55.6%########################################                                  56.5%#########################################                                 57.4%#########################################                                 58.2%##########################################                                59.0%###########################################                               59.8%###########################################                               60.6%############################################                              61.5%############################################                              62.4%#############################################                             63.2%##############################################                            64.0%##############################################                            64.9%###############################################                           65.8%################################################                          66.7%################################################                          67.6%#################################################                         68.5%#################################################                         69.4%##################################################                        70.2%###################################################                       71.1%###################################################                       71.9%####################################################                      72.9%#####################################################                     73.7%#####################################################                     74.5%######################################################                    75.4%######################################################                    76.3%#######################################################                   77.2%########################################################                  78.0%########################################################                  78.8%#########################################################                 79.6%#########################################################                 80.6%##########################################################                81.4%###########################################################               82.2%###########################################################               83.0%############################################################              83.7%############################################################              84.3%#############################################################             85.0%#############################################################             85.7%##############################################################            86.4%##############################################################            87.1%###############################################################           87.8%###############################################################           88.5%################################################################          89.2%################################################################          89.9%#################################################################         90.6%#################################################################         91.2%##################################################################        91.9%##################################################################        92.5%###################################################################       93.2%###################################################################       93.9%####################################################################      94.6%####################################################################      95.3%#####################################################################     96.0%#####################################################################     96.7%######################################################################    97.4%######################################################################    98.1%#######################################################################   98.8%#######################################################################   99.5%######################################################################## 100.0%
+* Checking archive integrity...
+* Extracting archive...
+* Remove previous installation (if any)
+* Copying archive contents...
+* Cleaning up...
+
+
+Installation was successful!
+Please open a new terminal OR run the following in the existing one:
+
+    export PATH="$PATH":"$HOME/.maestro/bin"
+
+Then run the following command:
+
+    maestro
+
+Welcome to Maestro!
+
+[1;36m== 2/9 Get the code[0m
+Cloning into '/Users/user304727/klenzer-shots/app'...
+npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+
+added 596 packages in 4s
+npm notice
+npm notice New major version of npm available! 11.19.1 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+
+[1;36m== 3/9 Pick + boot the best available iPhone simulator (Pro Max preferred)[0m
+Using: iPhone 17 Pro Max (3DCD4EA1-FC23-42AC-AF48-EC90A6CA5AEA)
+
+[1;36m== 4/9 Generate seed media (synthetic images: no copyrighted content)[0m
+generated
+dates set
+
+[1;36m== 5/9 Seed the simulator photo library[0m
+Seeded.
+
+[1;36m== 6/9 Build the real app (Release) and install it[0m
+› Preparing Klenzer » Info.plist
+› Compiling Klenzer » Klenzer_vers.c
+› Compiling Klenzer » Klenzer_vers.c
+› Linking   Klenzer » Klenzer
+› Linking   Klenzer » Klenzer
+› Executing Klenzer » Bundle React Native code and images
+    Eager bundle does not match new options, bundling again.
+› Generating debug Klenzer » Klenzer.app.dSYM
+› Executing Klenzer » [CP] Copy Pods Resources
+› Executing Klenzer » [CP] Embed Pods Frameworks
+› Signing   Klenzer » Klenzer.app
+› Creating  Klenzer » Klenzer.app
+› Build Succeeded
+
+› 0 error(s), and 1 warning(s)
+
+Waiting on http://localhost:8081
+› Installing /Users/user304727/Library/Developer/Xcode/DerivedData/Klenzer-eclmiflowcxihpaprgquohwgwqes/Build/Products/Release-iphonesimulator/Klenzer.app
+› Installing on iPhone 17 Pro Max
+› Opening on iPhone 17 Pro Max (com.krosz.klenzer)
+› Opening com.krosz.klenzer://expo-development-client/?url=http%3A%2F%2F8.49.218.181%3A8081 on iPhone 17 Pro Max
+Error: osascript -e tell app "System Events" to count processes whose name is "Simulator" or name is "DeviceHub" exited with non-zero code: 1
+Error: osascript -e tell app "System Events" to count processes whose name is "Simulator" or name is "DeviceHub" exited with non-zero code: 1
+    at ChildProcess.completionListener (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/@expo/spawn-async/build/spawnAsync.js:113:23)
+    at ChildProcess.wrapper (node:events:639:12)
+    at ChildProcess.emit (node:events:514:20)
+    at maybeClose (node:internal/child_process:1125:16)
+    at Socket.<anonymous> (node:internal/child_process:497:11)
+    at Socket.emit (node:events:514:20)
+    at Pipe.<anonymous> (node:net:362:12)
+    ...
+    at spawnAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/@expo/spawn-async/build/spawnAsync.js:9:23)
+    at osascriptSpawnAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/@expo/osascript/build/index.js:45:44)
+    at isSimulatorAppRunningAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/expo/node_modules/@expo/cli/build/src/start/platforms/ios/ensureSimulatorAppRunning.js:98:58)
+    at ensureSimulatorAppRunningAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/expo/node_modules/@expo/cli/build/src/start/platforms/ios/ensureSimulatorAppRunning.js:75:15)
+    at AppleDeviceManager.activateWindowAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/expo/node_modules/@expo/cli/build/src/start/platforms/ios/AppleDeviceManager.js:271:77)
+    at ApplePlatformManager.openProjectInCustomRuntimeAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/expo/node_modules/@expo/cli/build/src/start/platforms/PlatformManager.js:113:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async launchAppAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/expo/node_modules/@expo/cli/build/src/run/ios/launchApp.js:115:5)
+    at async runIosAsync (/Volumes/Macintosh_HD/Users/user304727/klenzer-shots/app/node_modules/expo/node_modules/@expo/cli/build/src/run/ios/runIosAsync.js:251:5)
+
+[1;36m== 7/9 Drive the UI with Maestro and capture screenshots[0m
+Anonymous analytics enabled. To opt out, set MAESTRO_CLI_NO_ANALYTICS environment variable to any value before running Maestro.
+
+
+iOS driver not ready in time, consider increasing timeout by configuring MAESTRO_DRIVER_STARTUP_TIMEOUT env variable
+
+The stack trace was:
+xcuitest.installer.LocalXCTestInstaller$IOSDriverTimeoutException: iOS driver not ready in time, consider increasing timeout by configuring MAESTRO_DRIVER_STARTUP_TIMEOUT env variable
+	at xcuitest.installer.LocalXCTestInstaller.start$lambda$3(LocalXCTestInstaller.kt:134)
+	at maestro.utils.Metrics.measured(Metrics.kt:48)
+	at xcuitest.installer.LocalXCTestInstaller.start(LocalXCTestInstaller.kt:104)
+	at xcuitest.XCTestDriverClient.restartXCTestRunner(XCTestDriverClient.kt:60)
+	at ios.xctest.XCTestIOSDevice.open(XCTestIOSDevice.kt:26)
+	at ios.LocalIOSDevice.open(LocalIOSDevice.kt:27)
+	at maestro.drivers.IOSDriver.open$lambda$3(IOSDriver.kt:94)
+	at maestro.utils.Metrics.measured(Metrics.kt:48)
+	at maestro.utils.Metrics.measured$default(Metrics.kt:42)
+	at maestro.drivers.IOSDriver.open(IOSDriver.kt:93)
+	at maestro.Maestro$Companion.ios(Maestro.kt:802)
+	at maestro.cli.session.MaestroSessionManager.createIOS(MaestroSessionManager.kt:446)
+	at maestro.cli.session.MaestroSessionManager.createMaestro(MaestroSessionManager.kt:218)
+	at maestro.cli.session.MaestroSessionManager.newSession(MaestroSessionManager.kt:106)
+	at maestro.cli.session.MaestroSessionManager.newSession$default(MaestroSessionManager.kt:64)
+	at maestro.cli.command.TestCommand.runShardSuite(TestCommand.kt:477)
+	at maestro.cli.command.TestCommand.access$runShardSuite(TestCommand.kt:81)
+	at maestro.cli.command.TestCommand$handleSessions$1$results$1$1.invokeSuspend(TestCommand.kt:438)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+
+[1;36m== 8/9 Report[0m
+device: iPhone 17 Pro Max (3DCD4EA1-FC23-42AC-AF48-EC90A6CA5AEA)
+ios: iOS 26.5 (26.5 - 23F77) - com.apple.CoreSimulator.SimRuntime.iOS-26-5
+app commit: 72943be
+maestro exit code: 1 (0 = every step passed)
+files:
+total 8
+drwxr-xr-x  3 user304727  _developer   96 Oct  9 08:34 .
+drwxr-xr-x  8 user304727  _developer  256 Oct  9 08:31 ..
+-rw-r--r--  1 user304727  _developer  212 Oct  9 08:34 REPORT.txt
+
+Image sizes:
+
+[1;36m== 9/9 Send the screenshots back (git push to branch 'screenshots')[0m
+remote: 
+remote: Create a pull request for 'screenshots' on GitHub by visiting:        
+remote:      https://github.com/samayhuf-star/klenzer/pull/new/screenshots        
+remote: 
+PUSHED: https://github.com/samayhuf-star/klenzer/tree/screenshots/store/screenshots
+
+DONE. Tell Claude: the screenshots branch is pushed.
+
+[1;36m== 1/9 Preflight[0m
+
+[1;36m== 2/9 Get the code[0m
+npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+
+added 596 packages in 11s
+
+[1;36m== 3/9 Pick + boot the best available iPhone simulator (Pro Max preferred)[0m
+Using: iPhone 17 Pro Max (3DCD4EA1-FC23-42AC-AF48-EC90A6CA5AEA)
+
+[1;36m== 4/9 Generate seed media (synthetic images: no copyrighted content)[0m
+generated
+dates set
+
+[1;36m== 5/9 Seed the simulator photo library[0m
+Seeded.
+
+[1;36m== 6/9 Build the real app (Release) and install it[0m
+› Using --device 3DCD4EA1-FC23-42AC-AF48-EC90A6CA5AEA
+Using src/app as the root directory for Expo Router.
+Starting Metro Bundler
+
+iOS Bundled 5434ms node_modules/expo-router/entry.js (1763 modules)
+Writing bundle output to: /var/folders/n3/p3c6ctqd0zz3f6p25khqcmmm0000jq/T/td257flgpm/main.jsbundle
+Copying 79 asset files
+Done writing bundle output
+› Planning build
+› Executing react-native Pods/hermes-engine » [CP-User] [Hermes] Replace Hermes for the right configuration, if needed
+
+❌  Script '[CP-User] [Hermes] Replace Hermes for the right configuration, if needed' failed
+   └─Pods/hermes-engine
+Node found at: /opt/homebrew/Cellar/node/26.9.0/bin/node
+/Users/user304727/Library/Developer/Xcode/DerivedData/Klenzer-eclmiflowcxihpaprgquohwgwqes/Build/Intermediates.noindex/Pods.build/Release-iphonesimulator/hermes-engine.build/Script-46EB2E000216D0.sh: line 9: /opt/homebrew/Cellar/node/26.9.0/bin/node: No such file or directory
+
+› Copying   EXApplication/ExpoApplication_privacy.bundle/PrivacyInfo.xcprivacy ➜ node_modules/expo-application/ios/PrivacyInfo.xcprivacy
+› Preparing Pods/EXApplication-ExpoApplication_privacy » ResourceBundle-ExpoApplication_privacy-EXApplication-Info.plist
+
+› 1 error(s), and 0 warning(s)
+
+CommandError: Failed to build iOS project. "xcodebuild" exited with error code 65.
+
+[1;36m== 7/9 Drive the UI with Maestro and capture screenshots[0m
+
+iOS driver not ready in time, consider increasing timeout by configuring MAESTRO_DRIVER_STARTUP_TIMEOUT env variable
+
+The stack trace was:
+xcuitest.installer.LocalXCTestInstaller$IOSDriverTimeoutException: iOS driver not ready in time, consider increasing timeout by configuring MAESTRO_DRIVER_STARTUP_TIMEOUT env variable
+	at xcuitest.installer.LocalXCTestInstaller.start$lambda$3(LocalXCTestInstaller.kt:134)
+	at maestro.utils.Metrics.measured(Metrics.kt:48)
+	at xcuitest.installer.LocalXCTestInstaller.start(LocalXCTestInstaller.kt:104)
+	at xcuitest.XCTestDriverClient.restartXCTestRunner(XCTestDriverClient.kt:60)
+	at ios.xctest.XCTestIOSDevice.open(XCTestIOSDevice.kt:26)
+	at ios.LocalIOSDevice.open(LocalIOSDevice.kt:27)
+	at maestro.drivers.IOSDriver.open$lambda$3(IOSDriver.kt:94)
+	at maestro.utils.Metrics.measured(Metrics.kt:48)
+	at maestro.utils.Metrics.measured$default(Metrics.kt:42)
+	at maestro.drivers.IOSDriver.open(IOSDriver.kt:93)
+	at maestro.Maestro$Companion.ios(Maestro.kt:802)
+	at maestro.cli.session.MaestroSessionManager.createIOS(MaestroSessionManager.kt:446)
+	at maestro.cli.session.MaestroSessionManager.createMaestro(MaestroSessionManager.kt:218)
+	at maestro.cli.session.MaestroSessionManager.newSession(MaestroSessionManager.kt:106)
+	at maestro.cli.session.MaestroSessionManager.newSession$default(MaestroSessionManager.kt:64)
+	at maestro.cli.command.TestCommand.runShardSuite(TestCommand.kt:477)
+	at maestro.cli.command.TestCommand.access$runShardSuite(TestCommand.kt:81)
+	at maestro.cli.command.TestCommand$handleSessions$1$results$1$1.invokeSuspend(TestCommand.kt:438)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+
+[1;36m== 8/9 Report[0m
+device: iPhone 17 Pro Max (3DCD4EA1-FC23-42AC-AF48-EC90A6CA5AEA)
+ios: iOS 26.5 (26.5 - 23F77) - com.apple.CoreSimulator.SimRuntime.iOS-26-5
+app commit: 22b9664
+maestro exit code: 1 (0 = every step passed)
+files:
+total 8
+drwxr-xr-x  3 user304727  _developer   96 Oct 11 04:42 .
+drwxr-xr-x  8 user304727  _developer  256 Oct 11 04:40 ..
+-rw-r--r--  1 user304727  _developer  212 Oct 11 04:42 REPORT.txt
+
+Image sizes:
