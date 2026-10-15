@@ -17,7 +17,7 @@ import { colors, fonts } from '../theme';
 const IOS = Platform.OS === 'ios';
 
 export default function Done() {
-  const { lastFreed, lifetimeFreed } = useStore();
+  const { lastFreed, lifetimeFreed, pending, openPhotos } = useStore();
   const insets = useSafeAreaInsets();
   const pop = useSharedValue(0);
   const badge = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
@@ -56,12 +56,17 @@ export default function Done() {
           )}
           <Text style={styles.sub}>
             {IOS
-              ? `${lastFreed?.count.toLocaleString()} ${lastFreed?.count === 1 ? 'item is' : 'items are'} now in Recently Deleted. Open Photos › Recently Deleted › Delete All to free the space right away, or leave them there for 30 days in case you change your mind.`
+              ? lastFreed?.count
+                ? `${lastFreed.count.toLocaleString()} ${lastFreed.count === 1 ? 'item is' : 'items are'} in Recently Deleted. iPhone only gives the space back once you empty it, and apps aren’t allowed to do that for you. Tap below, then Recently Deleted › Select › Delete All.`
+                : 'Temporary files removed.'
+              : !lastFreed?.count
+              ? 'Temporary files removed.'
               : `${lastFreed?.count.toLocaleString()} ${lastFreed?.count === 1 ? 'item was' : 'items were'} deleted from your device.`}
           </Text>
           {lifetimeFreed > bytes && <Text style={styles.total}>{formatBytes(lifetimeFreed)} cleared in total</Text>}
         </Animated.View>
       </View>
+      {IOS && pending && <Button variant="primary" label="Open Photos to empty Recently Deleted" onPress={openPhotos} style={{ marginBottom: 12 }} />}
       <Button variant="light" label="Done" onPress={() => router.replace('/')} />
     </LinearGradient>
   );

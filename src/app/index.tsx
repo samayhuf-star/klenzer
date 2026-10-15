@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { ReactNode } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { ReactNode, useCallback } from 'react';
+import { Platform } from 'react-native';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,14 +10,17 @@ import { Button } from '../components/Button';
 import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
 import { Ring } from '../components/Ring';
+import { ScanPulse } from '../components/ScanPulse';
+import { KINDS } from '../lib/kinds';
 import { formatBytes } from '../lib/format';
-import { dupExtraCount, dupReclaimable, sum } from '../lib/scanner';
+import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed } = useStore();
+  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos } = useStore();
+  useFocusEffect(useCallback(() => refreshDisk(), [refreshDisk]));
   const usedPct = disk.total ? disk.used / disk.total : 0;
   const denied = access === 'denied';
 
@@ -60,9 +64,19 @@ export default function Home() {
         </Notice>
       )}
 
+      {pending && Platform.OS === 'ios' && (
+        <Notice icon="trash-bin" tone="amber" title={`${formatBytes(pending.bytes)} still in Recently Deleted`} body="iPhone only frees this space once Recently Deleted is emptied, and apps can’t do that for you. Open Photos › Recently Deleted › Select › Delete All.">
+          <Button variant="light" label="Open Photos" onPress={openPhotos} />
+          <Button variant="ghost" label="I’ve emptied it" onPress={dismissPending} />
+        </Notice>
+      )}
+
       {scanning ? (
         <Animated.View entering={FadeInDown} style={[styles.card, { marginTop: 16 }]}>
-          <Text style={styles.cardTitle}>{phase}…</Text>
+          <View style={{ alignItems: 'center', marginBottom: 6 }}>
+            <ScanPulse size={110} />
+          </View>
+          <Text style={[styles.cardTitle, { textAlign: 'center' }]}>{phase}…</Text>
           <View style={styles.bar}>
             <View style={[styles.barFill, { width: `${Math.max(4, pct)}%` }]} />
           </View>
@@ -113,6 +127,47 @@ export default function Home() {
             bytes={sum(result.largeVideos)}
             hint="Videos over 100 MB, biggest first"
           />
+          {Platform.OS === 'ios' && (
+            <Category
+              kind="live"
+              icon={KINDS.live.icon}
+              tone={KINDS.live.tone}
+              soft={KINDS.live.soft}
+              title={KINDS.live.title}
+              count={result.livePhotos.length}
+              bytes={sum(result.livePhotos)}
+              hint="Photos that also store a short video clip"
+            />
+          )}
+          <Category
+            kind="temp"
+            icon={KINDS.temp.icon}
+            tone={KINDS.temp.tone}
+            soft={KINDS.temp.soft}
+            title={KINDS.temp.title}
+            count={tempSize > 0 ? 1 : 0}
+            bytes={tempSize}
+            hint="Klenzer’s own cache. Other apps’ data can’t be touched"
+            onPress={() => {
+              router.push('/cleaning');
+              clean([{ kind: 'temp', items: [] }]);
+            }}
+          />
+          {(result.duplicates.length > 0 || tempSize > 0) && (
+            <Button
+              label="Quick clean: duplicates + temporary files"
+              icon={<Ionicons name="flash" size={20} color="#fff" />}
+              onPress={() => {
+                const plan = [
+                  ...(result.duplicates.length ? [{ kind: 'duplicates' as const, items: result.duplicates.flatMap(dupExtras) }] : []),
+                  ...(tempSize > 0 ? [{ kind: 'temp' as const, items: [] }] : []),
+                ];
+                router.push('/cleaning');
+                clean(plan);
+              }}
+              style={{ marginTop: 6 }}
+            />
+          )}
           <Text style={styles.foot}>
             Scanned {result.photoCount.toLocaleString()} photos and {result.videoCount.toLocaleString()} videos. Photos stored only in iCloud aren’t measured.
           </Text>
@@ -129,11 +184,11 @@ export default function Home() {
   );
 }
 
-function Category(p: { kind: string; icon: string; tone: string; soft: string; title: string; count: number; bytes: number; hint: string }) {
+function Category(p: { onPress?: () => void; kind: string; icon: string; tone: string; soft: string; title: string; count: number; bytes: number; hint: string }) {
   const empty = p.count === 0;
   return (
     <PressableScale
-      onPress={() => !empty && router.push({ pathname: '/review/[kind]', params: { kind: p.kind } })}
+      onPress={() => !empty && (p.onPress ? p.onPress() : router.push({ pathname: '/review/[kind]', params: { kind: p.kind } }))}
       accessibilityLabel={`${p.title}, ${p.count} items`}
       style={[styles.card, styles.cat]}>
       <View style={[styles.catIcon, { backgroundColor: empty ? colors.mintSoft : p.soft }]}>
@@ -146,7 +201,7 @@ function Category(p: { kind: string; icon: string; tone: string; soft: string; t
       {!empty && (
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={styles.catBytes}>{p.bytes > 0 ? formatBytes(p.bytes) : `${p.count}`}</Text>
-          <Text style={styles.catCount}>{p.count.toLocaleString()} items</Text>
+          <Text style={styles.catCount}>{p.kind === 'temp' ? 'tap to clear' : `${p.count.toLocaleString()} items`}</Text>
         </View>
       )}
       {!empty && <Ionicons name="chevron-forward" size={18} color={colors.ink3} />}

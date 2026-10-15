@@ -22,6 +22,7 @@ export type ScanResult = {
   duplicates: DuplicateGroup[];
   screenshots: Item[];
   largeVideos: Item[];
+  livePhotos: Item[];
 };
 
 export type Progress = { phase: 'reading' | 'measuring'; done: number; total: number };
@@ -42,6 +43,9 @@ const toItem = (a: MediaLibrary.Asset): Item => ({
   size: 0,
   isVideo: a.mediaType === 'video',
 });
+
+const isLive = (a: MediaLibrary.Asset) =>
+  a.mediaType === 'photo' && !!a.mediaSubtypes?.includes('livePhoto') && !isScreenshot(a);
 
 const isScreenshot = (a: MediaLibrary.Asset) =>
   a.mediaType === 'photo' &&
@@ -109,10 +113,11 @@ export async function scanLibrary(
   for (const [, list] of dupAssets) for (const a of list) dupItems.set(a.id, toItem(a));
 
   const screenshots = photos.filter(isScreenshot).map(toItem);
+  const liveItems = photos.filter(isLive).map(toItem);
   const videoItems = videos.map(toItem).filter((v) => v.duration >= 3);
 
   // Measure sizes for everything we might show (bounded).
-  const toMeasure = [...dupItems.values(), ...screenshots.slice(0, MAX_MEASURE), ...videoItems.slice(0, MAX_MEASURE)];
+  const toMeasure = [...dupItems.values(), ...screenshots.slice(0, MAX_MEASURE), ...videoItems.slice(0, MAX_MEASURE), ...liveItems.slice(0, MAX_MEASURE)];
   let measured = 0;
   onProgress({ phase: 'measuring', done: 0, total: toMeasure.length });
   await measureAll(toMeasure, () => onProgress({ phase: 'measuring', done: ++measured, total: toMeasure.length }), signal);
@@ -132,6 +137,7 @@ export async function scanLibrary(
     duplicates,
     screenshots: screenshots.sort((a, b) => b.size - a.size),
     largeVideos: videoItems.filter((v) => v.size >= LARGE_VIDEO_BYTES).sort((a, b) => b.size - a.size),
+    livePhotos: liveItems.sort((a, b) => b.size - a.size),
   };
 }
 
