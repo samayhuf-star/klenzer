@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,8 @@ import { colors, fonts } from '../theme';
 const IOS = Platform.OS === 'ios';
 
 export default function Done() {
-  const { lastFreed, lifetimeFreed } = useStore();
+  const { lastFreed, lifetimeFreed, pending, openPhotos, reminders, setReminders } = useStore();
+  const [asked, setAsked] = useState(false);
   const insets = useSafeAreaInsets();
   const pop = useSharedValue(0);
   const badge = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
@@ -56,12 +57,26 @@ export default function Done() {
           )}
           <Text style={styles.sub}>
             {IOS
-              ? `${lastFreed?.count.toLocaleString()} ${lastFreed?.count === 1 ? 'item is' : 'items are'} now in Recently Deleted. Open Photos › Recently Deleted › Delete All to free the space right away, or leave them there for 30 days in case you change your mind.`
+              ? lastFreed?.count
+                ? `${lastFreed.count.toLocaleString()} ${lastFreed.count === 1 ? 'item is' : 'items are'} in Recently Deleted. iPhone only gives the space back once you empty it, and apps aren’t allowed to do that for you. Tap below, then Recently Deleted › Select › Delete All.`
+                : 'Temporary files removed.'
+              : !lastFreed?.count
+              ? 'Temporary files removed.'
               : `${lastFreed?.count.toLocaleString()} ${lastFreed?.count === 1 ? 'item was' : 'items were'} deleted from your device.`}
           </Text>
           {lifetimeFreed > bytes && <Text style={styles.total}>{formatBytes(lifetimeFreed)} cleared in total</Text>}
         </Animated.View>
       </View>
+      {!reminders && !asked && (
+        <Animated.View entering={FadeInUp.delay(1200)} style={styles.ask}>
+          <Text style={styles.askText}>Want an occasional nudge to tidy up? A few reminders at most, never more than one a day.</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Button variant="ghost" label="Not now" onPress={() => setAsked(true)} style={{ flex: 1 }} />
+            <Button label="Remind me" onPress={async () => { await setReminders(true); setAsked(true); }} style={{ flex: 1 }} />
+          </View>
+        </Animated.View>
+      )}
+      {IOS && pending && <Button variant="primary" label="Open Photos to empty Recently Deleted" onPress={openPhotos} style={{ marginBottom: 12 }} />}
       <Button variant="light" label="Done" onPress={() => router.replace('/')} />
     </LinearGradient>
   );
@@ -75,5 +90,7 @@ const styles = StyleSheet.create({
   kicker: { fontFamily: fonts.bold, fontSize: 14, letterSpacing: 2, color: colors.mint, textTransform: 'uppercase' },
   big: { fontFamily: fonts.display, fontSize: 44, color: '#fff', letterSpacing: -1, textAlign: 'center' },
   sub: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: '#B6C3EA', textAlign: 'center', maxWidth: 320, marginTop: 6 },
+  ask: { gap: 12, marginBottom: 14 },
+  askText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: '#B6C3EA', textAlign: 'center' },
   total: { fontFamily: fonts.semi, fontSize: 14, color: colors.mint, marginTop: 10 },
 });

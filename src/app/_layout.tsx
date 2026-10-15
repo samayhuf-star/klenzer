@@ -30,6 +30,7 @@ function Shell() {
           <Stack.Protected guard={onboarded}>
             <Stack.Screen name="index" />
             <Stack.Screen name="review/[kind]" />
+            <Stack.Screen name="cleaning" options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="done" options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="settings" />
             <Stack.Screen name="privacy" />

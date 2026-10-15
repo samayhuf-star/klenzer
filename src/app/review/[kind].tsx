@@ -16,20 +16,20 @@ const COPY = {
   duplicates: { title: 'Duplicates & near-identical', help: 'Photos taken at the same moment with the same dimensions. We keep the largest file in each set; tap any photo to change what’s selected.' },
   screenshots: { title: 'Screenshots', help: 'Nothing is selected by default. Tap the ones you want to clear.' },
   videos: { title: 'Large videos', help: 'Videos over 100 MB, biggest first. Nothing is selected by default.' },
+  live: { title: 'Live Photos', help: 'Deleting a Live Photo removes the photo and its motion clip. Sizes shown are the still photo only, so you will free more than shown. Nothing is selected by default.' },
 } as const;
 type Kind = keyof typeof COPY;
 
 export default function Review() {
   const { kind: raw } = useLocalSearchParams<{ kind: string }>();
   const kind = (raw in COPY ? raw : 'screenshots') as Kind;
-  const { result, remove } = useStore();
+  const { result, clean } = useStore();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const [busy, setBusy] = useState(false);
 
   const groups = result?.duplicates ?? [];
   const flat: Item[] = useMemo(
-    () => (kind === 'duplicates' ? groups.flatMap((g) => g.items) : kind === 'screenshots' ? result?.screenshots ?? [] : result?.largeVideos ?? []),
+    () => (kind === 'duplicates' ? groups.flatMap((g) => g.items) : kind === 'screenshots' ? result?.screenshots ?? [] : kind === 'live' ? result?.livePhotos ?? [] : result?.largeVideos ?? []),
     [kind, groups, result],
   );
 
@@ -53,16 +53,10 @@ export default function Review() {
   const doDelete = async () => {
     // A set where every copy is selected would delete the photo entirely: confirm explicitly.
     const wipesGroup = kind === 'duplicates' && groups.some((g) => g.items.every((i) => sel.has(i.id)));
-    const go = async () => {
-      setBusy(true);
-      try {
-        const ok = await remove(chosen);
-        if (ok) router.replace('/done');
-      } catch {
-        Alert.alert('Couldn’t delete', 'Something went wrong. Nothing was removed.');
-      } finally {
-        setBusy(false);
-      }
+    const go = () => {
+      // The cleaning screen shows live progress while the OS asks for confirmation and deletes.
+      router.push('/cleaning');
+      clean([{ kind, items: chosen }]);
     };
     if (wipesGroup) {
       Alert.alert('Delete every copy?', 'At least one set has all of its photos selected, so no copy would be kept.', [
@@ -138,13 +132,12 @@ export default function Review() {
       <View style={[styles.bar, { paddingBottom: insets.bottom + 12 }]}>
         <Button
           variant="danger"
-          busy={busy}
           disabled={chosen.length === 0}
           icon={<Ionicons name="trash" size={19} color="#fff" />}
           label={chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Select items to delete'}
           onPress={doDelete}
         />
-        <Text style={styles.barNote}>{Platform.OS === 'ios' ? 'Your iPhone will ask you to confirm. Items go to Recently Deleted first.' : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}</Text>
+        <Text style={styles.barNote}>{Platform.OS === 'ios' ? 'Your iPhone will ask you to confirm. Items go to Recently Deleted; Klenzer will take you to Photos to empty it.' : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}</Text>
       </View>
     </View>
   );
