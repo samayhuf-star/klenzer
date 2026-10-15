@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
@@ -12,7 +12,15 @@ import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
-  const { access, openSettings, lifetimeFreed } = useStore();
+  const { access, openSettings, lifetimeFreed, reminders, setReminders } = useStore();
+  const toggle = async (on: boolean) => {
+    if ((await setReminders(on)) === 'blocked') {
+      Alert.alert('Notifications are off', 'Turn on notifications for Klenzer in Settings to get reminders.', [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Open Settings', onPress: openSettings },
+      ]);
+    }
+  };
   const accessLabel = access === 'granted' ? 'Full access' : access === 'limited' ? 'Limited' : access === 'denied' ? 'Off' : 'Not asked yet';
 
   return (
@@ -28,6 +36,11 @@ export default function Settings() {
         <View style={styles.card}>
           <Row icon="images-outline" label="Photo access" value={accessLabel} onPress={openSettings} />
           <Row icon="leaf-outline" label="Total cleared" value={formatBytes(lifetimeFreed)} />
+          <View style={styles.row}>
+            <Ionicons name="notifications-outline" size={22} color={colors.blue} />
+            <Text style={styles.label}>Cleanup reminders</Text>
+            <Switch value={reminders} onValueChange={toggle} trackColor={{ true: colors.blue }} />
+          </View>
         </View>
         <View style={styles.card}>
           <Row icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => router.push('/privacy')} chevron />

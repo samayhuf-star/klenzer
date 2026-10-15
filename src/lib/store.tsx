@@ -6,6 +6,7 @@ import { DiskInfo, getDiskInfo } from './disk';
 import { Kind } from './kinds';
 import { deleteItems, Item, Progress, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
+import { disableReminders, enableReminders, permissionState, remindersPref, scheduleReminders } from './reminders';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
 
@@ -43,6 +44,8 @@ type Ctx = {
   pending: Pending | null;
   dismissPending: () => void;
   openPhotos: () => void;
+  reminders: boolean;
+  setReminders: (on: boolean) => Promise<'on' | 'off' | 'blocked'>;
   lifetimeFreed: number;
   lastFreed: { bytes: number; count: number } | null;
 };
@@ -68,6 +71,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [cleaning, setCleaning] = useState<Cleaning | null>(null);
   const [tempSize, setTempSize] = useState(0);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [reminders, setRemindersState] = useState(false);
   const signal = useRef({ cancelled: false });
 
   useEffect(() => {
@@ -81,6 +85,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setOnboarded(o === '1');
         setLifetimeFreed(Number(f) || 0);
         if (pd) setPending(JSON.parse(pd));
+      } catch {}
+      try {
+        setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
       } catch {}
       try {
         const p = await MediaLibrary.getPermissionsAsync(false, ['photo', 'video']);
@@ -132,6 +139,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       AsyncStorage.removeItem(KEYS.pending).catch(() => {});
     }
   }, [disk.free, pending]);
+
+  // Every time the user opens the app, push all reminders back so active users aren't nagged.
+  useEffect(() => {
+    if (!ready) return;
+    scheduleReminders({ pendingBytes: pending?.bytes });
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && scheduleReminders({ pendingBytes: pending?.bytes }));
+    return () => sub.remove();
+  }, [ready, pending?.bytes]);
+
+  const setReminders = useCallback(async (on: boolean) => {
+    if (!on) {
+      await disableReminders();
+      setRemindersState(false);
+      return 'off' as const;
+    }
+    const ok = await enableReminders(pending?.bytes);
+    setRemindersState(ok);
+    return ok ? ('on' as const) : ('blocked' as const);
+  }, [pending?.bytes]);
 
   const dismissPending = useCallback(() => {
     setPending(null);
@@ -258,9 +284,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, lifetimeFreed, lastFreed,
+      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lastFreed,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, lifetimeFreed, lastFreed],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lastFreed],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
