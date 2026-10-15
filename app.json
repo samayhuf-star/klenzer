@@ -104,7 +104,8 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withoutPushEntitlement"
     ],
     "experiments": {
       "typedRoutes": true
