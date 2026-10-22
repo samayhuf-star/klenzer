@@ -58,13 +58,13 @@ export default function Done() {
           <Text style={styles.sub}>
             {IOS
               ? lastFreed?.count
-                ? `${lastFreed.count.toLocaleString()} ${lastFreed.count === 1 ? 'item is' : 'items are'} in Recently Deleted. iPhone only gives the space back once you empty it, and apps aren’t allowed to do that for you. Tap below, then Recently Deleted › Select › Delete All.`
+                ? `${lastFreed.count.toLocaleString()} ${lastFreed.count === 1 ? 'item is' : 'items are'} in Recently Deleted. iPhone only gives the space back once you empty it, and apps aren’t allowed to do that for you. Tap below, unlock with Face ID, then Select › Delete All.`
                 : 'Temporary files removed.'
               : !lastFreed?.count
               ? 'Temporary files removed.'
               : `${lastFreed?.count.toLocaleString()} ${lastFreed?.count === 1 ? 'item was' : 'items were'} deleted from your device.`}
           </Text>
-          {lifetimeFreed > bytes && <Text style={styles.total}>{formatBytes(lifetimeFreed)} cleared in total</Text>}
+          {lifetimeFreed > 0 && <Text style={styles.total}>{formatBytes(lifetimeFreed)} freed with Klenzer so far{IOS && pending ? ` · ${formatBytes(pending.bytes)} waiting in Recently Deleted` : ''}</Text>}
         </Animated.View>
       </View>
       {!reminders && !asked && (
@@ -76,7 +76,7 @@ export default function Done() {
           </View>
         </Animated.View>
       )}
-      {IOS && pending && <Button variant="primary" label="Open Photos to empty Recently Deleted" onPress={openPhotos} style={{ marginBottom: 12 }} />}
+      {IOS && pending && <Button variant="primary" label="Open Recently Deleted" onPress={openPhotos} style={{ marginBottom: 12 }} />}
       <Button variant="light" label="Done" onPress={() => router.replace('/')} />
     </LinearGradient>
   );

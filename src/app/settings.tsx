@@ -35,7 +35,7 @@ export default function Settings() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40, gap: 16 }}>
         <View style={styles.card}>
           <Row icon="images-outline" label="Photo access" value={accessLabel} onPress={openSettings} />
-          <Row icon="leaf-outline" label="Total cleared" value={formatBytes(lifetimeFreed)} />
+          <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} />
           <View style={styles.row}>
             <Ionicons name="notifications-outline" size={22} color={colors.blue} />
             <Text style={styles.label}>Cleanup reminders</Text>

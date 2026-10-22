@@ -19,8 +19,15 @@ import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos } = useStore();
-  useFocusEffect(useCallback(() => refreshDisk(), [refreshDisk]));
+  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos } = useStore();
+  // Free space changes all the time (downloads, iCloud, the system), so keep it live while Home is on screen.
+  useFocusEffect(
+    useCallback(() => {
+      refreshDisk();
+      const t = setInterval(refreshDisk, 5000);
+      return () => clearInterval(t);
+    }, [refreshDisk]),
+  );
   const usedPct = disk.total ? disk.used / disk.total : 0;
   const denied = access === 'denied';
 
@@ -65,8 +72,8 @@ export default function Home() {
       )}
 
       {pending && Platform.OS === 'ios' && (
-        <Notice icon="trash-bin" tone="amber" title={`${formatBytes(pending.bytes)} still in Recently Deleted`} body="iPhone only frees this space once Recently Deleted is emptied, and apps can’t do that for you. Open Photos › Recently Deleted › Select › Delete All.">
-          <Button variant="light" label="Open Photos" onPress={openPhotos} />
+        <Notice icon="trash-bin" tone="amber" title={`${formatBytes(pending.bytes)} still in Recently Deleted`} body="iPhone only frees this space once Recently Deleted is emptied, and apps can’t do that for you. Tap below, unlock with Face ID, then Select › Delete All.">
+          <Button variant="light" label="Open Recently Deleted" onPress={openPhotos} />
           <Button variant="ghost" label="I’ve emptied it" onPress={dismissPending} />
         </Notice>
       )}
@@ -174,10 +181,13 @@ export default function Home() {
         </Animated.View>
       )}
 
-      {lifetimeFreed > 0 && (
+      {(lifetimeFreed > 0 || lifetimeItems > 0) && (
         <View style={styles.lifetime}>
           <Ionicons name="leaf" size={18} color={colors.mint} />
-          <Text style={styles.lifetimeText}>You’ve cleared {formatBytes(lifetimeFreed)} with Klenzer</Text>
+          <Text style={styles.lifetimeText}>
+            You’ve freed <CountUp value={lifetimeFreed} format={(n) => formatBytes(n)} style={styles.lifetimeStrong} />
+            {lifetimeItems > 0 ? ` · ${lifetimeItems.toLocaleString()} ${lifetimeItems === 1 ? 'item' : 'items'} removed` : ''}
+          </Text>
         </View>
       )}
     </ScrollView>
@@ -250,5 +260,6 @@ const styles = StyleSheet.create({
   catCount: { fontFamily: fonts.body, fontSize: 12.5, color: colors.ink3, marginTop: 2 },
   foot: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: colors.ink3, textAlign: 'center', marginTop: 4 },
   lifetime: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 26 },
-  lifetimeText: { fontFamily: fonts.semi, fontSize: 14, color: colors.ink2 },
+  lifetimeText: { fontFamily: fonts.semi, fontSize: 14, color: colors.ink2, textAlign: 'center', flexShrink: 1 },
+  lifetimeStrong: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
 });

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Linking, Platform } from 'react-native';
-import { DiskInfo, getDiskInfo } from './disk';
+import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { deleteItems, Item, Progress, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
@@ -46,11 +46,18 @@ type Ctx = {
   openPhotos: () => void;
   reminders: boolean;
   setReminders: (on: boolean) => Promise<'on' | 'off' | 'blocked'>;
+  /** Space Klenzer has actually given back (on iOS: only once Recently Deleted is emptied). */
   lifetimeFreed: number;
+  /** Every photo, video and temp file Klenzer has removed, so the total moves even when sizes are unknown. */
+  lifetimeItems: number;
   lastFreed: { bytes: number; count: number } | null;
 };
 
-const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v1', pending: 'klenzer.pending.v1' };
+const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v1', items: 'klenzer.items.v1', pending: 'klenzer.pending.v1' };
+
+// Apple has no public link to Recently Deleted. Photos does handle this internal route (iOS 16+, behind Face ID);
+// if a future iOS drops it we fall back to opening Photos itself.
+const RECENTLY_DELETED_URL = 'photos-navigation://album?name=recently-deleted';
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
 
@@ -62,11 +69,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [onboarded, setOnboarded] = useState(false);
   const [access, setAccess] = useState<Access>('unknown');
   const [canAskAgain, setCanAskAgain] = useState(true);
-  const [disk, setDisk] = useState<DiskInfo>(() => getDiskInfo());
+  const [disk, setDisk] = useState<DiskInfo>(() => getDiskInfoSync());
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [lifetimeFreed, setLifetimeFreed] = useState(0);
+  const [lifetimeItems, setLifetimeItems] = useState(0);
   const [lastFreed, setLastFreed] = useState<{ bytes: number; count: number } | null>(null);
   const [cleaning, setCleaning] = useState<Cleaning | null>(null);
   const [tempSize, setTempSize] = useState(0);
@@ -77,13 +85,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [o, f, pd] = await Promise.all([
+        const [o, f, it, pd] = await Promise.all([
           AsyncStorage.getItem(KEYS.onboarded),
           AsyncStorage.getItem(KEYS.freed),
+          AsyncStorage.getItem(KEYS.items),
           AsyncStorage.getItem(KEYS.pending),
         ]);
         setOnboarded(o === '1');
         setLifetimeFreed(Number(f) || 0);
+        setLifetimeItems(Number(it) || 0);
         if (pd) setPending(JSON.parse(pd));
       } catch {}
       try {
@@ -111,10 +121,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return a;
   }, []);
 
+  // Disk reads are async on iOS; ignore any answer that arrives after a newer one was requested.
+  const diskSeq = useRef(0);
   const refreshDisk = useCallback(() => {
-    setDisk(getDiskInfo());
+    const seq = ++diskSeq.current;
+    getDiskInfo().then((d) => seq === diskSeq.current && setDisk(d)).catch(() => {});
     setTempSize(tempBytes());
   }, []);
+
+  const addFreed = useCallback((bytes: number) => {
+    if (bytes <= 0) return;
+    setLifetimeFreed((n) => {
+      const next = n + bytes;
+      AsyncStorage.setItem(KEYS.freed, String(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const addItems = useCallback((count: number) => {
+    if (count <= 0) return;
+    setLifetimeItems((n) => {
+      const next = n + count;
+      AsyncStorage.setItem(KEYS.items, String(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  // Recently Deleted was emptied: that space is now really free, so it joins the lifetime total.
+  // Read through a ref so a double-fired effect can't count the same bytes twice.
+  const pendingRef = useRef<Pending | null>(null);
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  const settlePending = useCallback(() => {
+    const p = pendingRef.current;
+    if (!p) return;
+    pendingRef.current = null;
+    addFreed(p.bytes);
+    setPending(null);
+    AsyncStorage.removeItem(KEYS.pending).catch(() => {});
+  }, [addFreed]);
 
   // The OS updates free space lazily, so re-read it whenever the app comes back to the foreground
   // (e.g. after the user empties Recently Deleted in Photos) and keep polling for a while after a clean.
@@ -128,17 +174,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let n = 0;
     const t = setInterval(() => {
       refreshDisk();
-      if (++n >= 10) clearInterval(t);
+      if (++n >= 20) clearInterval(t);
     }, 1500);
   }, [refreshDisk]);
 
   // Recently Deleted is emptied outside the app; notice it when free space has actually grown.
   useEffect(() => {
-    if (pending && disk.free - pending.baselineFree >= pending.bytes * 0.5) {
-      setPending(null);
-      AsyncStorage.removeItem(KEYS.pending).catch(() => {});
-    }
-  }, [disk.free, pending]);
+    if (pending && disk.free - pending.baselineFree >= pending.bytes * 0.5) settlePending();
+  }, [disk.free, pending, settlePending]);
 
   // Every time the user opens the app, push all reminders back so active users aren't nagged.
   useEffect(() => {
@@ -160,13 +203,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [pending?.bytes]);
 
   const dismissPending = useCallback(() => {
-    setPending(null);
-    AsyncStorage.removeItem(KEYS.pending).catch(() => {});
-  }, []);
+    settlePending();
+    refreshDisk();
+  }, [settlePending, refreshDisk]);
 
-  const openPhotos = useCallback(() => {
-    // Apple gives apps no way to empty Recently Deleted, so hand the user straight to Photos.
-    Linking.openURL(Platform.OS === 'ios' ? 'photos-redirect://' : 'content://media/internal/images/media').catch(() => Linking.openSettings());
+  const openPhotos = useCallback(async () => {
+    // Apple gives apps no way to empty Recently Deleted, so hand the user straight to that album in Photos.
+    if (Platform.OS !== 'ios') {
+      Linking.openURL('content://media/internal/images/media').catch(() => Linking.openSettings());
+      return;
+    }
+    for (const url of [RECENTLY_DELETED_URL, 'photos-redirect://']) {
+      try {
+        await Linking.openURL(url);
+        return;
+      } catch {}
+    }
+    Linking.openSettings();
   }, []);
 
   const scan = useCallback(async () => {
@@ -202,7 +255,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status: 'pending',
     }));
     setCleaning({ rows, phase: 'working', freed: 0 });
-    let freed = 0;
+    let freed = 0; // removed by this clean (shown on the Done screen)
+    let freedNow = 0; // space actually returned right now (lifetime total)
 
     try {
       // 1. Temporary files: no OS dialog, so progress is real, file by file.
@@ -213,6 +267,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           patch((r) => r.map((x, i) => (i === ti ? { ...x, done, count: total, bytes } : x))),
         );
         freed += n;
+        freedNow += n;
         patch((r) => r.map((x, i) => (i === ti ? { ...x, status: 'done', bytes: n } : x)));
       }
 
@@ -227,12 +282,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             phase: 'cancelled',
             freed,
           });
+          addFreed(freedNow); // temporary files were still cleared
           refreshDisk();
           return;
         }
         const gone = new Set(all.map((i) => i.id));
         const mediaBytes = all.reduce((n, i) => n + i.size, 0);
         freed += mediaBytes;
+        freedNow += mediaBytes;
         // Rows complete one after another so the user can see each subcategory finish.
         for (let i = 0; i < media.length; i++) {
           patch((r) => r.map((x) => (x.kind === media[i].kind ? { ...x, status: 'done', done: x.count, note: undefined } : x)));
@@ -253,18 +310,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             },
         );
         if (Platform.OS === 'ios' && mediaBytes > 0) {
-          const next = { bytes: mediaBytes + (pending?.bytes ?? 0), baselineFree: pending?.baselineFree ?? getDiskInfo().free };
+          // Photos keeps these in Recently Deleted for 30 days, so the space isn't free yet.
+          freedNow -= mediaBytes;
+          const baselineFree = pending?.baselineFree ?? (await getDiskInfo()).free;
+          const next = { bytes: mediaBytes + (pending?.bytes ?? 0), baselineFree };
           setPending(next);
           AsyncStorage.setItem(KEYS.pending, JSON.stringify(next)).catch(() => {});
         }
       }
 
-      setLastFreed({ bytes: freed, count: plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0) });
-      setLifetimeFreed((n) => {
-        const next = n + freed;
-        AsyncStorage.setItem(KEYS.freed, String(next)).catch(() => {});
-        return next;
-      });
+      const count = plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0);
+      setLastFreed({ bytes: freed, count });
+      addFreed(freedNow);
+      addItems(count);
       patch((r) => r, { phase: 'finished', freed });
       refreshDisk();
       pollDisk();
@@ -272,7 +330,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       patch((r) => r, { phase: 'error', freed });
       refreshDisk();
     }
-  }, [pending, refreshDisk, pollDisk]);
+  }, [pending, refreshDisk, pollDisk, addFreed, addItems]);
 
   const manageLimited = useCallback(async () => {
     try {
@@ -284,9 +342,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lastFreed,
+      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lastFreed],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
