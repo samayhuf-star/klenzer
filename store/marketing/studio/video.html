@@ -1,0 +1,82 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="ui.js"></script>
+<style id="css"></style>
+<style>
+html,body{width:886px;height:1920px;overflow:hidden;margin:0}
+#v{position:relative;width:886px;height:1920px;overflow:hidden;font-family:Inter;background:linear-gradient(180deg,#EEF3FF 0%,#F6F8FC 55%,#E9FBF5 100%)}
+.blob{position:absolute;border-radius:50%;filter:blur(80px)}
+.cap{position:absolute;left:0;right:0;top:150px;text-align:center;font-family:Fraunces;font-weight:900;font-size:68px;line-height:1.05;letter-spacing:-1.5px;color:#0B1020;padding:0 60px}
+.stage{position:absolute;left:50%;top:400px;transform-origin:50% 0}
+.layer{position:absolute;inset:0}
+.bcard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0B1020,#14286B);color:#fff}
+.word{font-family:Fraunces;font-weight:900;font-size:120px;letter-spacing:-3px}
+.tag{font-weight:500;font-size:40px;color:#B6C3EA;margin-top:18px;text-align:center;line-height:1.3}
+.npill{display:inline-flex;align-items:center;gap:12px;padding:14px 30px;border-radius:999px;background:rgba(25,227,177,.16);color:#19E3B1;font-weight:800;font-size:30px;letter-spacing:4px;margin-bottom:46px}
+</style></head>
+<body><div id="v"></div>
+<script>
+const T = { intro: 2.2, home: 5.6, scan: 8.8, res: 12.4, dup: 15.8, clean: 19.2, done: 22.2, end: 25 };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+function appScreen(t) {
+  if (t < T.home) {
+    const p = ease(seg(t, T.intro + 0.2, T.intro + 1.6));
+    return home({ freeShown: LIB.free * p, ringP: ((LIB.total - LIB.free) / LIB.total) * p, results: 0, lifetime: false, tap: t > 5.0 ? seg(t, 5.0, 5.55) : 0 });
+  }
+  if (t < T.scan) {
+    const reading = t < 7.6;
+    const done = reading ? Math.round(28544 * ease(seg(t, T.home, 7.6))) : Math.round(4180 * seg(t, 7.6, 8.7));
+    return home({ scanning: { phase: reading ? 'reading' : 'measuring', done, total: reading ? 28544 : 4180 }, pulseT: t, lifetime: false });
+  }
+  if (t < T.res) return home({ results: seg(t, T.scan, 11.0), scrollY: 330 * ease(seg(t, 11.0, 12.2)), lifetime: false });
+  if (t < T.dup) return duplicates({ selP: seg(t, 13.0, 14.6), tap: t > 15.15 ? seg(t, 15.15, 15.7) : 0 });
+  if (t < T.clean) {
+    const p0 = t < 16.4 ? 0.04 : ease(seg(t, 16.4, 17.6)), p1 = ease(seg(t, 17.6, 18.4));
+    return cleaning({ rowsP: [p0 >= 0.999 ? 1 : p0, p1 >= 0.999 ? 1 : p1], t });
+  }
+  return done({ pop: t < 19.3 ? 0 : Math.min(1.15, 1.15 * ease(seg(t, 19.3, 19.65))) - 0.15 * ease(seg(t, 19.65, 19.95)), count: seg(t, 19.5, 20.7), spark: seg(t, 19.6, 20.1), textO: seg(t, 19.45, 19.8), btnO: seg(t, 20.2, 20.6) });
+}
+const CAPS = [[T.intro, T.home, 'See your real<br>free space'], [T.home, T.scan, 'Scan your whole<br>library'], [T.scan, T.res, 'Find what’s eating<br>your space'], [T.res, T.dup, 'Duplicates grouped.<br>Best one kept.'], [T.dup, T.clean, 'Clean up<br>in one tap'], [T.clean, T.done, 'All clear.<br>Space to spare.']];
+function brandCard(t, end) {
+  const a = end ? ease(seg(t, T.done, T.done + 0.5)) : 1;
+  const pop = end ? ease(seg(t, T.done + 0.1, T.done + 0.7)) : ease(seg(t, 0, 0.6));
+  const w = end ? ease(seg(t, T.done + 0.4, T.done + 0.9)) : ease(seg(t, 0.35, 0.9));
+  const g = end ? ease(seg(t, T.done + 0.8, T.done + 1.3)) : ease(seg(t, 0.8, 1.3));
+  return `<div class="bcard" style="opacity:${a}">
+    <div class="blob" style="width:700px;height:700px;left:-250px;top:-150px;background:#2F6BFF;opacity:.45"></div>
+    <div class="blob" style="width:600px;height:600px;right:-250px;bottom:100px;background:#19E3B1;opacity:.25"></div>
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center">
+    <div style="opacity:${g}" class="npill">${icon('sparkles', 32, C.mint)}${end ? 'FREE ON THE APP STORE' : 'NEW ON THE APP STORE'}</div>
+    <img src="logo.png" style="width:220px;height:220px;border-radius:50px;transform:scale(${0.4 + 0.6 * pop});opacity:${pop};box-shadow:0 30px 60px rgba(0,0,0,.35)"/>
+    <div class="word" style="opacity:${w};transform:translateY(${(1 - w) * 30}px);margin-top:40px">Klenzer</div>
+    <div class="tag" style="opacity:${g}">${end ? 'Clean photo clutter.<br>Private, on your iPhone.' : 'Clear photo clutter<br>in seconds'}</div></div></div>`;
+}
+window.render = (t) => {
+  let html = `<div class="blob" style="width:700px;height:700px;left:-260px;top:-200px;background:#9DB8FF;opacity:.55"></div><div class="blob" style="width:600px;height:600px;right:-260px;top:900px;background:#8FF0D6;opacity:.45"></div>`;
+  // caption with crossfade
+  for (const [a, b, txt] of CAPS) {
+    const o = Math.min(seg(t, a, a + 0.35), 1 - seg(t, b - 0.25, b));
+    if (o > 0) html += `<div class="cap" style="opacity:${o};transform:translateY(${(1 - Math.min(1, seg(t, a, a + 0.35))) * 20}px)">${txt}</div>`;
+  }
+  // phone: rises in after intro; screens crossfade at boundaries
+  const rise = ease(seg(t, T.intro - 0.05, T.intro + 0.55));
+  const w = 600, k = w / 440;
+  const bounds = [T.home, T.scan, T.dup, T.clean];
+  let scr = `<div class="layer">${appScreen(t)}</div>`;
+  for (const b of bounds) {
+    if (t >= b && t < b + 0.3) scr = `<div class="layer">${appScreen(b - 0.001)}</div><div class="layer" style="opacity:${seg(t, b, b + 0.3)}">${appScreen(t)}</div>`;
+  }
+  html += `<div class="stage" style="margin-left:${-(w + 2 * Math.round(14 * k)) / 2}px;transform:translateY(${(1 - rise) * 500}px);opacity:${rise}">${phone(scr, w)}</div>`;
+  if (t < T.intro + 0.1) html += `<div style="position:absolute;inset:0;opacity:${1 - seg(t, T.intro - 0.45, T.intro)}">${brandCard(t, false)}</div>`;
+  if (t >= T.done) html += brandCard(t, true);
+  document.getElementById('v').innerHTML = html;
+};
+(async () => {
+  GLYPHS = await (await fetch('Ionicons.json')).json();
+  document.getElementById('css').textContent = SCREEN_CSS;
+  await document.fonts.ready;
+  // warm the logo image
+  await new Promise((r) => { const i = new Image(); i.onload = r; i.src = 'logo.png'; });
+  window.render(Number(new URLSearchParams(location.search).get('t') || 0));
+  document.body.dataset.ready = '1';
+})();
+</script></body></html>
