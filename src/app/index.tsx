@@ -15,11 +15,13 @@ import { KINDS } from '../lib/kinds';
 import { formatBytes } from '../lib/format';
 import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
+import { useUnlock } from '../lib/unlock';
 import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Home() {
   const insets = useSafeAreaInsets();
   const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos } = useStore();
+  const { requireUnlock } = useUnlock();
   // Free space changes all the time (downloads, iCloud, the system), so keep it live while Home is on screen.
   useFocusEffect(
     useCallback(() => {
@@ -155,23 +157,27 @@ export default function Home() {
             count={tempSize > 0 ? 1 : 0}
             bytes={tempSize}
             hint="Klenzer’s own cache. Other apps’ data can’t be touched"
-            onPress={() => {
-              router.push('/cleaning');
-              clean([{ kind: 'temp', items: [] }]);
-            }}
+            onPress={() =>
+              requireUnlock(() => {
+                router.push('/cleaning');
+                clean([{ kind: 'temp', items: [] }]);
+              })
+            }
           />
           {(result.duplicates.length > 0 || tempSize > 0) && (
             <Button
-              label="Quick clean: duplicates + temporary files"
+              label="Fix now"
               icon={<Ionicons name="flash" size={20} color="#fff" />}
-              onPress={() => {
-                const plan = [
-                  ...(result.duplicates.length ? [{ kind: 'duplicates' as const, items: result.duplicates.flatMap(dupExtras) }] : []),
-                  ...(tempSize > 0 ? [{ kind: 'temp' as const, items: [] }] : []),
-                ];
-                router.push('/cleaning');
-                clean(plan);
-              }}
+              onPress={() =>
+                requireUnlock(() => {
+                  const plan = [
+                    ...(result.duplicates.length ? [{ kind: 'duplicates' as const, items: result.duplicates.flatMap(dupExtras) }] : []),
+                    ...(tempSize > 0 ? [{ kind: 'temp' as const, items: [] }] : []),
+                  ];
+                  router.push('/cleaning');
+                  clean(plan);
+                })
+              }
               style={{ marginTop: 6 }}
             />
           )}

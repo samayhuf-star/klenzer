@@ -10,6 +10,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { formatBytes, formatDate, formatDuration } from '../../lib/format';
 import { dupExtras, Item } from '../../lib/scanner';
 import { useStore } from '../../lib/store';
+import { useUnlock } from '../../lib/unlock';
 import { colors, fonts, radius } from '../../theme';
 
 const COPY = {
@@ -24,6 +25,7 @@ export default function Review() {
   const { kind: raw } = useLocalSearchParams<{ kind: string }>();
   const kind = (raw in COPY ? raw : 'screenshots') as Kind;
   const { result, clean } = useStore();
+  const { requireUnlock } = useUnlock();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
@@ -135,7 +137,7 @@ export default function Review() {
           disabled={chosen.length === 0}
           icon={<Ionicons name="trash" size={19} color="#fff" />}
           label={chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Select items to delete'}
-          onPress={doDelete}
+          onPress={() => requireUnlock(doDelete)}
         />
         <Text style={styles.barNote}>{Platform.OS === 'ios' ? 'Your iPhone will ask you to confirm. Items go to Recently Deleted; Klenzer will take you to Photos to empty it.' : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}</Text>
       </View>

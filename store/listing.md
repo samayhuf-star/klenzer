@@ -10,7 +10,7 @@ Every claim below is something the app actually does. Do not add "boost", "speed
 | Subtitle | Duplicate & Screenshot Cleaner | 30/30 |
 | Category | Primary: Utilities · Secondary: Photo & Video | |
 | Age rating | 4+ | |
-| Price | Free, no in-app purchases (v1) | |
+| Price | Free download. One in-app purchase: Lifetime unlock, $4.99 (non-consumable, product ID com.krosz.klenzer.lifetime) | |
 
 **Keywords (100 max):**
 `duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,large files,organizer,tidy`
@@ -27,7 +27,7 @@ Your camera roll is full of things you never meant to keep: the same photo taken
 • Large videos: surface videos over 100 MB so you can reclaim the most space with the fewest taps.
 • Live Photos: review photos that also store a short video clip and clear the ones you don't need.
 • Temporary files: clear Klenzer's own temporary files in one tap.
-• Quick clean: clear duplicates and temporary files together, with live progress as each step finishes.
+• Fix now: clear duplicates and temporary files together, with live progress as each step finishes.
 • Real storage numbers: see your device's actual free and total space, straight from the system.
 
 **YOU STAY IN CONTROL**
@@ -35,6 +35,9 @@ Nothing is ever deleted automatically. You review every item, choose what goes, 
 
 **PRIVATE BY DESIGN**
 Klenzer works entirely on your device. Your photos are never uploaded, shared or analysed in the cloud. No account, no tracking, no ads.
+
+**FREE TO SCAN, ONE-TIME UNLOCK TO CLEAN**
+Scanning your library and reviewing what Klenzer finds is free. To delete items you pay once for the Lifetime unlock. There is no subscription.
 
 **GOOD TO KNOW**
 Klenzer cleans photos and videos, which are usually the biggest users of space. It does not and cannot clear other apps' data or system files. Photos stored only in iCloud are not measured. To free space after deleting, empty Recently Deleted in the Photos app: iOS doesn't allow apps to do this, so Klenzer shows how much is waiting there and opens Photos for you.
@@ -60,8 +63,8 @@ Klenzer is a native app (Expo/React Native) that uses PhotoKit via expo-media-li
 | Title | Klenzer: Clean Photo Clutter | 28/30 |
 | Short description | Find duplicate photos, screenshots & big videos. Private, on-device. | 68/80 |
 | Category | Tools (or Photography) | |
-| Content rating | Everyone (complete IARC questionnaire: no UGC, no ads, no purchases) | |
-| Price | Free, no ads, no purchases | |
+| Content rating | Everyone (complete IARC questionnaire: no UGC, no ads; digital purchases: yes, one-time unlock) | |
+| Price | Free download, no ads. One in-app product: Lifetime unlock, $4.99 (one-time) | |
 | Target audience | 18+ / general (NOT children; avoids Families policy) | |
 
 **Full description:**
@@ -72,7 +75,7 @@ Your gallery is full of things you never meant to keep: the same photo three tim
 • Screenshots: review every screenshot, biggest first, and clear the ones you don't need.
 • Large videos: surface videos over 100 MB to reclaim the most space fast.
 • Temporary files: clear Klenzer's own temporary files in one tap.
-• Quick clean: clear duplicates and temporary files together, with live progress.
+• Fix now: clear duplicates and temporary files together, with live progress.
 • Real storage numbers: see your device's actual free and total space.
 
 ★ YOU STAY IN CONTROL
@@ -80,6 +83,9 @@ Nothing is deleted automatically. You review every item and choose what goes. An
 
 ★ PRIVATE BY DESIGN
 Klenzer works entirely on your device. Photos are never uploaded or shared. No account, no tracking, no ads.
+
+★ FREE TO SCAN, ONE-TIME UNLOCK TO CLEAN
+Scanning and reviewing what Klenzer finds is free. To delete items you pay once for the Lifetime unlock. No subscription.
 
 ★ GOOD TO KNOW
 Klenzer cleans photos and videos, typically the biggest users of space. It does not clear other apps' data or system files.

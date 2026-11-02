@@ -7,7 +7,9 @@ import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AnimatedSplash } from '../components/AnimatedSplash';
+import { PaywallSheet } from '../components/PaywallSheet';
 import { StoreProvider, useStore } from '../lib/store';
+import { UnlockProvider } from '../lib/unlock';
 import { colors } from '../theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -37,6 +39,7 @@ function Shell() {
           </Stack.Protected>
         </Stack>
       )}
+      <PaywallSheet />
       {!splashDone && <AnimatedSplash ready={loaded && ready} onDone={done} />}
     </View>
   );
@@ -46,7 +49,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <Shell />
+        <UnlockProvider>
+          <Shell />
+        </UnlockProvider>
       </StoreProvider>
     </SafeAreaProvider>
   );

@@ -74,6 +74,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-iap",
       [
         "expo-splash-screen",
         {
