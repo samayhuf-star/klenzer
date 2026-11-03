@@ -19,6 +19,8 @@ export const LIFETIME_SKU = 'com.krosz.klenzer.lifetime';
 const CACHE_KEY = 'klenzer.unlocked.v1';
 const FALLBACK_PRICE = '$4.99';
 const STORE = Platform.OS === 'ios' ? 'Apple ID' : 'Google account';
+/** Set only by the `testflight` EAS profile (eas.json). Tester builds skip the paywall; App Store builds never set it. */
+const TESTER_BUILD = process.env.EXPO_PUBLIC_TESTER_BUILD === '1';
 
 type Ctx = {
   /** True once the lifetime purchase is owned. Scanning is always free; deleting needs this. */
@@ -38,7 +40,7 @@ type Ctx = {
 const UnlockCtx = createContext<Ctx | null>(null);
 
 export function UnlockProvider({ children }: { children: ReactNode }) {
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlocked] = useState(TESTER_BUILD);
   const [price, setPrice] = useState(FALLBACK_PRICE);
   const [busy, setBusy] = useState<Ctx['busy']>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,8 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    // Tester builds stay unlocked and never talk to the store.
+    if (TESTER_BUILD || Platform.OS === 'web') return;
     let alive = true;
     // The cached flag keeps the app unlocked while offline; the store check below is the source of truth.
     AsyncStorage.getItem(CACHE_KEY)
