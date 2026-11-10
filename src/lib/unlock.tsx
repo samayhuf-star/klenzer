@@ -16,6 +16,14 @@ import { Platform } from 'react-native';
 
 /** One non-consumable purchase: pay once, keep it for life. Must match the product ID in App Store Connect and Play Console. */
 export const LIFETIME_SKU = 'com.krosz.klenzer.lifetime';
+/**
+ * Auto-renewing monthly plan, a second product in its own subscription group. It is only offered in the countries where
+ * the product is made available in App Store Connect / Play Console, so regional pricing needs no country list in code:
+ * if the store doesn't return the monthly product, the sheet shows Lifetime alone.
+ */
+export const MONTHLY_SKU = 'com.krosz.klenzer.monthly';
+const OWNED_SKUS = [LIFETIME_SKU, MONTHLY_SKU];
+export type Plan = 'lifetime' | 'monthly';
 const CACHE_KEY = 'klenzer.unlocked.v1';
 const FALLBACK_PRICE = '$4.99';
 const STORE = Platform.OS === 'ios' ? 'Apple ID' : 'Google account';
@@ -27,6 +35,10 @@ type Ctx = {
   unlocked: boolean;
   /** Localised price from the store, falling back to $4.99 until it loads. */
   price: string;
+  /** Localised monthly price, or null where the monthly plan isn't sold. */
+  monthlyPrice: string | null;
+  plan: Plan;
+  setPlan: (p: Plan) => void;
   busy: 'buy' | 'restore' | null;
   error: string | null;
   paywallOpen: boolean;
@@ -42,6 +54,9 @@ const UnlockCtx = createContext<Ctx | null>(null);
 export function UnlockProvider({ children }: { children: ReactNode }) {
   const [unlocked, setUnlocked] = useState(TESTER_BUILD);
   const [price, setPrice] = useState(FALLBACK_PRICE);
+  const [monthlyPrice, setMonthlyPrice] = useState<string | null>(null);
+  const [plan, setPlan] = useState<Plan>('lifetime');
+  const offerToken = useRef<string | null>(null);
   const [busy, setBusy] = useState<Ctx['busy']>(null);
   const [error, setError] = useState<string | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
@@ -62,7 +77,7 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
 
     const updated = purchaseUpdatedListener(async (purchase) => {
-      if (purchase.productId !== LIFETIME_SKU) return;
+      if (!OWNED_SKUS.includes(purchase.productId)) return;
       try {
         await finishTransaction({ purchase, isConsumable: false });
       } catch {
@@ -89,9 +104,20 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
         const products = await fetchProducts({ skus: [LIFETIME_SKU], type: 'in-app' });
         const product = Array.isArray(products) ? products.find((p) => p.id === LIFETIME_SKU) : undefined;
         if (alive && product?.displayPrice) setPrice(product.displayPrice);
+        try {
+          const subs = await fetchProducts({ skus: [MONTHLY_SKU], type: 'subs' });
+          const m = Array.isArray(subs) ? subs.find((p) => p.id === MONTHLY_SKU) : undefined;
+          if (alive && m?.displayPrice) {
+            setMonthlyPrice(m.displayPrice);
+            const offers = 'subscriptionOffers' in m ? m.subscriptionOffers : null;
+            offerToken.current = offers?.find((o) => o.offerTokenAndroid)?.offerTokenAndroid ?? null;
+          }
+        } catch {
+          // Monthly isn't sold here: Lifetime stays the only plan.
+        }
         const owned = await getAvailablePurchases();
         if (!alive) return;
-        if (owned.some((p) => p.productId === LIFETIME_SKU)) grant();
+        if (owned.some((p) => OWNED_SKUS.includes(p.productId))) grant();
         else {
           // The store answered and the purchase isn't there (for example it was refunded): lock again.
           setUnlocked(false);
@@ -128,12 +154,20 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
     setBusy('buy');
     try {
       // The result arrives through purchaseUpdatedListener / purchaseErrorListener.
-      await requestPurchase({ request: { apple: { sku: LIFETIME_SKU }, google: { skus: [LIFETIME_SKU] } }, type: 'in-app' });
+      if (plan === 'monthly' && monthlyPrice) {
+        const token = offerToken.current;
+        await requestPurchase({
+          request: { apple: { sku: MONTHLY_SKU }, google: { skus: [MONTHLY_SKU], subscriptionOffers: token ? [{ sku: MONTHLY_SKU, offerToken: token }] : undefined } },
+          type: 'subs',
+        });
+      } else {
+        await requestPurchase({ request: { apple: { sku: LIFETIME_SKU }, google: { skus: [LIFETIME_SKU] } }, type: 'in-app' });
+      }
     } catch {
       setBusy(null);
       setError('The store isn’t available right now. Check your connection and try again.');
     }
-  }, []);
+  }, [plan, monthlyPrice]);
 
   const restore = useCallback(async () => {
     setError(null);
@@ -141,7 +175,7 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
     try {
       await restorePurchases();
       const owned = await getAvailablePurchases();
-      if (owned.some((p) => p.productId === LIFETIME_SKU)) {
+      if (owned.some((p) => OWNED_SKUS.includes(p.productId))) {
         grant();
         setPaywallOpen(false);
         const next = pending.current;
@@ -164,8 +198,8 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ unlocked, price, busy, error, paywallOpen, requireUnlock, buy, restore, closePaywall }),
-    [unlocked, price, busy, error, paywallOpen, requireUnlock, buy, restore, closePaywall],
+    () => ({ unlocked, price, monthlyPrice, plan, setPlan, busy, error, paywallOpen, requireUnlock, buy, restore, closePaywall }),
+    [unlocked, price, monthlyPrice, plan, busy, error, paywallOpen, requireUnlock, buy, restore, closePaywall],
   );
   return <UnlockCtx.Provider value={value}>{children}</UnlockCtx.Provider>;
 }

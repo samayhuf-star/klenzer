@@ -183,13 +183,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (pending && disk.free - pending.baselineFree >= pending.bytes * 0.5) settlePending();
   }, [disk.free, pending, settlePending]);
 
+  const usedPctRef = useRef(0);
+  usedPctRef.current = disk.total ? disk.used / disk.total : 0;
+  const usedPctRounded = Math.round(usedPctRef.current * 100);
+
   // Every time the user opens the app, push all reminders back so active users aren't nagged.
   useEffect(() => {
     if (!ready) return;
-    scheduleReminders({ pendingBytes: pending?.bytes });
-    const sub = AppState.addEventListener('change', (st) => st === 'active' && scheduleReminders({ pendingBytes: pending?.bytes }));
+    const plan = () => scheduleReminders({ pendingBytes: pending?.bytes, usedPct: usedPctRef.current });
+    plan();
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && plan());
     return () => sub.remove();
-  }, [ready, pending?.bytes]);
+  }, [ready, pending?.bytes, usedPctRounded]);
 
   const setReminders = useCallback(async (on: boolean) => {
     if (!on) {
@@ -197,7 +202,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRemindersState(false);
       return 'off' as const;
     }
-    const ok = await enableReminders(pending?.bytes);
+    const ok = await enableReminders(pending?.bytes, usedPctRef.current);
     setRemindersState(ok);
     return ok ? ('on' as const) : ('blocked' as const);
   }, [pending?.bytes]);

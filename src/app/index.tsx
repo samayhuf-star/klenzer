@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import { ReactNode, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -20,7 +21,10 @@ import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos } = useStore();
+  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos, reminders, setReminders } = useStore();
+  const [nudgeHidden, setNudgeHidden] = useState(true);
+  useEffect(() => { AsyncStorage.getItem('klenzer.nudge.v1').then((v) => setNudgeHidden(v === '1')).catch(() => {}); }, []);
+  const hideNudge = () => { setNudgeHidden(true); AsyncStorage.setItem('klenzer.nudge.v1', '1').catch(() => {}); };
   const { requireUnlock } = useUnlock();
   // Free space changes all the time (downloads, iCloud, the system), so keep it live while Home is on screen.
   useFocusEffect(
@@ -177,6 +181,15 @@ export default function Home() {
       )}
 
       <View style={{ marginTop: 26, gap: 12 }}>
+        {!reminders && !nudgeHidden && (
+          <View style={{ backgroundColor: '#fff', borderRadius: radius.lg, padding: 16, gap: 10, marginBottom: 16, ...shadow }}>
+            <Text style={{ fontFamily: fonts.body, fontSize: 14.5, color: colors.ink2 }}>Get a reminder every 3 days showing how full your storage is. Turn it off any time in Settings.</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Button variant="ghost" label="Not now" onPress={hideNudge} style={{ flex: 1 }} />
+              <Button label="Remind me" onPress={async () => { await setReminders(true); hideNudge(); }} style={{ flex: 1 }} />
+            </View>
+          </View>
+        )}
         <Text style={styles.section}>More tools</Text>
         <Tool icon="people" tone={colors.blue} soft={colors.blueSoft} title="Contacts" hint="Merge duplicate contacts, with a backup first" route="/contacts" />
         <Tool icon="calendar" tone={colors.violet} soft={colors.violetSoft} title="Calendar events" hint="Clear events that ended long ago" route="/events" />

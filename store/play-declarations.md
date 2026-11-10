@@ -21,5 +21,5 @@ Klenzer's single purpose is to find duplicate photos, screenshots, Live Photos a
 
 ## Other App content forms
 - Ads: **No**. Target audience: **18+**, not designed for children. News app / government / financial / health: **No**.
-- Content rating (IARC): Utility; no UGC, no violence; offers one in-app purchase (one-time unlock) → expect **Everyone**.
+- Content rating (IARC): Utility; no UGC, no violence; offers in-app purchases (one-time unlock and a monthly subscription in some regions) → expect **Everyone**.
 - Permissions notice: `POST_NOTIFICATIONS` is optional and only requested if the user turns on reminders.

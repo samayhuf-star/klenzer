@@ -11,12 +11,13 @@ import { colors, fonts, radius } from '../theme';
 import { Button } from './Button';
 import { PressableScale } from './PressableScale';
 
-const PERKS = ['Smart Clean: duplicates, screenshots, large videos', 'Merge contacts and clear old calendar events', 'Secret Space for private photos and videos', 'Pay once. No subscription, no ads, ever'];
+const PERKS = ['Smart Clean: duplicates, screenshots, large videos', 'Merge contacts and clear old calendar events', 'Secret Space for private photos and videos'];
+const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 /** Payment sheet shown when someone taps Fix now or any delete button before unlocking. Scanning never reaches it. */
 export function PaywallSheet() {
   const insets = useSafeAreaInsets();
-  const { paywallOpen, price, busy, error, buy, restore, closePaywall } = useUnlock();
+  const { paywallOpen, price, monthlyPrice, plan, setPlan, busy, error, buy, restore, closePaywall } = useUnlock();
   const { result, tempSize } = useStore();
 
   const found = result
@@ -39,7 +40,7 @@ export function PaywallSheet() {
           </Text>
 
           <View style={styles.perks}>
-            {PERKS.map((p) => (
+            {[...PERKS, monthlyPrice ? 'No ads, ever' : 'Pay once. No subscription, no ads, ever'].map((p) => (
               <View key={p} style={styles.perk}>
                 <Ionicons name="checkmark" size={16} color="#0F8F6E" />
                 <Text style={styles.perkText}>{p}</Text>
@@ -47,12 +48,19 @@ export function PaywallSheet() {
             ))}
           </View>
 
-          <View style={styles.plan}>
-            <Text style={styles.planName}>Lifetime unlock</Text>
-            <Text style={styles.planPrice}>{price}</Text>
-          </View>
+          {monthlyPrice ? (
+            <View style={{ gap: 10, marginBottom: 12 }}>
+              <PlanCard selected={plan === 'monthly'} onPress={() => setPlan('monthly')} name="Monthly" price={`${monthlyPrice} / month`} note="Cancel anytime" />
+              <PlanCard selected={plan === 'lifetime'} onPress={() => setPlan('lifetime')} name="Lifetime" price={price} note="Pay once, keep it forever" badge="Best value" />
+            </View>
+          ) : (
+            <View style={styles.plan}>
+              <Text style={styles.planName}>Lifetime unlock</Text>
+              <Text style={styles.planPrice}>{price}</Text>
+            </View>
+          )}
 
-          <Button label={`Unlock for ${price}`} onPress={buy} busy={busy === 'buy'} disabled={busy !== null} />
+          <Button label={monthlyPrice && plan === 'monthly' ? `Subscribe for ${monthlyPrice}/month` : `Unlock for ${price}`} onPress={buy} busy={busy === 'buy'} disabled={busy !== null} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <View style={styles.links}>
@@ -68,14 +76,41 @@ export function PaywallSheet() {
               <Text style={styles.link}>Not now</Text>
             </PressableScale>
           </View>
-          <Text style={styles.foot}>One-time payment charged to your {store}. Nothing is deleted until you unlock.</Text>
+          <Text style={styles.foot}>
+            {monthlyPrice && plan === 'monthly'
+              ? `Renews every month until you cancel in your ${store} settings, at least a day before renewal. Charged to your ${store}.`
+              : `One-time payment charged to your ${store}.`}{' '}
+            Nothing is deleted until you unlock.
+          </Text>
+          {Platform.OS === 'ios' && monthlyPrice && (
+            <PressableScale onPress={() => WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {})} accessibilityLabel="Terms of Use">
+              <Text style={[styles.link, { textAlign: 'center', marginTop: 6, fontSize: 12 }]}>Terms of Use</Text>
+            </PressableScale>
+          )}
         </View>
       </View>
     </Modal>
   );
 }
 
+function PlanCard({ selected, onPress, name, price, note, badge }: { selected: boolean; onPress: () => void; name: string; price: string; note: string; badge?: string }) {
+  return (
+    <PressableScale onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={`${name}, ${price}`} style={[styles.plan, { marginBottom: 0 }, !selected && { borderColor: colors.line, backgroundColor: '#fff' }]}>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={styles.planName}>{name}</Text>
+          {badge && <Text style={styles.best}>{badge}</Text>}
+        </View>
+        <Text style={styles.planNote}>{note}</Text>
+      </View>
+      <Text style={styles.planPrice}>{price}</Text>
+    </PressableScale>
+  );
+}
+
 const styles = StyleSheet.create({
+  best: { fontFamily: fonts.bold, fontSize: 11, color: colors.navy, backgroundColor: colors.mint, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, overflow: 'hidden' },
+  planNote: { fontFamily: fonts.body, fontSize: 12.5, color: colors.ink3, marginTop: 2 },
   backdrop: { flex: 1, backgroundColor: 'rgba(11,16,32,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#fff', borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: 22, paddingTop: 12, alignItems: 'stretch' },
   grab: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: 16 },
