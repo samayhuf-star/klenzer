@@ -8,7 +8,7 @@ export const APP_NAME = 'Klenzer';
 export const RC_IOS_KEY = process.env.EXPO_PUBLIC_RC_IOS_KEY ?? '';
 export const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_RC_ANDROID_KEY ?? '';
 /** The one entitlement every paid product (monthly and lifetime) unlocks in RevenueCat. */
-export const RC_ENTITLEMENT = 'pro';
+export const RC_ENTITLEMENT = 'klenzer_pro';
 /** Optional RevenueCat offering shown once, with a better price, when the user closes the paywall. */
 export const RC_SECOND_CHANCE_OFFERING = 'second_chance';
 /** Terms of Use link shown on the paywall (Apple's standard EULA unless you host your own). */
