@@ -23,7 +23,7 @@ type Kind = keyof typeof COPY;
 export default function Review() {
   const { kind: raw } = useLocalSearchParams<{ kind: string }>();
   const kind = (raw in COPY ? raw : 'screenshots') as Kind;
-  const { result, clean } = useStore();
+  const { result, startClean } = useStore();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
@@ -54,9 +54,8 @@ export default function Review() {
     // A set where every copy is selected would delete the photo entirely: confirm explicitly.
     const wipesGroup = kind === 'duplicates' && groups.some((g) => g.items.every((i) => sel.has(i.id)));
     const go = () => {
-      // The cleaning screen shows live progress while the OS asks for confirmation and deletes.
-      router.push('/cleaning');
-      clean([{ kind, items: chosen }]);
+      // Opens the paywall first unless Klenzer is unlocked; the cleaning screen then shows live progress.
+      startClean([{ kind, items: chosen }]);
     };
     if (wipesGroup) {
       Alert.alert('Delete every copy?', 'At least one set has all of its photos selected, so no copy would be kept.', [

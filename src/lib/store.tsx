@@ -1,12 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform } from 'react-native';
+import { router } from 'expo-router';
+import { Alert, AppState, Linking, Platform } from 'react-native';
+import { formatBytes } from './format';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { deleteItems, Item, Progress, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
-import { disableReminders, enableReminders, permissionState, remindersPref, scheduleReminders } from './reminders';
+import { disableReminders, enableReminders, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders } from './reminders';
+import { configurePurchases, currentCustomer, hasPro, onCustomerInfo } from './purchases';
+import { reclaimableBytes } from './reclaim';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
 
@@ -40,6 +44,11 @@ type Ctx = {
   cancelScan: () => void;
   cleaning: Cleaning | null;
   clean: (plan: CleanPlan) => Promise<void>;
+  /** Entry point for every Fix / Clear button: opens the paywall first unless Klenzer is unlocked. */
+  startClean: (plan: CleanPlan) => void;
+  /** Called by the paywall once the user has paid: continues the clean they asked for. */
+  completeUnlock: () => void;
+  isPro: boolean;
   tempSize: number;
   pending: Pending | null;
   dismissPending: () => void;
@@ -53,7 +62,7 @@ type Ctx = {
   lastFreed: { bytes: number; count: number } | null;
 };
 
-const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v1', items: 'klenzer.items.v1', pending: 'klenzer.pending.v1' };
+const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v1', items: 'klenzer.items.v1', pending: 'klenzer.pending.v1', reclaim: 'klenzer.reclaim.v1' };
 
 // Apple has no public link to Recently Deleted. Photos does handle this internal route (iOS 16+, behind Face ID);
 // if a future iOS drops it we fall back to opening Photos itself.
@@ -80,22 +89,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [tempSize, setTempSize] = useState(0);
   const [pending, setPending] = useState<Pending | null>(null);
   const [reminders, setRemindersState] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [lastReclaim, setLastReclaim] = useState(0);
+  const afterUnlock = useRef<CleanPlan | null>(null);
   const signal = useRef({ cancelled: false });
 
   useEffect(() => {
     (async () => {
       try {
-        const [o, f, it, pd] = await Promise.all([
+        const [o, f, it, pd, rc] = await Promise.all([
           AsyncStorage.getItem(KEYS.onboarded),
           AsyncStorage.getItem(KEYS.freed),
           AsyncStorage.getItem(KEYS.items),
           AsyncStorage.getItem(KEYS.pending),
+          AsyncStorage.getItem(KEYS.reclaim),
         ]);
+        setLastReclaim(Number(rc) || 0);
         setOnboarded(o === '1');
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
         if (pd) setPending(JSON.parse(pd));
       } catch {}
+      if (configurePurchases()) setIsPro(hasPro(await currentCustomer()));
       try {
         setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
       } catch {}
@@ -107,6 +122,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setReady(true);
     })();
   }, []);
+
+  // Keep the unlocked state live: a purchase, a restore, or a refund all arrive here.
+  useEffect(() => onCustomerInfo((info) => setIsPro(hasPro(info))), [ready]);
 
   const finishOnboarding = useCallback(() => {
     setOnboarded(true);
@@ -184,12 +202,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [disk.free, pending, settlePending]);
 
   // Every time the user opens the app, push all reminders back so active users aren't nagged.
+  const reminderInfo = useRef({ used: 0, total: 0, reclaim: 0 });
+  useEffect(() => {
+    reminderInfo.current = { used: disk.used, total: disk.total, reclaim: lastReclaim };
+  }, [disk.used, disk.total, lastReclaim]);
   useEffect(() => {
     if (!ready) return;
-    scheduleReminders({ pendingBytes: pending?.bytes });
-    const sub = AppState.addEventListener('change', (st) => st === 'active' && scheduleReminders({ pendingBytes: pending?.bytes }));
+    const plan = () => scheduleReminders({ pendingBytes: pending?.bytes, usedBytes: reminderInfo.current.used, totalBytes: reminderInfo.current.total, reclaimBytes: reminderInfo.current.reclaim });
+    plan();
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && plan());
     return () => sub.remove();
-  }, [ready, pending?.bytes]);
+  }, [ready, pending?.bytes, lastReclaim]);
 
   const setReminders = useCallback(async (on: boolean) => {
     if (!on) {
@@ -197,10 +220,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRemindersState(false);
       return 'off' as const;
     }
-    const ok = await enableReminders(pending?.bytes);
+    const ok = await enableReminders({ pendingBytes: pending?.bytes, usedBytes: disk.used, totalBytes: disk.total, reclaimBytes: lastReclaim });
     setRemindersState(ok);
     return ok ? ('on' as const) : ('blocked' as const);
-  }, [pending?.bytes]);
+  }, [pending?.bytes, disk.used, disk.total, lastReclaim]);
 
   const dismissPending = useCallback(() => {
     settlePending();
@@ -222,6 +245,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     Linking.openSettings();
   }, []);
 
+  // Right after the first scan the user has just seen how much space is wasted, so that is the moment to offer reminders.
+  const askAboutReminders = useCallback(
+    async (reclaim: number) => {
+      try {
+        if (await remindersAsked()) return;
+        await markRemindersAsked();
+        if ((await permissionState()) === 'denied') return;
+        const body = reclaim > 0 ? `We found ${formatBytes(reclaim)} you can clear. Want a gentle reminder every few days?` : 'Want a gentle reminder every few days to check your storage?';
+        Alert.alert('Remind me to clean up?', body, [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Yes, remind me', onPress: () => void setReminders(true) },
+        ]);
+      } catch {}
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [disk.used, disk.total, pending?.bytes, lastReclaim],
+  );
+
   const scan = useCallback(async () => {
     let a = access;
     if (a === 'unknown' || a === 'denied') a = await requestAccess();
@@ -231,13 +272,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProgress({ phase: 'reading', done: 0, total: 0 });
     try {
       const r = await scanLibrary(setProgress, signal.current);
-      if (!signal.current.cancelled) setResult(r);
+      if (!signal.current.cancelled) {
+        setResult(r);
+        const reclaim = reclaimableBytes(r, tempBytes());
+        setLastReclaim(reclaim);
+        AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
+        askAboutReminders(reclaim);
+      }
     } finally {
       setScanning(false);
       setProgress(null);
       refreshDisk();
     }
-  }, [access, requestAccess, refreshDisk]);
+  }, [access, requestAccess, refreshDisk, askAboutReminders]);
 
   const cancelScan = useCallback(() => {
     signal.current.cancelled = true;
@@ -332,6 +379,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [pending, refreshDisk, pollDisk, addFreed, addItems]);
 
+  // Klenzer scans for free; clearing is the paid part. Every Fix / Clear button comes through here.
+  const isProRef = useRef(false);
+  useEffect(() => {
+    isProRef.current = isPro;
+  }, [isPro]);
+  const startClean = useCallback(
+    (plan: CleanPlan) => {
+      if (isProRef.current) {
+        router.push('/cleaning');
+        void clean(plan);
+        return;
+      }
+      afterUnlock.current = plan;
+      router.push('/paywall');
+    },
+    [clean],
+  );
+  const completeUnlock = useCallback(() => {
+    const plan = afterUnlock.current;
+    afterUnlock.current = null;
+    if (plan) {
+      router.replace('/cleaning');
+      void clean(plan);
+    } else if (router.canGoBack()) router.back();
+  }, [clean]);
+
   const manageLimited = useCallback(async () => {
     try {
       await MediaLibrary.presentPermissionsPickerAsync(['photo', 'video']);
@@ -342,9 +415,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
+      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

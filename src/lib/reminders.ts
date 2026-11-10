@@ -6,20 +6,36 @@ import { formatBytes } from './format';
 /**
  * Local, on-device reminders only: no push server, no tokens, no data leaves the phone.
  * They are opt-in, capped, and pushed back every time the user opens the app, so people who
- * use Klenzer regularly are not nagged and lapsed users hear from us only a handful of times.
+ * use Klenzer regularly are not nagged. Lapsed users hear from us every 3 days with their storage numbers.
  */
 const KEY = 'klenzer.reminders.v1';
+const ASKED_KEY = 'klenzer.reminders.asked.v1';
 const CHANNEL = 'reminders';
 const HOUR = 10; // local time: late enough to be polite
-const DAYS_AFTER_LAST_OPEN = [2, 5, 10, 21, 45];
+const EVERY_DAYS = 3;
+const COUNT = 20; // about two months of reminders; iOS allows 64 pending local notifications
 
-const COPY = [
-  { title: 'Quick tidy?', body: 'A 1-minute scan can show new duplicates and screenshots piling up in your camera roll.' },
-  { title: 'Your camera roll grows every day', body: 'See what’s taking up space now. You choose what goes; nothing is deleted without your OK.' },
-  { title: 'Screenshots add up', body: 'Open Klenzer to review new screenshots and big videos. Takes about a minute.' },
-  { title: 'Time for a storage check', body: 'Scan your library to see what’s worth clearing. Everything stays on your device.' },
-  { title: 'Still need more space?', body: 'A fresh scan finds duplicates and large videos you may have added since last time.' },
-];
+export type ReminderInfo = {
+  pendingBytes?: number; // still sitting in Recently Deleted
+  usedBytes?: number;
+  totalBytes?: number;
+  reclaimBytes?: number; // what the last scan found Klenzer can clear
+};
+
+/** Every reminder says how full the phone is, because a number is more persuasive than a nudge. */
+function message(i: ReminderInfo, n: number): { title: string; body: string } {
+  const pct = i.totalBytes && i.usedBytes ? Math.round((i.usedBytes / i.totalBytes) * 100) : 0;
+  const used = i.usedBytes && i.totalBytes ? `${formatBytes(i.usedBytes)} of ${formatBytes(i.totalBytes, 0)} used` : '';
+  if (i.reclaimBytes && i.reclaimBytes > 0) {
+    return n % 2 === 0
+      ? { title: `${formatBytes(i.reclaimBytes)} can be cleared`, body: `${used ? `Your storage is ${pct}% full (${used}). ` : ''}Open Klenzer to free it in one tap.` }
+      : { title: pct ? `Your phone is ${pct}% full` : 'Time for a storage check', body: `Duplicates, screenshots and big videos are ready to clear: ${formatBytes(i.reclaimBytes)} in total.` };
+  }
+  return {
+    title: pct ? `Your phone is ${pct}% full` : 'Time for a storage check',
+    body: used ? `${used}. A 1-minute scan shows what you can clear.` : 'A 1-minute scan shows duplicates and big videos you can clear.',
+  };
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
@@ -56,7 +72,7 @@ const at = (daysFromNow: number) => {
 };
 
 /** Clears and re-plans every reminder, counted from now (call on each app open). */
-export async function scheduleReminders(opts: { pendingBytes?: number } = {}): Promise<void> {
+export async function scheduleReminders(opts: ReminderInfo = {}): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
     if (!(await remindersPref()) || (await permissionState()) !== 'granted') return;
@@ -74,17 +90,31 @@ export async function scheduleReminders(opts: { pendingBytes?: number } = {}): P
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at(1), channelId },
       });
     }
-    for (let i = 0; i < DAYS_AFTER_LAST_OPEN.length; i++) {
+    for (let i = 1; i <= COUNT; i++) {
       await Notifications.scheduleNotificationAsync({
-        content: COPY[i % COPY.length],
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at(DAYS_AFTER_LAST_OPEN[i]), channelId },
+        content: message(opts, i),
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at(i * EVERY_DAYS), channelId },
       });
     }
   } catch {}
 }
 
+export async function remindersAsked(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(ASKED_KEY)) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export async function markRemindersAsked(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ASKED_KEY, '1');
+  } catch {}
+}
+
 /** Asks the OS for permission (first call shows the system prompt). Returns whether reminders are now on. */
-export async function enableReminders(pendingBytes?: number): Promise<boolean> {
+export async function enableReminders(info: ReminderInfo = {}): Promise<boolean> {
   try {
     let state = await permissionState();
     if (state === 'undetermined') {
@@ -93,7 +123,7 @@ export async function enableReminders(pendingBytes?: number): Promise<boolean> {
     }
     if (state !== 'granted') return false;
     await savePref(true);
-    await scheduleReminders({ pendingBytes });
+    await scheduleReminders(info);
     return true;
   } catch {
     return false;

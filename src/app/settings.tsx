@@ -7,12 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
 import { SUPPORT_EMAIL } from '../lib/config';
+import { restore } from '../lib/purchases';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
-  const { access, openSettings, lifetimeFreed, reminders, setReminders } = useStore();
+  const { access, openSettings, lifetimeFreed, reminders, setReminders, isPro } = useStore();
   const toggle = async (on: boolean) => {
     if ((await setReminders(on)) === 'blocked') {
       Alert.alert('Notifications are off', 'Turn on notifications for Klenzer in Settings to get reminders.', [
@@ -20,6 +21,10 @@ export default function Settings() {
         { text: 'Open Settings', onPress: openSettings },
       ]);
     }
+  };
+  const doRestore = async () => {
+    const ok = await restore();
+    Alert.alert(ok ? 'Restored' : 'Nothing to restore', ok ? 'Klenzer is unlocked on this device.' : 'We couldn’t find a previous purchase on this account.');
   };
   const accessLabel = access === 'granted' ? 'Full access' : access === 'limited' ? 'Limited' : access === 'denied' ? 'Off' : 'Not asked yet';
 
@@ -36,6 +41,13 @@ export default function Settings() {
         <View style={styles.card}>
           <Row icon="images-outline" label="Photo access" value={accessLabel} onPress={openSettings} />
           <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} />
+          <Row icon="sparkles-outline" label="Klenzer" value={isPro ? 'Unlocked' : 'Free scan'} onPress={isPro ? undefined : () => router.push('/paywall')} chevron={!isPro} />
+          <Row
+            icon="refresh-outline"
+            label="Restore purchase"
+            onPress={doRestore}
+            chevron
+          />
           <View style={styles.row}>
             <Ionicons name="notifications-outline" size={22} color={colors.blue} />
             <Text style={styles.label}>Cleanup reminders</Text>

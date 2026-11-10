@@ -19,7 +19,7 @@ import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos } = useStore();
+  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, startClean, pending, dismissPending, openPhotos } = useStore();
   // Free space changes all the time (downloads, iCloud, the system), so keep it live while Home is on screen.
   useFocusEffect(
     useCallback(() => {
@@ -156,8 +156,7 @@ export default function Home() {
             bytes={tempSize}
             hint="Klenzer’s own cache. Other apps’ data can’t be touched"
             onPress={() => {
-              router.push('/cleaning');
-              clean([{ kind: 'temp', items: [] }]);
+              startClean([{ kind: 'temp', items: [] }]);
             }}
           />
           {(result.duplicates.length > 0 || tempSize > 0) && (
@@ -169,8 +168,7 @@ export default function Home() {
                   ...(result.duplicates.length ? [{ kind: 'duplicates' as const, items: result.duplicates.flatMap(dupExtras) }] : []),
                   ...(tempSize > 0 ? [{ kind: 'temp' as const, items: [] }] : []),
                 ];
-                router.push('/cleaning');
-                clean(plan);
+                startClean(plan);
               }}
               style={{ marginTop: 6 }}
             />
