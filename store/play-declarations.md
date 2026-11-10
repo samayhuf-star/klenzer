@@ -17,7 +17,7 @@ Klenzer's single purpose is to find duplicate photos, screenshots, Live Photos a
 ## Data safety
 - Collects or shares user data: **No** (all processing on device; local notifications are scheduled on the device and send nothing).
 - Data encrypted in transit / deletion request: not applicable.
-- Privacy policy URL: https://klenzer-privacy-krosz.vercel.app
+- Privacy policy URL: https://krosz-app-policies.netlify.app/klenzer/privacy
 
 ## Other App content forms
 - Ads: **No**. Target audience: **18+**, not designed for children. News app / government / financial / health: **No**.
