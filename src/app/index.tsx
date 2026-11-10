@@ -13,7 +13,7 @@ import { Ring } from '../components/Ring';
 import { ScanPulse } from '../components/ScanPulse';
 import { KINDS } from '../lib/kinds';
 import { formatBytes } from '../lib/format';
-import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
+import { dupExtraCount, dupReclaimable, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
 import { useUnlock } from '../lib/unlock';
 import { colors, fonts, radius, shadow } from '../theme';
@@ -164,28 +164,24 @@ export default function Home() {
               })
             }
           />
-          {(result.duplicates.length > 0 || tempSize > 0) && (
-            <Button
-              label="Fix now"
-              icon={<Ionicons name="flash" size={20} color="#fff" />}
-              onPress={() =>
-                requireUnlock(() => {
-                  const plan = [
-                    ...(result.duplicates.length ? [{ kind: 'duplicates' as const, items: result.duplicates.flatMap(dupExtras) }] : []),
-                    ...(tempSize > 0 ? [{ kind: 'temp' as const, items: [] }] : []),
-                  ];
-                  router.push('/cleaning');
-                  clean(plan);
-                })
-              }
-              style={{ marginTop: 6 }}
-            />
-          )}
+          <Button
+            label="Smart Clean"
+            icon={<Ionicons name="flash" size={20} color="#fff" />}
+            onPress={() => router.push('/smart')}
+            style={{ marginTop: 6 }}
+          />
           <Text style={styles.foot}>
             Scanned {result.photoCount.toLocaleString()} photos and {result.videoCount.toLocaleString()} videos. Photos stored only in iCloud aren’t measured.
           </Text>
         </Animated.View>
       )}
+
+      <View style={{ marginTop: 26, gap: 12 }}>
+        <Text style={styles.section}>More tools</Text>
+        <Tool icon="people" tone={colors.blue} soft={colors.blueSoft} title="Contacts" hint="Merge duplicate contacts, with a backup first" route="/contacts" />
+        <Tool icon="calendar" tone={colors.violet} soft={colors.violetSoft} title="Calendar events" hint="Clear events that ended long ago" route="/events" />
+        <Tool icon="key" tone={colors.amber} soft={colors.amberSoft} title="Secret Space" hint="Hide private photos and videos behind Face ID" route="/vault" />
+      </View>
 
       {(lifetimeFreed > 0 || lifetimeItems > 0) && (
         <View style={styles.lifetime}>
@@ -221,6 +217,21 @@ function Category(p: { onPress?: () => void; kind: string; icon: string; tone: s
         </View>
       )}
       {!empty && <Ionicons name="chevron-forward" size={18} color={colors.ink3} />}
+    </PressableScale>
+  );
+}
+
+function Tool(p: { icon: string; tone: string; soft: string; title: string; hint: string; route: '/contacts' | '/events' | '/vault' }) {
+  return (
+    <PressableScale onPress={() => router.push(p.route)} accessibilityLabel={p.title} style={[styles.card, styles.cat]}>
+      <View style={[styles.catIcon, { backgroundColor: p.soft }]}>
+        <Ionicons name={p.icon as never} size={24} color={p.tone} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.catTitle}>{p.title}</Text>
+        <Text style={styles.catHint}>{p.hint}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.ink3} />
     </PressableScale>
   );
 }

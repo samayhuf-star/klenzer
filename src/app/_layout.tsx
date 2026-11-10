@@ -34,6 +34,10 @@ function Shell() {
             <Stack.Screen name="review/[kind]" />
             <Stack.Screen name="cleaning" options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="done" options={{ animation: 'fade', gestureEnabled: false }} />
+            <Stack.Screen name="smart" />
+            <Stack.Screen name="contacts" />
+            <Stack.Screen name="events" />
+            <Stack.Screen name="vault" />
             <Stack.Screen name="settings" />
             <Stack.Screen name="privacy" />
           </Stack.Protected>

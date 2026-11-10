@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PRIVACY_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
 import { dupReclaimable, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
@@ -9,7 +11,7 @@ import { colors, fonts, radius } from '../theme';
 import { Button } from './Button';
 import { PressableScale } from './PressableScale';
 
-const PERKS = ['Clear duplicates, screenshots and large videos', 'Quick clean in one tap', 'Lifetime access, no subscription'];
+const PERKS = ['Smart Clean: duplicates, screenshots, large videos', 'Merge contacts and clear old calendar events', 'Secret Space for private photos and videos', 'Pay once. No subscription, no ads, ever'];
 
 /** Payment sheet shown when someone taps Fix now or any delete button before unlocking. Scanning never reaches it. */
 export function PaywallSheet() {
@@ -56,6 +58,10 @@ export function PaywallSheet() {
           <View style={styles.links}>
             <PressableScale onPress={restore} disabled={busy !== null} accessibilityLabel="Restore purchase">
               <Text style={styles.link}>{busy === 'restore' ? 'Restoring…' : 'Restore purchase'}</Text>
+            </PressableScale>
+            <Text style={styles.dot}>·</Text>
+            <PressableScale onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => {})} accessibilityLabel="Privacy policy">
+              <Text style={styles.link}>Privacy</Text>
             </PressableScale>
             <Text style={styles.dot}>·</Text>
             <PressableScale onPress={closePaywall} disabled={busy === 'buy'} accessibilityLabel="Not now">

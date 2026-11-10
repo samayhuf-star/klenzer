@@ -7,13 +7,13 @@ Every claim below is something the app actually does. Do not add "boost", "speed
 | Field | Value | Limit |
 |---|---|---|
 | Name | Klenzer - Clean Photo Clutter | 29/30 |
-| Subtitle | Duplicate & Screenshot Cleaner | 30/30 |
+| Subtitle | Photo & Contact Cleaner | 24/30 |
 | Category | Primary: Utilities · Secondary: Photo & Video | |
 | Age rating | 4+ | |
 | Price | Free download. One in-app purchase: Lifetime unlock, $4.99 (non-consumable, product ID com.krosz.klenzer.lifetime) | |
 
 **Keywords (100 max):**
-`duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,large files,organizer,tidy`
+`duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,contacts,calendar,private,vault`
 
 **Promotional text (170 max):**
 Find duplicate photos, old screenshots and huge videos in seconds. Review everything, delete only what you choose. 100% on-device and private.
@@ -49,6 +49,15 @@ Klenzer needs access to your photo library to work. You can allow full access or
 Questions? Contact us from Settings › Contact support.
 
 **What's New (1.0):** Welcome to Klenzer! Find and clear duplicate photos, screenshots and large videos, privately and on-device.
+
+**What's New (1.1.0):**
+• Smart Clean: tick what to clear and fix it in one tap, with a live total.
+• Contacts: merge duplicate contacts. A backup file is saved first.
+• Calendar: clear events that ended long ago.
+• Secret Space: hide private photos and videos behind Face ID, Touch ID or your passcode.
+
+**App Review notes (1.1.0 additions):**
+Contacts, Calendars and Face ID are optional, requested only when the user opens Contacts, Calendar events or Secret Space, and each purpose string says why. Everything is processed on-device; no data is transmitted. Contact merges write a .vcf backup first. Secret Space stores user-chosen items in the app's private Documents folder behind LocalAuthentication. The paywall appears only when the user taps a fix/delete/merge/hide action; scanning is free. A Restore Purchase button is on the sheet.
 
 **App Review notes:**
 Klenzer is a native app (Expo/React Native) that uses PhotoKit via expo-media-library to scan the user's library on-device. No login required; no demo account needed. To test, allow Photos access and tap "Scan my library". Deletion uses the system confirmation dialog (PHPhotoLibrary performChanges). No data is transmitted off device. Photo access purpose is stated in NSPhotoLibraryUsageDescription. The app can optionally schedule local (on-device) reminder notifications if the user enables them in Settings or on the success screen; no push server or remote notifications are used.
