@@ -66,6 +66,13 @@ export type Plan = { pkg: PurchasesPackage; kind: 'lifetime' | 'monthly'; price:
 
 /** Picks the plans to show for this storefront, lifetime first (it is pre-selected). */
 export function plansFor(offering: PurchasesOffering | null, country: string): Plan[] {
+  if (process.env.EXPO_PUBLIC_PAYWALL_PREVIEW === '1') {
+    // Screenshot builds only: show sample prices so the paywall can be captured for App Review.
+    return [
+      { pkg: {} as never, kind: 'lifetime', price: '$14.99' },
+      { pkg: {} as never, kind: 'monthly', price: '$3.99' },
+    ];
+  }
   if (!offering) return [];
   const lifetime = offering.lifetime ?? offering.availablePackages.find((p) => p.packageType === PACKAGE_TYPE.LIFETIME) ?? null;
   const monthly = offering.monthly ?? offering.availablePackages.find((p) => p.packageType === PACKAGE_TYPE.MONTHLY) ?? null;

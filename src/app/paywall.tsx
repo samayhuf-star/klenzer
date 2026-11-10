@@ -47,7 +47,7 @@ export default function Paywall() {
   const offering = second && offers?.secondChance ? offers.secondChance : (offers?.main ?? null);
   const plans = plansFor(offering, country);
   const chosen = plans.find((p) => p.kind === sel) ?? plans[0];
-  const loading = offers === null;
+  const loading = offers === null && process.env.EXPO_PUBLIC_PAYWALL_PREVIEW !== '1';
 
   // The first time the user closes the paywall, show the optional "second chance" offering (if one is set up in RevenueCat).
   const close = () => {

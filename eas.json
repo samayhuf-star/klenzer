@@ -37,6 +37,10 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_RC_IOS_KEY": "appl_mtpHcUKZntKUiGIMpXApcgmUGvh",
+        "EXPO_PUBLIC_PAYWALL_PREVIEW": "1"
       }
     }
   },
