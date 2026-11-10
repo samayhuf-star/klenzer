@@ -25,7 +25,7 @@ export const MONTHLY_SKU = 'com.krosz.klenzer.monthly';
 const OWNED_SKUS = [LIFETIME_SKU, MONTHLY_SKU];
 export type Plan = 'lifetime' | 'monthly';
 const CACHE_KEY = 'klenzer.unlocked.v1';
-const FALLBACK_PRICE = '$4.99';
+const FALLBACK_PRICE = '$14.99';
 const STORE = Platform.OS === 'ios' ? 'Apple ID' : 'Google account';
 /** Set only by the `testflight` EAS profile (eas.json). Tester builds skip the paywall; App Store builds never set it. */
 const TESTER_BUILD = process.env.EXPO_PUBLIC_TESTER_BUILD === '1';
