@@ -17,13 +17,13 @@ import { Platform } from 'react-native';
 /** One non-consumable purchase: pay once, keep it for life. Must match the product ID in App Store Connect and Play Console. */
 export const LIFETIME_SKU = 'com.krosz.klenzer.lifetime';
 const CACHE_KEY = 'klenzer.unlocked.v1';
-const FALLBACK_PRICE = '$4.99';
+const FALLBACK_PRICE = '$14.99';
 const STORE = Platform.OS === 'ios' ? 'Apple ID' : 'Google account';
 
 type Ctx = {
   /** True once the lifetime purchase is owned. Scanning is always free; deleting needs this. */
   unlocked: boolean;
-  /** Localised price from the store, falling back to $4.99 until it loads. */
+  /** Localised price from the store, falling back to $14.99 until it loads. */
   price: string;
   busy: 'buy' | 'restore' | null;
   error: string | null;

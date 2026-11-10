@@ -10,7 +10,7 @@ Every claim below is something the app actually does. Do not add "boost", "speed
 | Subtitle | Duplicate & Screenshot Cleaner | 30/30 |
 | Category | Primary: Utilities · Secondary: Photo & Video | |
 | Age rating | 4+ | |
-| Price | Free download. One in-app purchase: Lifetime unlock, $4.99 (non-consumable, product ID com.krosz.klenzer.lifetime) | |
+| Price | Free download. One in-app purchase: Lifetime unlock, $14.99 USD (non-consumable, product ID com.krosz.klenzer.lifetime); India and similar low-price storefronts: ₹599 via Apple regional pricing | |
 
 **Keywords (100 max):**
 `duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,large files,organizer,tidy`
@@ -64,7 +64,7 @@ Klenzer is a native app (Expo/React Native) that uses PhotoKit via expo-media-li
 | Short description | Find duplicate photos, screenshots & big videos. Private, on-device. | 68/80 |
 | Category | Tools (or Photography) | |
 | Content rating | Everyone (complete IARC questionnaire: no UGC, no ads; digital purchases: yes, one-time unlock) | |
-| Price | Free download, no ads. One in-app product: Lifetime unlock, $4.99 (one-time) | |
+| Price | Free download, no ads. One in-app product: Lifetime unlock, $14.99 USD (one-time); India: ₹599 via regional pricing | |
 | Target audience | 18+ / general (NOT children; avoids Families policy) | |
 
 **Full description:**

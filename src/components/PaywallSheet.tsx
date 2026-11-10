@@ -9,7 +9,7 @@ import { colors, fonts, radius } from '../theme';
 import { Button } from './Button';
 import { PressableScale } from './PressableScale';
 
-const PERKS = ['Clear duplicates, screenshots and large videos', 'Quick clean in one tap', 'Lifetime access, no subscription'];
+const PERKS = ['Clear duplicates, screenshots and large videos', 'Quick clean in one tap', 'Nothing deleted without your confirmation'];
 
 /** Payment sheet shown when someone taps Fix now or any delete button before unlocking. Scanning never reaches it. */
 export function PaywallSheet() {
@@ -33,7 +33,7 @@ export function PaywallSheet() {
           </View>
           <Text style={styles.title}>Unlock Klenzer</Text>
           <Text style={styles.sub}>
-            {found > 0 ? `Your scan found ${formatBytes(found)} you can clear. ` : ''}Unlock once to start cleaning.
+            {found > 0 ? `Your scan found ${formatBytes(found)} you can clear. ` : ''}Scanning stays free.
           </Text>
 
           <View style={styles.perks}>
@@ -46,7 +46,10 @@ export function PaywallSheet() {
           </View>
 
           <View style={styles.plan}>
-            <Text style={styles.planName}>Lifetime unlock</Text>
+            <View>
+              <Text style={styles.planName}>Lifetime</Text>
+              <Text style={styles.planSub}>Pay once. Yours for good.</Text>
+            </View>
             <Text style={styles.planPrice}>{price}</Text>
           </View>
 
@@ -62,7 +65,7 @@ export function PaywallSheet() {
               <Text style={styles.link}>Not now</Text>
             </PressableScale>
           </View>
-          <Text style={styles.foot}>One-time payment charged to your {store}. Nothing is deleted until you unlock.</Text>
+          <Text style={styles.foot}>One-time payment charged to your {store}. No subscription, no renewal.</Text>
         </View>
       </View>
     </Modal>
@@ -81,6 +84,7 @@ const styles = StyleSheet.create({
   perkText: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink, flexShrink: 1 },
   plan: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: colors.blue, backgroundColor: colors.blueSoft, borderRadius: radius.md, paddingVertical: 13, paddingHorizontal: 16, marginBottom: 12 },
   planName: { fontFamily: fonts.semi, fontSize: 15, color: colors.ink },
+  planSub: { fontFamily: fonts.body, fontSize: 12, color: colors.ink2, marginTop: 2 },
   planPrice: { fontFamily: fonts.bold, fontSize: 18, color: colors.ink },
   error: { fontFamily: fonts.medium, fontSize: 13, color: colors.danger, textAlign: 'center', marginTop: 10 },
   links: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 14 },
