@@ -25,7 +25,7 @@ export function Button({ label, onPress, variant = 'primary', icon, busy, disabl
   return (
     <PressableScale onPress={onPress} disabled={disabled || busy} accessibilityLabel={label} style={[styles.wrap, style]}>
       {variant === 'primary' ? (
-        <LinearGradient colors={[colors.blue, '#1BB6D8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
+        <LinearGradient colors={[colors.blue, '#4A63FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
           {inner}
         </LinearGradient>
       ) : (

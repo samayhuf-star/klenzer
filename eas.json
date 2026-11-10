@@ -20,6 +20,12 @@
         "buildType": "app-bundle"
       }
     },
+    "testflight": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_TESTER_BUILD": "1"
+      }
+    },
     "simulator": {
       "extends": "production",
       "distribution": "internal",

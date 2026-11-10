@@ -1,25 +1,33 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import { ReactNode, useCallback } from 'react';
-import { Platform } from 'react-native';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
-import { Ring } from '../components/Ring';
-import { ScanPulse } from '../components/ScanPulse';
+import { FloatingNav } from '../components/FloatingNav';
+import { ProPill, ProTag } from '../components/ProPill';
+import { StorageBar } from '../components/StorageBar';
 import { KINDS } from '../lib/kinds';
 import { formatBytes } from '../lib/format';
-import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
+import { dupExtraCount, dupReclaimable, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
+import { useUnlock } from '../lib/unlock';
 import { colors, fonts, radius, shadow } from '../theme';
+
+type Tab = 'photos' | 'videos' | 'tools';
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos } = useStore();
+  const { disk, access, canAskAgain, requestAccess, openSettings, manageLimited, scanning, progress, result, scan, cancelScan, lifetimeFreed, lifetimeItems, refreshDisk, tempSize, clean, pending, dismissPending, openPhotos, reminders, setReminders } = useStore();
+  const [nudgeHidden, setNudgeHidden] = useState(true);
+  useEffect(() => { AsyncStorage.getItem('klenzer.nudge.v1').then((v) => setNudgeHidden(v === '1')).catch(() => {}); }, []);
+  const hideNudge = () => { setNudgeHidden(true); AsyncStorage.setItem('klenzer.nudge.v1', '1').catch(() => {}); };
+  const { requireUnlock } = useUnlock();
+  const [tab, setTab] = useState<Tab>('photos');
   // Free space changes all the time (downloads, iCloud, the system), so keep it live while Home is on screen.
   useFocusEffect(
     useCallback(() => {
@@ -34,188 +42,198 @@ export default function Home() {
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
   const phase = progress?.phase === 'measuring' ? 'Measuring file sizes' : 'Reading your library';
 
+  const tiles = result
+    ? {
+        photos: [
+          { kind: 'duplicates', label: 'Duplicates', icon: 'copy', tone: colors.blue, soft: colors.blueSoft, count: dupExtraCount(result.duplicates), bytes: dupReclaimable(result.duplicates) },
+          { kind: 'screenshots', label: 'Screenshots', icon: 'phone-portrait', tone: colors.violet, soft: colors.violetSoft, count: result.screenshots.length, bytes: sum(result.screenshots) },
+          ...(Platform.OS === 'ios' ? [{ kind: 'live', label: KINDS.live.title, icon: KINDS.live.icon, tone: KINDS.live.tone, soft: KINDS.live.soft, count: result.livePhotos.length, bytes: sum(result.livePhotos) }] : []),
+          { kind: 'temp', label: KINDS.temp.title, icon: KINDS.temp.icon, tone: KINDS.temp.tone, soft: KINDS.temp.soft, count: tempSize > 0 ? 1 : 0, bytes: tempSize },
+        ],
+        videos: [{ kind: 'videos', label: 'Large videos', icon: 'videocam', tone: colors.amber, soft: colors.amberSoft, count: result.largeVideos.length, bytes: sum(result.largeVideos) }],
+      }
+    : null;
+  const placeholders = (n: number) => Array.from({ length: n }, (_, i) => i);
+  const openTile = (kind: string) =>
+    kind === 'temp'
+      ? requireUnlock(() => {
+          router.push('/cleaning');
+          clean([{ kind: 'temp', items: [] }]);
+        })
+      : router.push({ pathname: '/review/[kind]', params: { kind } });
+  const heroAction = () => (result ? router.push('/smart') : scan());
+
+  const tabs: { id: Tab; label: string }[] = [{ id: 'photos', label: 'Photos' }, { id: 'videos', label: 'Videos' }, { id: 'tools', label: 'Tools' }];
+  const list = tab === 'photos' ? tiles?.photos : tab === 'videos' ? tiles?.videos : null;
+
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32, paddingHorizontal: 20 }}
-      showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <View style={styles.brand}>
-          <Image source={require('../../assets/logo.png')} style={{ width: 34, height: 34 }} />
-          <Text style={styles.brandText}>Klenzer</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 120, paddingHorizontal: 18 }}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={styles.gear}>
+            <Ionicons name="settings-outline" size={21} color={colors.ink} />
+          </PressableScale>
+          <Text style={styles.title}>Klenzer</Text>
+          <View style={{ minWidth: 44, alignItems: 'flex-end' }}>
+            <ProPill />
+          </View>
         </View>
-        <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={styles.gear}>
-          <Ionicons name="settings-outline" size={22} color={colors.ink} />
-        </PressableScale>
-      </View>
 
-      <Animated.View entering={FadeInDown.duration(500)} style={[styles.card, styles.hero]}>
-        <Text style={styles.eyebrow}>THIS DEVICE</Text>
-        <Ring size={188} stroke={16} progress={usedPct}>
-          <CountUp value={disk.free} format={(n) => formatBytes(n)} style={styles.big} />
-          <Text style={styles.sub}>free of {formatBytes(disk.total, 0)}</Text>
-        </Ring>
-        <Text style={styles.note}>
-          Klenzer clears photo and video clutter, which is often the biggest space hog. It can’t clear app caches or system data.
-        </Text>
-      </Animated.View>
+        <View style={styles.status}>
+          <Ionicons name={scanning ? 'search' : 'checkmark-circle'} size={17} color={scanning ? colors.ink3 : '#0BAE86'} />
+          <Text style={styles.statusText}>{scanning ? `${phase}… ${pct}%` : result ? 'Scan complete. Review what we found.' : 'Ready to scan. Nothing leaves your device.'}</Text>
+        </View>
+        <View style={styles.progressTrack}>
+          <Animated.View style={[styles.progressFill, { width: `${scanning ? Math.max(4, pct) : result ? 100 : 0}%` }]} />
+        </View>
 
-      {denied && (
-        <Notice icon="lock-closed" tone="amber" title="Photo access is off" body="Klenzer needs to read your photo library to find clutter. Photos never leave your device.">
-          <Button variant="light" label={canAskAgain ? 'Allow access' : 'Open Settings'} onPress={canAskAgain ? requestAccess : openSettings} />
-        </Notice>
-      )}
-      {access === 'limited' && (
-        <Notice icon="images" tone="blue" title="Limited photo access" body="Klenzer can only see the photos you selected, so results may be incomplete.">
-          <Button variant="light" label="Choose more photos" onPress={manageLimited} />
-        </Notice>
-      )}
-
-      {pending && Platform.OS === 'ios' && (
-        <Notice icon="trash-bin" tone="amber" title={`${formatBytes(pending.bytes)} still in Recently Deleted`} body="iPhone only frees this space once Recently Deleted is emptied, and apps can’t do that for you. Tap below, unlock with Face ID, then Select › Delete All.">
-          <Button variant="light" label="Open Recently Deleted" onPress={openPhotos} />
-          <Button variant="ghost" label="I’ve emptied it" onPress={dismissPending} />
-        </Notice>
-      )}
-
-      {scanning ? (
-        <Animated.View entering={FadeInDown} style={[styles.card, { marginTop: 16 }]}>
-          <View style={{ alignItems: 'center', marginBottom: 6 }}>
-            <ScanPulse size={110} />
+        <Animated.View entering={FadeInDown.duration(500)} style={[styles.card, { marginTop: 14 }]}>
+          <Text style={styles.eyebrow}>Storage</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 4, marginBottom: 12 }}>
+            <CountUp value={disk.used} format={(n) => formatBytes(n)} style={styles.big} />
+            <Text style={styles.of}> of {formatBytes(disk.total, 0)}</Text>
           </View>
-          <Text style={[styles.cardTitle, { textAlign: 'center' }]}>{phase}…</Text>
-          <View style={styles.bar}>
-            <View style={[styles.barFill, { width: `${Math.max(4, pct)}%` }]} />
-          </View>
-          <Text style={styles.sub}>
-            {progress?.done.toLocaleString()} of {progress?.total.toLocaleString()} · {pct}%
-          </Text>
-          <Button variant="ghost" label="Cancel" onPress={cancelScan} style={{ marginTop: 14 }} />
+          <StorageBar progress={usedPct} />
+          <Button
+            label={scanning ? 'Scanning…' : result ? 'Smart Clean' : 'Scan my library'}
+            icon={<Ionicons name="sparkles" size={19} color="#fff" />}
+            onPress={heroAction}
+            disabled={scanning}
+            style={{ marginTop: 18 }}
+          />
+          {scanning && <Button variant="ghost" label="Cancel" onPress={cancelScan} style={{ marginTop: 10 }} />}
         </Animated.View>
-      ) : (
-        <Button
-          label={result ? 'Scan again' : 'Scan my library'}
-          icon={<Ionicons name="sparkles" size={20} color="#fff" />}
-          onPress={scan}
-          style={{ marginTop: 18 }}
-        />
-      )}
 
-      {result && !scanning && (
-        <Animated.View entering={FadeInDown.delay(100)} style={{ marginTop: 22, gap: 12 }}>
-          <Text style={styles.section}>What we found</Text>
-          <Category
-            kind="duplicates"
-            icon="copy"
-            tone={colors.blue}
-            soft={colors.blueSoft}
-            title="Duplicates & near-identical"
-            count={dupExtraCount(result.duplicates)}
-            bytes={dupReclaimable(result.duplicates)}
-            hint="Photos taken at the same moment, same size"
-          />
-          <Category
-            kind="screenshots"
-            icon="phone-portrait"
-            tone={colors.violet}
-            soft={colors.violetSoft}
-            title="Screenshots"
-            count={result.screenshots.length}
-            bytes={sum(result.screenshots)}
-            hint="Review and clear the ones you don’t need"
-          />
-          <Category
-            kind="videos"
-            icon="videocam"
-            tone={colors.amber}
-            soft={colors.amberSoft}
-            title="Large videos"
-            count={result.largeVideos.length}
-            bytes={sum(result.largeVideos)}
-            hint="Videos over 100 MB, biggest first"
-          />
-          {Platform.OS === 'ios' && (
-            <Category
-              kind="live"
-              icon={KINDS.live.icon}
-              tone={KINDS.live.tone}
-              soft={KINDS.live.soft}
-              title={KINDS.live.title}
-              count={result.livePhotos.length}
-              bytes={sum(result.livePhotos)}
-              hint="Photos that also store a short video clip"
-            />
-          )}
-          <Category
-            kind="temp"
-            icon={KINDS.temp.icon}
-            tone={KINDS.temp.tone}
-            soft={KINDS.temp.soft}
-            title={KINDS.temp.title}
-            count={tempSize > 0 ? 1 : 0}
-            bytes={tempSize}
-            hint="Klenzer’s own cache. Other apps’ data can’t be touched"
-            onPress={() => {
-              router.push('/cleaning');
-              clean([{ kind: 'temp', items: [] }]);
-            }}
-          />
-          {(result.duplicates.length > 0 || tempSize > 0) && (
-            <Button
-              label="Quick clean: duplicates + temporary files"
-              icon={<Ionicons name="flash" size={20} color="#fff" />}
-              onPress={() => {
-                const plan = [
-                  ...(result.duplicates.length ? [{ kind: 'duplicates' as const, items: result.duplicates.flatMap(dupExtras) }] : []),
-                  ...(tempSize > 0 ? [{ kind: 'temp' as const, items: [] }] : []),
-                ];
-                router.push('/cleaning');
-                clean(plan);
-              }}
-              style={{ marginTop: 6 }}
-            />
-          )}
+        {denied && (
+          <Notice icon="lock-closed" tone="amber" title="Photo access is off" body="Klenzer needs to read your photo library to find clutter. Photos never leave your device.">
+            <Button variant="light" label={canAskAgain ? 'Allow access' : 'Open Settings'} onPress={canAskAgain ? requestAccess : openSettings} />
+          </Notice>
+        )}
+        {access === 'limited' && (
+          <Notice icon="images" tone="blue" title="Limited photo access" body="Klenzer can only see the photos you selected, so results may be incomplete.">
+            <Button variant="light" label="Choose more photos" onPress={manageLimited} />
+          </Notice>
+        )}
+        {pending && Platform.OS === 'ios' && (
+          <Notice icon="trash-bin" tone="amber" title={`${formatBytes(pending.bytes)} still in Recently Deleted`} body="iPhone only frees this space once Recently Deleted is emptied, and apps can’t do that for you. Tap below, unlock with Face ID, then Select › Delete All.">
+            <Button variant="light" label="Open Recently Deleted" onPress={openPhotos} />
+            <Button variant="ghost" label="I’ve emptied it" onPress={dismissPending} />
+          </Notice>
+        )}
+
+        <View style={styles.seg}>
+          {tabs.map((t) => (
+            <PressableScale key={t.id} onPress={() => setTab(t.id)} accessibilityLabel={t.label} style={[styles.segItem, tab === t.id && styles.segOn]}>
+              <Text style={[styles.segText, tab === t.id && { color: colors.ink, fontFamily: fonts.bold }]}>{t.label}</Text>
+            </PressableScale>
+          ))}
+        </View>
+
+        {tab !== 'tools' ? (
+          <View key={tab} style={styles.grid}>
+            {(list ?? placeholders(tab === 'photos' ? 4 : 1)).map((t, i) => {
+              const it = typeof t === 'number' ? null : t;
+              return (
+                <Animated.View key={it ? it.kind : String(t)} entering={FadeInDown.delay(80 * i).springify().damping(16)} style={styles.tileWrap}>
+                  <Tile
+                    label={it?.label ?? '…'}
+                    icon={it?.icon ?? 'ellipse'}
+                    tone={it?.tone ?? colors.ink3}
+                    soft={it?.soft ?? colors.line}
+                    bytes={it?.bytes ?? 0}
+                    count={it?.count ?? 0}
+                    busy={scanning}
+                    ready={!!it}
+                    onPress={() => it && openTile(it.kind)}
+                  />
+                </Animated.View>
+              );
+            })}
+            {tab === 'videos' && !result && !scanning && <Text style={styles.foot}>Scan to find videos over 100 MB.</Text>}
+          </View>
+        ) : (
+          <View style={{ gap: 12, marginTop: 14 }}>
+            <Tool icon="people" tone={colors.blue} soft={colors.blueSoft} title="Contacts" hint="Merge duplicate contacts, with a backup first" route="/contacts" delay={0} />
+            <Tool icon="calendar" tone={colors.violet} soft={colors.violetSoft} title="Calendar events" hint="Clear events that ended long ago" route="/events" delay={80} />
+            <Tool icon="key" tone={colors.amber} soft={colors.amberSoft} title="Secret Space" hint="Hide private photos and videos behind Face ID" route="/vault" delay={160} />
+          </View>
+        )}
+
+        {result && !scanning && tab !== 'tools' && (
           <Text style={styles.foot}>
             Scanned {result.photoCount.toLocaleString()} photos and {result.videoCount.toLocaleString()} videos. Photos stored only in iCloud aren’t measured.
           </Text>
-        </Animated.View>
-      )}
+        )}
+        {result && !scanning && tab === 'photos' && <Button variant="light" label="Scan again" onPress={scan} style={{ marginTop: 14 }} />}
 
-      {(lifetimeFreed > 0 || lifetimeItems > 0) && (
-        <View style={styles.lifetime}>
-          <Ionicons name="leaf" size={18} color={colors.mint} />
-          <Text style={styles.lifetimeText}>
-            You’ve freed <CountUp value={lifetimeFreed} format={(n) => formatBytes(n)} style={styles.lifetimeStrong} />
-            {lifetimeItems > 0 ? ` · ${lifetimeItems.toLocaleString()} ${lifetimeItems === 1 ? 'item' : 'items'} removed` : ''}
-          </Text>
-        </View>
-      )}
-    </ScrollView>
+        {!reminders && !nudgeHidden && (
+          <View style={[styles.card, { gap: 10, marginTop: 18 }]}>
+            <Text style={{ fontFamily: fonts.body, fontSize: 14.5, color: colors.ink2 }}>Get a reminder every 3 days showing how full your storage is. Turn it off any time in Settings.</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Button variant="ghost" label="Not now" onPress={hideNudge} style={{ flex: 1 }} />
+              <Button label="Remind me" onPress={async () => { await setReminders(true); hideNudge(); }} style={{ flex: 1 }} />
+            </View>
+          </View>
+        )}
+
+        {(lifetimeFreed > 0 || lifetimeItems > 0) && (
+          <View style={styles.lifetime}>
+            <Ionicons name="leaf" size={18} color={colors.mint} />
+            <Text style={styles.lifetimeText}>
+              You’ve freed <CountUp value={lifetimeFreed} format={(n) => formatBytes(n)} style={styles.lifetimeStrong} />
+              {lifetimeItems > 0 ? ` · ${lifetimeItems.toLocaleString()} ${lifetimeItems === 1 ? 'item' : 'items'} removed` : ''}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+      <FloatingNav tab={tab === 'tools' ? 'tools' : 'clean'} onTab={(t) => setTab(t === 'tools' ? 'tools' : 'photos')} />
+    </View>
   );
 }
 
-function Category(p: { onPress?: () => void; kind: string; icon: string; tone: string; soft: string; title: string; count: number; bytes: number; hint: string }) {
-  const empty = p.count === 0;
+function Tile(p: { label: string; icon: string; tone: string; soft: string; bytes: number; count: number; busy: boolean; ready: boolean; onPress: () => void }) {
+  const empty = p.ready && !p.busy && p.count === 0;
   return (
-    <PressableScale
-      onPress={() => !empty && (p.onPress ? p.onPress() : router.push({ pathname: '/review/[kind]', params: { kind: p.kind } }))}
-      accessibilityLabel={`${p.title}, ${p.count} items`}
-      style={[styles.card, styles.cat]}>
-      <View style={[styles.catIcon, { backgroundColor: empty ? colors.mintSoft : p.soft }]}>
-        <Ionicons name={(empty ? 'checkmark' : p.icon) as never} size={24} color={empty ? '#0BAE86' : p.tone} />
+    <PressableScale onPress={p.onPress} disabled={!p.ready || p.busy || empty} accessibilityLabel={`${p.label}, ${p.count} items`} style={styles.tile}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={styles.tileLabel} numberOfLines={1}>{p.label}</Text>
+        {p.ready && !empty && <Ionicons name="chevron-forward" size={14} color={colors.ink3} />}
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 10 }}>
+        <View>
+          {p.busy ? <ActivityIndicator color={colors.blue} style={{ alignSelf: 'flex-start' }} /> : (
+            <Text style={styles.tileBytes}>{!p.ready ? '—' : empty ? 'Clear' : p.bytes > 0 ? formatBytes(p.bytes) : `${p.count}`}</Text>
+          )}
+          {p.ready && !p.busy && !empty && p.count > 0 && <Text style={styles.tileCount}>{p.label === 'Temporary files' ? 'tap to clear' : `${p.count.toLocaleString()} items`}</Text>}
+        </View>
+        <View style={[styles.tileIcon, { backgroundColor: empty ? colors.mintSoft : p.soft }]}>
+          <Ionicons name={(empty ? 'checkmark' : p.icon) as never} size={22} color={empty ? '#0BAE86' : p.tone} />
+        </View>
+      </View>
+    </PressableScale>
+  );
+}
+
+function Tool(p: { icon: string; tone: string; soft: string; title: string; hint: string; route: '/contacts' | '/events' | '/vault'; delay: number }) {
+  return (
+    <Animated.View entering={FadeInDown.delay(p.delay).springify().damping(16)}>
+    <PressableScale onPress={() => router.push(p.route)} accessibilityLabel={p.title} style={[styles.card, styles.cat, { borderLeftWidth: 4, borderLeftColor: p.tone }]}>
+      <View style={[styles.catIcon, { backgroundColor: p.soft }]}>
+        <Ionicons name={p.icon as never} size={24} color={p.tone} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.catTitle}>{p.title}</Text>
-        <Text style={styles.catHint}>{empty ? 'All clear. Nothing to clean here.' : p.hint}</Text>
-      </View>
-      {!empty && (
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={styles.catBytes}>{p.bytes > 0 ? formatBytes(p.bytes) : `${p.count}`}</Text>
-          <Text style={styles.catCount}>{p.kind === 'temp' ? 'tap to clear' : `${p.count.toLocaleString()} items`}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={styles.catTitle}>{p.title}</Text>
+          <ProTag />
         </View>
-      )}
-      {!empty && <Ionicons name="chevron-forward" size={18} color={colors.ink3} />}
+        <Text style={styles.catHint}>{p.hint}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.ink3} />
     </PressableScale>
+    </Animated.View>
   );
 }
 
@@ -235,14 +253,29 @@ function Notice({ icon, tone, title, body, children }: { icon: string; tone: 'am
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandText: { fontFamily: fonts.display, fontSize: 26, color: colors.ink, letterSpacing: -0.5 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  title: { fontFamily: fonts.bold, fontSize: 21, color: colors.ink },
+  status: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 8 },
+  statusText: { fontFamily: fonts.medium, fontSize: 13, color: colors.ink3 },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(43,69,245,0.12)', overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 2, backgroundColor: colors.blue },
+  of: { fontFamily: fonts.medium, fontSize: 16, color: colors.ink3 },
+  seg: { flexDirection: 'row', backgroundColor: 'rgba(11,16,32,0.06)', borderRadius: 14, padding: 3, marginTop: 18 },
+  segItem: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 11 },
+  segOn: { backgroundColor: '#fff', ...shadow },
+  segText: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink2 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 14 },
+  tileWrap: { width: '47.8%' },
+  tile: { backgroundColor: colors.card, borderRadius: 20, padding: 14, minHeight: 104, ...shadow },
+  tileLabel: { fontFamily: fonts.medium, fontSize: 13, color: colors.ink2, flexShrink: 1 },
+  tileBytes: { fontFamily: fonts.bold, fontSize: 22, color: colors.ink, letterSpacing: -0.4 },
+  tileCount: { fontFamily: fonts.body, fontSize: 11.5, color: colors.ink3, marginTop: 2 },
+  tileIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   gear: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', ...shadow },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: 20, ...shadow },
   hero: { alignItems: 'center', gap: 18, paddingVertical: 24 },
-  eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.6, color: colors.ink3 },
-  big: { fontFamily: fonts.display, fontSize: 34, color: colors.ink, letterSpacing: -1 },
+  eyebrow: { fontFamily: fonts.semi, fontSize: 13, color: colors.ink2 },
+  big: { fontFamily: fonts.bold, fontSize: 32, color: colors.ink, letterSpacing: -1 },
   sub: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink3, marginTop: 2 },
   note: { fontFamily: fonts.body, fontSize: 13.5, lineHeight: 19, color: colors.ink2, textAlign: 'center' },
   notice: { borderRadius: radius.md, padding: 16, gap: 10, marginTop: 16 },

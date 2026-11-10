@@ -1,13 +1,13 @@
 export const colors = {
-  bg: '#F6F8FC',
+  bg: '#EEF0FB',
   card: '#FFFFFF',
   ink: '#0B1020',
   ink2: '#4A5470',
   ink3: '#8A93AD',
   line: '#E4E9F4',
   mint: '#19E3B1',
-  blue: '#2F6BFF',
-  blueSoft: '#E7EEFF',
+  blue: '#2B45F5',
+  blueSoft: '#E3E7FF',
   mintSoft: '#DDFBF2',
   danger: '#F2455C',
   dangerSoft: '#FFE9EC',
@@ -25,6 +25,8 @@ export const fonts = {
   bold: 'Inter_700Bold',
   display: 'Fraunces_700Bold',
 };
+
+export const gold = '#D9A93A';
 
 export const radius = { sm: 12, md: 18, lg: 26, pill: 999 };
 

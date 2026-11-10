@@ -69,7 +69,7 @@ export default function Done() {
       </View>
       {!reminders && !asked && (
         <Animated.View entering={FadeInUp.delay(1200)} style={styles.ask}>
-          <Text style={styles.askText}>Want an occasional nudge to tidy up? A few reminders at most, never more than one a day.</Text>
+          <Text style={styles.askText}>Get a reminder every 3 days when your storage is filling up? Turn it off any time in Settings.</Text>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Button variant="ghost" label="Not now" onPress={() => setAsked(true)} style={{ flex: 1 }} />
             <Button label="Remind me" onPress={async () => { await setReminders(true); setAsked(true); }} style={{ flex: 1 }} />

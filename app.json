@@ -3,7 +3,7 @@
     "name": "Klenzer",
     "slug": "klenzer",
     "scheme": "klenzer",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -74,6 +74,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-iap",
       [
         "expo-splash-screen",
         {
@@ -87,7 +88,7 @@
         "expo-media-library",
         {
           "photosPermission": "Klenzer reads your photo library on-device to find duplicates, screenshots and large videos. Nothing is uploaded, and nothing is deleted until you confirm.",
-          "savePhotosPermission": false,
+          "savePhotosPermission": "Klenzer saves items back to your photo library when you restore them from Secret Space.",
           "granularPermissions": [
             "photo",
             "video"
@@ -105,7 +106,27 @@
         }
       ],
       "expo-web-browser",
-      "./plugins/withoutPushEntitlement"
+      "./plugins/withoutPushEntitlement",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Klenzer reads your contacts on this device to find duplicates and merge them. A backup is saved before anything changes, and contacts never leave your phone."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Klenzer reads your calendar on this device so you can delete events that ended long ago. Nothing leaves your phone.",
+          "remindersPermission": false,
+          "writeOnlyCalendarPermission": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Klenzer uses Face ID to keep Secret Space private."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

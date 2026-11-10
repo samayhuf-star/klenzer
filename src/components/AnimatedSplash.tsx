@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { colors, fonts } from '../theme';
 import { Sparkle } from './Sparkle';
 
@@ -30,6 +30,8 @@ export function AnimatedSplash({ ready, onDone }: { ready: boolean; onDone: () =
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, rootStyle]} pointerEvents="auto">
       <View style={styles.center}>
+        <Ring delay={0} />
+        <Ring delay={700} />
         <Animated.View style={logoStyle}>
           <Image source={require('../../assets/splash-icon.png')} style={{ width: 200, height: 200 }} contentFit="contain" />
         </Animated.View>
@@ -43,6 +45,16 @@ export function AnimatedSplash({ ready, onDone }: { ready: boolean; onDone: () =
       </Animated.View>
     </Animated.View>
   );
+}
+
+/** Soft expanding ring behind the logo. */
+function Ring({ delay }: { delay: number }) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    t.value = withDelay(delay, withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), -1));
+  }, [t, delay]);
+  const st = useAnimatedStyle(() => ({ opacity: 0.35 * (1 - t.value), transform: [{ scale: 0.7 + t.value * 1.3 }] }));
+  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: 200, height: 200, borderRadius: 100, borderWidth: 2, borderColor: colors.mint }, st]} />;
 }
 
 const styles = StyleSheet.create({

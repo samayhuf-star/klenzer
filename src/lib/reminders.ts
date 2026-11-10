@@ -11,7 +11,8 @@ import { formatBytes } from './format';
 const KEY = 'klenzer.reminders.v1';
 const CHANNEL = 'reminders';
 const HOUR = 10; // local time: late enough to be polite
-const DAYS_AFTER_LAST_OPEN = [2, 5, 10, 21, 45];
+const EVERY_DAYS = 3;
+const COUNT = 10; // ~a month of nudges, re-planned on each app open, so regular users are not nagged
 
 const COPY = [
   { title: 'Quick tidy?', body: 'A 1-minute scan can show new duplicates and screenshots piling up in your camera roll.' },
@@ -56,7 +57,7 @@ const at = (daysFromNow: number) => {
 };
 
 /** Clears and re-plans every reminder, counted from now (call on each app open). */
-export async function scheduleReminders(opts: { pendingBytes?: number } = {}): Promise<void> {
+export async function scheduleReminders(opts: { pendingBytes?: number; usedPct?: number } = {}): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
     if (!(await remindersPref()) || (await permissionState()) !== 'granted') return;
@@ -74,17 +75,21 @@ export async function scheduleReminders(opts: { pendingBytes?: number } = {}): P
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at(1), channelId },
       });
     }
-    for (let i = 0; i < DAYS_AFTER_LAST_OPEN.length; i++) {
+    const pct = opts.usedPct && opts.usedPct > 0 ? Math.round(opts.usedPct * 100) : 0;
+    for (let i = 1; i <= COUNT; i++) {
+      const content = pct >= 1
+        ? { title: `${pct}% of your storage is used`, body: `You have ${pct}% storage used on your phone. Tap to clear clutter.` }
+        : COPY[i % COPY.length];
       await Notifications.scheduleNotificationAsync({
-        content: COPY[i % COPY.length],
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at(DAYS_AFTER_LAST_OPEN[i]), channelId },
+        content,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at(i * EVERY_DAYS), channelId },
       });
     }
   } catch {}
 }
 
 /** Asks the OS for permission (first call shows the system prompt). Returns whether reminders are now on. */
-export async function enableReminders(pendingBytes?: number): Promise<boolean> {
+export async function enableReminders(pendingBytes?: number, usedPct?: number): Promise<boolean> {
   try {
     let state = await permissionState();
     if (state === 'undetermined') {
@@ -93,7 +98,7 @@ export async function enableReminders(pendingBytes?: number): Promise<boolean> {
     }
     if (state !== 'granted') return false;
     await savePref(true);
-    await scheduleReminders({ pendingBytes });
+    await scheduleReminders({ pendingBytes, usedPct });
     return true;
   } catch {
     return false;

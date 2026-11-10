@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
 import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -8,11 +9,13 @@ import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
 import { SUPPORT_EMAIL } from '../lib/config';
 import { useStore } from '../lib/store';
-import { colors, fonts, radius, shadow } from '../theme';
+import { useUnlock } from '../lib/unlock';
+import { colors, fonts, gold, radius, shadow } from '../theme';
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
   const { access, openSettings, lifetimeFreed, reminders, setReminders } = useStore();
+  const { unlocked, requireUnlock, restore } = useUnlock();
   const toggle = async (on: boolean) => {
     if ((await setReminders(on)) === 'blocked') {
       Alert.alert('Notifications are off', 'Turn on notifications for Klenzer in Settings to get reminders.', [
@@ -33,9 +36,22 @@ export default function Settings() {
         <View style={{ width: 44 }} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40, gap: 16 }}>
+        {!unlocked && (
+          <PressableScale onPress={() => requireUnlock(() => {})} accessibilityLabel="Unlock Klenzer Pro">
+            <LinearGradient colors={['#0B1020', colors.blue]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pro}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.proTitle}>Klenzer PRO</Text>
+                <Text style={styles.proSub}>Clean duplicates, merge contacts, lock files away.</Text>
+                <View style={styles.proBtn}><Text style={styles.proBtnText}>Get it now</Text></View>
+              </View>
+              <Ionicons name="ribbon" size={64} color={gold} />
+            </LinearGradient>
+          </PressableScale>
+        )}
         <View style={styles.card}>
           <Row icon="images-outline" label="Photo access" value={accessLabel} onPress={openSettings} />
           <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} />
+          <Row icon="refresh-outline" label="Restore purchase" onPress={() => restore()} chevron />
           <View style={styles.row}>
             <Ionicons name="notifications-outline" size={22} color={colors.blue} />
             <Text style={styles.label}>Cleanup reminders</Text>
@@ -76,5 +92,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 17, paddingHorizontal: 18 },
   label: { flex: 1, fontFamily: fonts.semi, fontSize: 16, color: colors.ink },
   value: { fontFamily: fonts.medium, fontSize: 15, color: colors.ink3 },
+  pro: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.lg, padding: 20, gap: 12 },
+  proTitle: { fontFamily: fonts.bold, fontSize: 22, color: '#fff' },
+  proSub: { fontFamily: fonts.body, fontSize: 13.5, color: '#C9D3FF', lineHeight: 19 },
+  proBtn: { alignSelf: 'flex-start', backgroundColor: colors.blue, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9, marginTop: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  proBtnText: { fontFamily: fonts.bold, fontSize: 14, color: '#fff' },
   ver: { fontFamily: fonts.medium, fontSize: 13, color: colors.ink3, textAlign: 'center', marginTop: 8 },
 });
