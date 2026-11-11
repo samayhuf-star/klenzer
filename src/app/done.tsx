@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
 import { useEffect, useState } from 'react';
+import { markMilestone } from '../lib/revenuecat';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,7 @@ export default function Done() {
   useEffect(() => {
     pop.value = withDelay(150, withSequence(withSpring(1.15, { damping: 7 }), withSpring(1)));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    markMilestone('first_clean');
     // Ask for a rating only after a real success, and at most once the OS allows.
     const t = setTimeout(async () => {
       try {

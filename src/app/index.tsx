@@ -14,6 +14,7 @@ import { ScanPulse } from '../components/ScanPulse';
 import { KINDS } from '../lib/kinds';
 import { formatBytes } from '../lib/format';
 import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
+import { requirePro } from '../lib/revenuecat';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
@@ -155,7 +156,8 @@ export default function Home() {
             count={tempSize > 0 ? 1 : 0}
             bytes={tempSize}
             hint="Klenzer’s own cache. Other apps’ data can’t be touched"
-            onPress={() => {
+            onPress={async () => {
+              if (!(await requirePro('fix_temp'))) return;
               router.push('/cleaning');
               clean([{ kind: 'temp', items: [] }]);
             }}
@@ -164,7 +166,8 @@ export default function Home() {
             <Button
               label="Quick clean: duplicates + temporary files"
               icon={<Ionicons name="flash" size={20} color="#fff" />}
-              onPress={() => {
+              onPress={async () => {
+                if (!(await requirePro('quick_clean'))) return;
                 const plan = [
                   ...(result.duplicates.length ? [{ kind: 'duplicates' as const, items: result.duplicates.flatMap(dupExtras) }] : []),
                   ...(tempSize > 0 ? [{ kind: 'temp' as const, items: [] }] : []),

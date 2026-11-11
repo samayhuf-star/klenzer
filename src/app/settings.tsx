@@ -7,12 +7,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
 import { SUPPORT_EMAIL } from '../lib/config';
+import { openCustomerCenter, presentPaywall, restorePurchases, useEntitlement } from '../lib/revenuecat';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
   const { access, openSettings, lifetimeFreed, reminders, setReminders } = useStore();
+  const { active: pro } = useEntitlement();
+  const restore = async () => {
+    try {
+      const ok = await restorePurchases();
+      Alert.alert(ok ? 'Restored' : 'Nothing to restore', ok ? 'Klenzer Pro is active again.' : 'No Klenzer Pro purchase was found for this account.');
+    } catch (e: any) {
+      Alert.alert('Restore failed', e?.message ?? 'Please try again.');
+    }
+  };
   const toggle = async (on: boolean) => {
     if ((await setReminders(on)) === 'blocked') {
       Alert.alert('Notifications are off', 'Turn on notifications for Klenzer in Settings to get reminders.', [
@@ -41,6 +51,14 @@ export default function Settings() {
             <Text style={styles.label}>Cleanup reminders</Text>
             <Switch value={reminders} onValueChange={toggle} trackColor={{ true: colors.blue }} />
           </View>
+        </View>
+        <View style={styles.card}>
+          {pro ? (
+            <Row icon="sparkles-outline" label="Manage Klenzer Pro" onPress={openCustomerCenter} chevron />
+          ) : (
+            <Row icon="sparkles-outline" label="Unlock Klenzer Pro" onPress={() => presentPaywall('settings')} chevron />
+          )}
+          <Row icon="refresh-outline" label="Restore purchases" onPress={restore} chevron />
         </View>
         <View style={styles.card}>
           <Row icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => router.push('/privacy')} chevron />

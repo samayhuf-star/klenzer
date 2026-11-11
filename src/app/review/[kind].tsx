@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { PressableScale } from '../../components/PressableScale';
 import { formatBytes, formatDate, formatDuration } from '../../lib/format';
 import { dupExtras, Item } from '../../lib/scanner';
+import { requirePro } from '../../lib/revenuecat';
 import { useStore } from '../../lib/store';
 import { colors, fonts, radius } from '../../theme';
 
@@ -53,7 +54,8 @@ export default function Review() {
   const doDelete = async () => {
     // A set where every copy is selected would delete the photo entirely: confirm explicitly.
     const wipesGroup = kind === 'duplicates' && groups.some((g) => g.items.every((i) => sel.has(i.id)));
-    const go = () => {
+    const go = async () => {
+      if (!(await requirePro('fix_' + kind))) return;
       // The cleaning screen shows live progress while the OS asks for confirmation and deletes.
       router.push('/cleaning');
       clean([{ kind, items: chosen }]);
