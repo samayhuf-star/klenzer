@@ -48,6 +48,14 @@ const logErr = (action: string, e: unknown) => {
   console.log(LOG, `${action} failed`, { code: err?.code, message: err?.message, debugMessage: err?.debugMessage });
 };
 
+/** Also catches a cancel that arrives as an unparsed OPENIAP_ERROR_JSON envelope or a StoreKit cancel message. */
+const isCancel = (e: unknown) => {
+  const err = e as { code?: string; message?: string } | null;
+  if (isUserCancelledError(e) || err?.code === ErrorCode.UserCancelled) return true;
+  const text = `${err?.code ?? ''} ${err?.message ?? ''}`.toLowerCase();
+  return /user-cancel|usercancel|user cancel|cancelled|canceled|code=2\b|skerrordomain error 2\b/.test(text);
+};
+
 async function ensureConnected(): Promise<boolean> {
   if (connected) return true;
   try {
@@ -119,7 +127,7 @@ function attachListeners() {
   });
   purchaseErrorListener((error) => {
     logErr('purchaseError', error);
-    if (isUserCancelledError(error) || error.code === ErrorCode.UserCancelled) {
+    if (isCancel(error)) {
       purchaseWaiter?.('cancelled');
     } else if (error.code === ErrorCode.Pending || error.code === ErrorCode.DeferredPayment) {
       purchaseWaiter?.('pending');
@@ -136,29 +144,55 @@ export async function initIAP(): Promise<boolean> {
   return ensureConnected();
 }
 
-export async function loadPlans(): Promise<PlansLoad> {
-  if (!(await ensureConnected())) {
-    return { plans: [], error: 'Plans unavailable right now, try again later.' };
-  }
+const STORE_NAME = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
+/** One friendly line for the paywall. Never a raw store error. */
+export const PLANS_UNAVAILABLE_MESSAGE = `We couldn’t reach the ${STORE_NAME} just now. Check your connection, then tap Retry.`;
+
+const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+async function fetchCatalog(): Promise<Map<string, ProductOrSubscription>> {
   const inAppIds = productIds('in-app');
   const subIds = productIds('subs');
-  let inApp: ProductOrSubscription[] = [];
-  let subs: ProductOrSubscription[] = [];
+  const byId = new Map<string, ProductOrSubscription>();
+  const keep = (items: ProductOrSubscription[] | null | undefined) => {
+    for (const product of items ?? []) {
+      if (product?.id && product.displayPrice && isKnownProduct(product.id)) byId.set(product.id, product);
+    }
+  };
   try {
-    if (inAppIds.length) inApp = (await fetchProducts({ skus: inAppIds, type: 'in-app' })) ?? [];
-  } catch (e) {
-    logErr('fetchProducts in-app', e);
-  }
-  try {
-    if (subIds.length) subs = (await fetchProducts({ skus: subIds, type: 'subs' })) ?? [];
+    if (subIds.length) keep((await fetchProducts({ skus: subIds, type: 'subs' })) as ProductOrSubscription[]);
   } catch (e) {
     logErr('fetchProducts subs', e);
   }
-  const byId = new Map<string, ProductOrSubscription>();
-  for (const product of [...inApp, ...subs]) {
-    if (product?.id && product.displayPrice) byId.set(product.id, product);
+  try {
+    if (inAppIds.length) keep((await fetchProducts({ skus: inAppIds, type: 'in-app' })) as ProductOrSubscription[]);
+  } catch (e) {
+    logErr('fetchProducts in-app', e);
   }
-  // Keep catalog order; skip IDs the store did not return (e.g. yearly not in ASC yet).
+  if (byId.size < PRODUCT_CATALOG.length) {
+    // Some StoreKit versions only return a product under the mixed query.
+    try {
+      keep((await fetchProducts({ skus: productIds(), type: 'all' })) as ProductOrSubscription[]);
+    } catch (e) {
+      logErr('fetchProducts all', e);
+    }
+  }
+  return byId;
+}
+
+/** Connect first, then fetch subs and the lifetime product with a short retry, using the store's displayPrice. */
+export async function loadPlans(): Promise<PlansLoad> {
+  const delays = [0, 1200, 2500];
+  let byId = new Map<string, ProductOrSubscription>();
+  for (const delay of delays) {
+    if (delay) await wait(delay);
+    if (!(await ensureConnected())) continue;
+    byId = await fetchCatalog();
+    if (byId.size) break;
+    // Drop the connection so the next attempt starts clean.
+    connected = false;
+  }
+  // Keep catalog order; skip IDs the store did not return.
   const plans: Plan[] = [];
   for (const def of PRODUCT_CATALOG) {
     const product = byId.get(def.id);
@@ -166,8 +200,8 @@ export async function loadPlans(): Promise<PlansLoad> {
     plans.push({ ...def, price: product.displayPrice, product });
   }
   if (!plans.length) {
-    console.log(LOG, 'no store products loaded', { inApp: inApp.map((p) => p.id), subs: subs.map((p) => p.id) });
-    return { plans: [], error: 'Plans unavailable right now, try again later.' };
+    console.log(LOG, 'no store products loaded', { requested: productIds() });
+    return { plans: [], error: PLANS_UNAVAILABLE_MESSAGE };
   }
   return { plans, error: null };
 }
@@ -240,7 +274,7 @@ export async function buy(plan: Plan): Promise<BuyResult> {
     });
   } catch (e) {
     purchaseWaiter = null;
-    if (isUserCancelledError(e) || (e as { code?: string })?.code === ErrorCode.UserCancelled) return 'cancelled';
+    if (isCancel(e)) return 'cancelled';
     if ((e as { code?: string })?.code === ErrorCode.Pending || (e as { code?: string })?.code === ErrorCode.DeferredPayment) {
       return 'pending';
     }
@@ -250,19 +284,28 @@ export async function buy(plan: Plan): Promise<BuyResult> {
   return result;
 }
 
-export async function restore(): Promise<boolean> {
-  if (!(await ensureConnected())) return false;
+export type RestoreResult = 'restored' | 'none' | 'cancelled' | 'error';
+
+
+/** Runs only when the user taps Restore. A cancelled Apple ID prompt returns 'cancelled' so the UI stays silent. */
+export async function restore(): Promise<RestoreResult> {
+  if (!(await ensureConnected())) return 'error';
+  let failures = 0;
   if (Platform.OS === 'ios') {
     try {
       await syncIOS();
     } catch (e) {
+      if (isCancel(e)) return 'cancelled';
       logErr('syncIOS restore', e);
+      failures++;
     }
   }
   try {
     await storeRestore();
   } catch (e) {
+    if (isCancel(e)) return 'cancelled';
     logErr('restorePurchases', e);
+    failures++;
   }
   try {
     const purchases = await getAvailablePurchases({ onlyIncludeActiveItemsIOS: false });
@@ -278,11 +321,14 @@ export async function restore(): Promise<boolean> {
       }
     }
   } catch (e) {
+    if (isCancel(e)) return 'cancelled';
     logErr('restore getAvailablePurchases', e);
+    failures++;
   }
   const entitled = await refreshEntitlements();
   emitPro(entitled);
-  return entitled;
+  if (entitled) return 'restored';
+  return failures >= (Platform.OS === 'ios' ? 3 : 2) ? 'error' : 'none';
 }
 
 /** Open the system subscription manager (Settings › Subscriptions / Play subscriptions). */

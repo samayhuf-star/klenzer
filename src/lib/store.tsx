@@ -405,6 +405,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               videoCount: r.videoCount - all.filter((i) => i.isVideo).length,
               screenshots: r.screenshots.filter((i) => !gone.has(i.id)),
               largeVideos: r.largeVideos.filter((i) => !gone.has(i.id)),
+              shortVideos: (r.shortVideos ?? []).filter((i) => !gone.has(i.id)),
+              screenRecordings: (r.screenRecordings ?? []).filter((i) => !gone.has(i.id)),
               livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
               blurry: r.blurry.filter((i) => !gone.has(i.id)),
               photos: (r.photos ?? []).filter((i) => !gone.has(i.id)),

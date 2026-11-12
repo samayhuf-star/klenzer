@@ -24,8 +24,10 @@ export default function Settings() {
     }
   };
   const doRestore = async () => {
-    const ok = await restore();
-    Alert.alert(ok ? 'Restored' : 'Nothing to restore', ok ? 'Klenzer is unlocked on this device.' : 'We couldn’t find a previous purchase on this account.');
+    const r = await restore();
+    if (r === 'restored') Alert.alert('Restored', 'Klenzer is unlocked on this device.');
+    else if (r === 'none') Alert.alert('Nothing to restore', 'We couldn’t find a previous purchase on this account.');
+    else if (r === 'error') Alert.alert('Restore didn’t finish', 'We couldn’t reach the store just now. Please try again in a moment.');
   };
   const accessLabel = access === 'granted' ? 'Full access' : access === 'limited' ? 'Limited' : access === 'denied' ? 'Off' : 'Not asked yet';
   const openUrl = (url: string) => {

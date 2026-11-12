@@ -20,6 +20,8 @@ const COPY = {
   videos: { title: 'Large videos', help: 'Videos over 100 MB, biggest first. Nothing is selected by default.' },
   live: { title: 'Live Photos', help: 'Convert to still keeps the full-size photo and removes the motion clip. The original goes to Recently Deleted; space is freed after you empty it, or after 30 days. Nothing is selected by default.' },
   photos: { title: 'Photos', help: 'Every photo in your library, largest first. Nothing is selected by default. Tap the ones you want to clear.' },
+  shortVideos: { title: 'Short recordings', help: 'Clips of 10 seconds or less, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
+  screenRecordings: { title: 'Screen recordings', help: 'Recordings of your screen, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   videoDuplicates: { title: 'Duplicate videos', help: 'Videos with the same size, dimensions and capture time. We keep the largest file in each set; tap any video to change what’s selected.' },
 } as const;
 type Kind = keyof typeof COPY;
@@ -43,6 +45,8 @@ export default function Review() {
     if (kind === 'blurry') return result?.blurry ?? [];
     if (kind === 'live') return result?.livePhotos ?? [];
     if (kind === 'photos') return result?.photos ?? [];
+    if (kind === 'shortVideos') return result?.shortVideos ?? [];
+    if (kind === 'screenRecordings') return result?.screenRecordings ?? [];
     return result?.largeVideos ?? [];
   }, [kind, groups, result]);
 
@@ -111,7 +115,7 @@ export default function Review() {
   );
 
   const renderThumb = (i: Item, size: number, badge?: string) => (
-    <Thumb key={i.id} item={i} size={size} selected={sel.has(i.id)} onPress={() => toggle(i.id)} badge={badge} showVideo={kind === 'videos' || kind === 'videoDuplicates'} />
+    <Thumb key={i.id} item={i} size={size} selected={sel.has(i.id)} onPress={() => toggle(i.id)} badge={badge} showVideo={kind === 'videos' || kind === 'videoDuplicates' || kind === 'shortVideos' || kind === 'screenRecordings'} />
   );
 
   return (

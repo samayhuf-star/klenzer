@@ -8,16 +8,24 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 're
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
-import { ScanProgress } from '../components/ScanProgress';
+import { ScanBar } from '../components/ScanBar';
+import { Segmented } from '../components/Segmented';
 import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
-import { formatBytes, formatFreeAmount, formatMarketedTotal, SCAN_CLEANUP_LINE, scanLookingLine } from '../lib/format';
+import { formatBytes, formatFreeAmount, formatMarketedTotal } from '../lib/format';
 import { KINDS, Kind } from '../lib/kinds';
 import { dupExtraCount, dupExtras, dupReclaimable, Item, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
 type Tab = 'clean' | 'compress';
+type Section = 'photos' | 'videos' | 'contacts';
+
+const SECTIONS: { value: Section; label: string }[] = [
+  { value: 'photos', label: 'Photos' },
+  { value: 'videos', label: 'Videos' },
+  { value: 'contacts', label: 'Contacts' },
+];
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -26,6 +34,7 @@ export default function Home() {
     scanning, progress, scanCats, result, scan, startClean, refreshDisk, scanError,
   } = useStore();
   const [tab, setTab] = useState<Tab>('clean');
+  const [section, setSection] = useState<Section>('photos');
   const reduceMotion = useReducedMotion();
   const prevCats = useRef(scanCats);
   const wasScanning = useRef(scanning);
@@ -84,8 +93,9 @@ export default function Home() {
   const photosSpin = scanning && scanCats.photos.status !== 'done';
   const shotsSpin = scanning && scanCats.screenshots.status !== 'done';
   const videoSpin = scanning && scanCats.videos.status !== 'done';
-  const showLargeVideos = (result?.largeVideos.length ?? 0) > 0 || (videoSpin && (result?.largeVideos.length ?? 0) > 0);
-  const showLive = (result?.livePhotos.length ?? 0) > 0 || (photosSpin && (result?.livePhotos.length ?? 0) > 0);
+  const showLargeVideos = (result?.largeVideos.length ?? 0) > 0;
+  const showLive = (result?.livePhotos.length ?? 0) > 0;
+  const rm = !!reduceMotion;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="home-screen">
@@ -104,14 +114,7 @@ export default function Home() {
           </PressableScale>
         </View>
 
-        {scanning && (
-          <ScanProgress
-            percent={pct}
-            line1={scanLookingLine(progress?.libraryTotal ?? progress?.total ?? 0, pct)}
-            line2={SCAN_CLEANUP_LINE}
-            reduceMotion={!!reduceMotion}
-          />
-        )}
+        {scanning && <ScanBar percent={pct} reduceMotion={!!reduceMotion} />}
 
         {!!scanError && !scanning && (
           <Notice title="Scan didn’t finish" body={scanError}>
@@ -152,85 +155,122 @@ export default function Home() {
           </View>
         )}
 
-                {tab === 'clean' && (
-          <View style={[styles.grid, { marginTop: 14 }]} testID="home-grid">
-            <CatCard
-              kind="photos"
-              title="Photos"
-              count={result?.photos?.length ?? 0}
-              bytes={result ? sum(result.photos ?? []) : 0}
-              thumbs={result?.photos?.slice(0, 3) ?? []}
-              spinning={photosSpin}
-              reduceMotion={!!reduceMotion}
-            />
-            <CatCard
-              kind="videoDuplicates"
-              title="Videos"
-              count={result ? dupExtraCount(result.duplicateVideos) : 0}
-              bytes={result ? dupReclaimable(result.duplicateVideos) : 0}
-              thumbs={result?.duplicateVideos.flatMap((g) => g.items).slice(0, 3) ?? []}
-              spinning={videoSpin}
-              reduceMotion={!!reduceMotion}
-            />
-            <CatCard
-              kind="similar"
-              title="Similar"
-              count={result ? dupExtraCount(result.similar) : 0}
-              bytes={result ? dupReclaimable(result.similar) : 0}
-              thumbs={result?.similar.flatMap((g) => g.items).slice(0, 3) ?? []}
-              spinning={photosSpin}
-              reduceMotion={!!reduceMotion}
-            />
-            <CatCard
-              kind="duplicates"
-              title="Duplicates"
-              count={result ? dupExtraCount(result.duplicates) : 0}
-              bytes={result ? dupReclaimable(result.duplicates) : 0}
-              thumbs={result?.duplicates.flatMap((g) => g.items).slice(0, 3) ?? []}
-              spinning={photosSpin}
-              reduceMotion={!!reduceMotion}
-            />
-            <CatCard
-              kind="blurry"
-              title="Blurry"
-              count={result?.blurry.length ?? 0}
-              bytes={result ? sum(result.blurry) : 0}
-              thumbs={result?.blurry.slice(0, 3) ?? []}
-              spinning={photosSpin}
-              reduceMotion={!!reduceMotion}
-            />
-            <CatCard
-              kind="screenshots"
-              title="Screenshots"
-              count={result?.screenshots.length ?? 0}
-              bytes={result ? sum(result.screenshots) : 0}
-              thumbs={result?.screenshots.slice(0, 3) ?? []}
-              spinning={shotsSpin}
-              reduceMotion={!!reduceMotion}
-            />
-            {showLargeVideos && (
-              <CatCard
-                kind="videos"
-                title="Large videos"
-                count={result?.largeVideos.length ?? 0}
-                bytes={result ? sum(result.largeVideos) : 0}
-                thumbs={result?.largeVideos.slice(0, 3) ?? []}
-                spinning={videoSpin}
-                reduceMotion={!!reduceMotion}
-              />
+        {tab === 'clean' && (
+          <View style={{ marginTop: 14, gap: 12 }} testID="home-sections">
+            <Segmented options={SECTIONS} value={section} onChange={setSection} reduceMotion={rm} testID="home-switch" />
+
+            {section === 'photos' && (
+              <View style={styles.grid} testID="home-grid-photos">
+                <CatCard
+                  kind="similar"
+                  title="Similar"
+                  count={result ? dupExtraCount(result.similar) : 0}
+                  bytes={result ? dupReclaimable(result.similar) : 0}
+                  thumbs={result?.similar.flatMap((g) => g.items).slice(0, 3) ?? []}
+                  spinning={photosSpin}
+                  reduceMotion={rm}
+                />
+                <CatCard
+                  kind="duplicates"
+                  title="Duplicate"
+                  count={result ? dupExtraCount(result.duplicates) : 0}
+                  bytes={result ? dupReclaimable(result.duplicates) : 0}
+                  thumbs={result?.duplicates.flatMap((g) => g.items).slice(0, 3) ?? []}
+                  spinning={photosSpin}
+                  reduceMotion={rm}
+                />
+                <CatCard
+                  kind="blurry"
+                  title="Blurry"
+                  count={result?.blurry.length ?? 0}
+                  bytes={result ? sum(result.blurry) : 0}
+                  thumbs={result?.blurry.slice(0, 3) ?? []}
+                  spinning={photosSpin}
+                  reduceMotion={rm}
+                />
+                <CatCard
+                  kind="screenshots"
+                  title="Screenshots"
+                  count={result?.screenshots.length ?? 0}
+                  bytes={result ? sum(result.screenshots) : 0}
+                  thumbs={result?.screenshots.slice(0, 3) ?? []}
+                  spinning={shotsSpin}
+                  reduceMotion={rm}
+                />
+                {showLive && (
+                  <CatCard
+                    kind="live"
+                    title="Live Photos"
+                    count={result?.livePhotos.length ?? 0}
+                    bytes={result ? sum(result.livePhotos) : 0}
+                    thumbs={result?.livePhotos.slice(0, 3) ?? []}
+                    spinning={photosSpin}
+                    wide
+                    reduceMotion={rm}
+                  />
+                )}
+              </View>
             )}
-            {showLive && (
-              <CatCard
-                kind="live"
-                title="Live Photos"
-                count={result?.livePhotos.length ?? 0}
-                bytes={result ? sum(result.livePhotos) : 0}
-                thumbs={result?.livePhotos.slice(0, 3) ?? []}
-                spinning={photosSpin}
-                reduceMotion={!!reduceMotion}
-              />
+
+            {section === 'videos' && (
+              <View style={styles.grid} testID="home-grid-videos">
+                <CatCard
+                  kind="videoDuplicates"
+                  title="Duplicate"
+                  count={result ? dupExtraCount(result.duplicateVideos) : 0}
+                  bytes={result ? dupReclaimable(result.duplicateVideos) : 0}
+                  thumbs={result?.duplicateVideos.flatMap((g) => g.items).slice(0, 3) ?? []}
+                  spinning={videoSpin}
+                  reduceMotion={rm}
+                />
+                <CatCard
+                  kind="shortVideos"
+                  title="Short Recordings"
+                  count={result?.shortVideos?.length ?? 0}
+                  bytes={result ? sum(result.shortVideos ?? []) : 0}
+                  thumbs={result?.shortVideos?.slice(0, 3) ?? []}
+                  spinning={videoSpin}
+                  reduceMotion={rm}
+                />
+                <CatCard
+                  kind="screenRecordings"
+                  title="Screen Recordings"
+                  count={result?.screenRecordings?.length ?? 0}
+                  bytes={result ? sum(result.screenRecordings ?? []) : 0}
+                  thumbs={result?.screenRecordings?.slice(0, 3) ?? []}
+                  spinning={videoSpin}
+                  wide
+                  reduceMotion={rm}
+                />
+                {showLargeVideos && (
+                  <CatCard
+                    kind="videos"
+                    title="Large videos"
+                    count={result?.largeVideos.length ?? 0}
+                    bytes={result ? sum(result.largeVideos) : 0}
+                    thumbs={result?.largeVideos.slice(0, 3) ?? []}
+                    spinning={videoSpin}
+                    wide
+                    reduceMotion={rm}
+                  />
+                )}
+              </View>
             )}
-            <ContactsCard reduceMotion={!!reduceMotion} onPress={() => comingSoon('Contacts')} />
+
+            {section === 'contacts' && <ContactsCard reduceMotion={rm} onPress={() => comingSoon('Contacts')} />}
+
+            <PressableScale onPress={() => setTab('compress')} accessibilityLabel="Want to save up extra space? Compress" style={[styles.card, styles.compressRow]} testID="compress-row">
+              <View style={{ flex: 1 }}>
+                <View style={styles.compressTop}>
+                  <Text style={styles.compressHint}>Want to save up extra space?</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.ink3} />
+                </View>
+                <Text style={styles.compressTitle}>Compress</Text>
+              </View>
+              <View style={styles.compressIcon}>
+                <Ionicons name="contract" size={18} color="#E85D9C" />
+              </View>
+            </PressableScale>
           </View>
         )}
 
@@ -284,7 +324,7 @@ function CatCard({
   const realThumbs = thumbs.filter((item) => !!item?.uri).slice(0, 3);
   const meta = KINDS[kind];
   const icon = meta.icon as keyof typeof Ionicons.glyphMap;
-  const showSpin = spinning && count === 0;
+  const showSpin = spinning;
   const body = (
     <PressableScale onPress={open} accessibilityLabel={`${title}, ${count} items`} style={[styles.card, styles.tile]}>
       <View style={styles.tileTop}>
@@ -324,26 +364,17 @@ function CatCard({
 
 function ContactsCard({ reduceMotion, onPress }: { reduceMotion: boolean; onPress: () => void }) {
   const body = (
-    <PressableScale onPress={onPress} accessibilityLabel="Contacts, coming soon" style={[styles.card, styles.tile]}>
-      <View style={styles.tileTop}>
-        <Text style={styles.tileTitle}>Contacts</Text>
+    <PressableScale onPress={onPress} accessibilityLabel="Contacts, coming soon" style={[styles.card, styles.soonCard]} testID="contacts-soon">
+      <View style={[styles.compressIcon, { backgroundColor: colors.violetSoft }]}>
+        <Ionicons name="people" size={18} color={colors.violet} />
       </View>
-      <Text style={styles.tileBytes}>Coming soon</Text>
-      <View style={{ height: 22, marginTop: 16 }} />
-      <View style={styles.stack}>
-        <View style={[styles.placeholder, { backgroundColor: colors.violetSoft }]}>
-          <Ionicons name="people" size={22} color={colors.violet} />
-        </View>
-      </View>
+      <Text style={styles.soonTitle}>Contacts</Text>
+      <Text style={styles.soonBody}>Merge duplicate contacts and clear empty ones. Coming soon.</Text>
+      <View style={styles.soonPill}><Text style={styles.soonPillText}>COMING SOON</Text></View>
     </PressableScale>
   );
-  const wrapStyle = { width: '48.5%', flexGrow: 1 } as const;
-  if (reduceMotion) return <View style={wrapStyle}>{body}</View>;
-  return (
-    <Animated.View entering={FadeIn.duration(280)} style={wrapStyle}>
-      {body}
-    </Animated.View>
-  );
+  if (reduceMotion) return body;
+  return <Animated.View entering={FadeIn.duration(280)}>{body}</Animated.View>;
 }
 
 function Notice({ title, body, children }: { title: string; body: string; children: ReactNode }) {
@@ -384,6 +415,10 @@ const styles = StyleSheet.create({
   stack2: { right: 5, top: 2, zIndex: 2 },
   badge: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', zIndex: 4 },
   placeholder: { position: 'absolute', right: 4, bottom: 0, width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  compressRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
+  compressTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  compressHint: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.ink3 },
+  compressTitle: { fontFamily: fonts.bold, fontSize: 19, color: colors.ink, marginTop: 2 },
   compressIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FDE8F2', alignItems: 'center', justifyContent: 'center' },
   soonCard: { padding: 20, gap: 8 },
   soonTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.ink },

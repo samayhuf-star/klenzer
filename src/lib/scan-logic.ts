@@ -31,6 +31,10 @@ export type ScanResult = {
   screenshots: Item[];
   largeVideos: Item[];
   duplicateVideos: DuplicateGroup[];
+  /** Clips at or under SHORT_VIDEO_SECONDS that are not screen recordings, largest first. */
+  shortVideos: Item[];
+  /** iOS screen recordings (RPReplay_ or ScreenRecording_ file names), largest first. */
+  screenRecordings: Item[];
   livePhotos: Item[];
   blurry: Item[];
   /** Every still (regular, screenshot and Live Photo), largest first. Shown on the Photos card. */
@@ -38,6 +42,10 @@ export type ScanResult = {
 };
 
 export const LARGE_VIDEO_BYTES = 100 * 1e6;
+export const SHORT_VIDEO_SECONDS = 10;
+
+export const isScreenRecordingName = (filename: string) => /^(rpreplay|screenrecording|screen recording)/i.test(filename ?? '');
+export const isShortVideo = (v: Item) => v.isVideo && v.duration > 0 && v.duration <= SHORT_VIDEO_SECONDS && !isScreenRecordingName(v.filename);
 export const HAMMING_MAX = 8;
 
 export const emptyScanResult = (): ScanResult => ({
@@ -49,6 +57,8 @@ export const emptyScanResult = (): ScanResult => ({
   screenshots: [],
   largeVideos: [],
   duplicateVideos: [],
+  shortVideos: [],
+  screenRecordings: [],
   livePhotos: [],
   blurry: [],
   photos: [],
@@ -274,6 +284,8 @@ export function buildScanResult(input: {
     screenshots: [...input.screenshots].sort((a, b) => b.size - a.size),
     largeVideos: input.videos.filter((v) => v.size >= LARGE_VIDEO_BYTES).sort((a, b) => b.size - a.size),
     duplicateVideos: groupExact(input.videos),
+    shortVideos: input.videos.filter(isShortVideo).sort((a, b) => b.size - a.size),
+    screenRecordings: input.videos.filter((v) => isScreenRecordingName(v.filename)).sort((a, b) => b.size - a.size),
     livePhotos: [...input.livePhotos].sort((a, b) => b.size - a.size),
     blurry: [...(input.blurry ?? input.photos.filter((p) => p.blur != null && isBlurryVariance(p.blur)))].sort((a, b) => a.creationTime - b.creationTime),
     photos: [...input.photos, ...input.screenshots, ...input.livePhotos].sort((a, b) => b.size - a.size),

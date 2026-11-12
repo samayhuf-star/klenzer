@@ -4,17 +4,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
-import { buy, defaultPlanKind, loadPlans, Plan, restore, type PlansLoad } from '../lib/purchases';
+import { buy, defaultPlanKind, loadPlans, Plan, PLANS_UNAVAILABLE_MESSAGE, restore, type PlansLoad } from '../lib/purchases';
 import { scanReclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
+
+const IS_IOS = Platform.OS === 'ios';
+const STORE = IS_IOS ? 'App Store' : 'Google Play';
+const ACCOUNT = IS_IOS ? 'Apple ID' : 'Google account';
+const RENEW_NOTE = IS_IOS
+  ? 'Renews automatically until you cancel in Settings, under your Apple ID subscriptions.'
+  : 'Renews automatically until you cancel in your Google Play subscriptions.';
 
 const PERKS = ['Clear duplicates, screenshots and big videos in one tap', 'Scanning always stays free', 'Your photos never leave your phone'];
 
@@ -64,11 +71,19 @@ export default function Paywall() {
   };
 
   const doRestore = async () => {
+    if (busy) return;
     setBusy(true);
-    const ok = await restore();
+    const r = await restore();
     setBusy(false);
-    if (ok) completeUnlock();
-    else Alert.alert('Nothing to restore', 'We couldn’t find a previous Klenzer purchase on this Apple ID or Google account.');
+    if (r === 'restored') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      completeUnlock();
+    } else if (r === 'none') {
+      Alert.alert('Nothing to restore', `We couldn’t find a previous Klenzer purchase on this ${ACCOUNT}.`);
+    } else if (r === 'error') {
+      Alert.alert('Restore didn’t finish', `We couldn’t reach the ${STORE} just now. Please try again in a moment.`);
+    }
+    // 'cancelled': the user closed the sign-in prompt, so stay silent.
   };
 
   const headline = reclaim > 0 ? `Free ${formatBytes(reclaim)} now` : 'Unlock Klenzer';
@@ -98,12 +113,14 @@ export default function Paywall() {
         {loading ? (
           <ActivityIndicator style={{ marginVertical: 28 }} color={colors.blue} />
         ) : plans.length === 0 ? (
-          <View style={styles.unavailable}>
-            <Text style={styles.unavailableTitle}>Plans unavailable right now, try again later</Text>
-            <Text style={styles.unavailableBody}>
-              {offers?.error ?? 'We couldn’t load plans from the store. Check your connection and try again.'}
-            </Text>
-            <Button variant="light" label="Try again" onPress={() => setAttempt((n) => n + 1)} />
+          <View style={styles.unavailable} testID="plans-unavailable">
+            <Text style={styles.unavailableTitle}>Plans didn’t load</Text>
+            <Text style={styles.unavailableBody}>{PLANS_UNAVAILABLE_MESSAGE}</Text>
+            <Button variant="light" label="Retry" onPress={() => {
+                setOffers(null);
+                setAttempt((n) => n + 1);
+              }}
+              testID="plans-retry" />
           </View>
         ) : (
           <>
@@ -120,9 +137,9 @@ export default function Paywall() {
             />
             <Text style={styles.fine}>
               {chosen?.kind === 'yearly'
-                ? `${chosen.price} per year. Renews automatically until you cancel in your App Store or Google Play subscriptions.`
+                ? `${chosen.price} per year. ${RENEW_NOTE}`
                 : chosen?.kind === 'monthly'
-                  ? `${chosen.price} per month. Renews automatically until you cancel in your App Store or Google Play subscriptions.`
+                  ? `${chosen.price} per month. ${RENEW_NOTE}`
                   : `${chosen?.price} one time. No subscription, no renewal.`}
             </Text>
           </>
