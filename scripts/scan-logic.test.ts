@@ -5,6 +5,7 @@ import {
   dupExtraCount,
   dupReclaimable,
   exactKey,
+  exactCandidateItems,
   groupExact,
   groupSimilar,
   hamming,
@@ -16,10 +17,13 @@ import {
 } from '../src/lib/scan-logic';
 
 import {
+  formatCount,
   formatFreeAmount,
   formatFreeOfTotal,
   formatMarketedTotal,
   marketedTotalBytes,
+  SCAN_CLEANUP_LINE,
+  scanLookingLine,
 } from '../src/lib/format';
 
 const item = (partial: Partial<Item> & Pick<Item, 'id'>): Item => ({
@@ -351,5 +355,29 @@ describe('marketed capacity rounding', () => {
     assert.equal(formatFreeOfTotal(73e9, reportedTotal), '73 GB free of 256 GB');
     assert.equal(formatFreeOfTotal(reportedFree, reportedTotal), `${formatFreeAmount(reportedFree)} free of 256 GB`);
     assert.notEqual(formatFreeOfTotal(reportedFree, reportedTotal), `${formatFreeAmount(roundedMinusUsed)} free of 256 GB`);
+  });
+});
+
+describe('exact candidates vs confirmed sizes', () => {
+  it('lists cheap-key matches as candidates but does not emit groups until sizes are confirmed', () => {
+    const a = item({ id: 'c1', filename: 'IMG_9.JPG', width: 4000, height: 3000, size: 0, creationTime: 50_000 });
+    const b = item({ id: 'c2', filename: 'IMG_9.JPG', width: 4000, height: 3000, size: 0, creationTime: 80_000 });
+    assert.deepEqual(exactCandidateItems([a, b]).map((i) => i.id).sort(), ['c1', 'c2']);
+    assert.equal(groupExact([a, b]).length, 0);
+    a.size = 2_500_000;
+    b.size = 2_500_000;
+    const groups = groupExact([a, b]);
+    assert.equal(groups.length, 1);
+    assert.deepEqual(groups[0].items.map((i) => i.id).sort(), ['c1', 'c2']);
+  });
+});
+
+describe('scan progress copy', () => {
+  it('formats the looking-through line with thousands separators and a live percent', () => {
+    assert.equal(formatCount(29570), '29,570');
+    assert.equal(scanLookingLine(29570, 19), 'Looking through 29,570 photos · 19%');
+    assert.equal(SCAN_CLEANUP_LINE, 'Start cleaning anytime while we finish up.');
+    assert.doesNotMatch(scanLookingLine(29570, 19), /\u2026|\.\.\./);
+    assert.doesNotMatch(SCAN_CLEANUP_LINE, /\u2026|\.\.\./);
   });
 });

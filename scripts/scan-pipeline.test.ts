@@ -175,8 +175,10 @@ describe('scanLibrary streaming path', () => {
 
     const pages: Record<string, number> = { cursor: 0 };
     const progressLog: { t: number; p: Progress }[] = [];
-    const partials: { t: number; dups: number; similar: number; blurry: number; shots: number }[] = [];
+    const partials: { t: number; dups: number; similar: number; blurry: number; shots: number; sizeCalls: number; hashCalls: number }[] = [];
     const started = Date.now();
+    let sizeCalls = 0;
+    let hashCalls = 0;
 
     const result = await scanLibraryWithIO(
       {
@@ -189,6 +191,8 @@ describe('scanLibrary streaming path', () => {
             similar: dupExtraCount(r.similar),
             blurry: r.blurry.length,
             shots: r.screenshots.length,
+            sizeCalls,
+            hashCalls,
           });
         },
       },
@@ -213,7 +217,10 @@ describe('scanLibrary streaming path', () => {
         enrich: async (item, mode) => {
           // Realistic per-asset I/O: each size lookup pays ~1ms (media-info). Hash/blur are
           // instant here so the 30k blur pass does not dominate wall time.
-          if (mode === 'size') await sleep(1);
+          if (mode === 'size') {
+            sizeCalls += 1;
+            await sleep(1);
+          } else if (mode === 'hash') hashCalls += 1;
           const size = item.isVideo ? 120_000_000 : item.filename.startsWith('IMG_0001') ? 2_400_000 : 1_800_000 + (item.id.length % 7) * 1000;
           const dhash = item.id.startsWith('burst-') ? 'aaaaaaaaaaaaaaa' + (item.id === 'burst-3' ? '0' : 'a') : null;
           const blur = item.id.startsWith('burst-') ? 40 : 200;
@@ -226,6 +233,13 @@ describe('scanLibrary streaming path', () => {
     assert.ok(firstDup, 'expected a Duplicate group to stream');
     const firstDupMs = firstDup.t - started;
     assert.ok(firstDupMs <= 10_000, `first Duplicate took ${firstDupMs}ms`);
+    assert.ok(firstDup.sizeCalls < TOTAL, `first Duplicate arrived after every asset was sized (${firstDup.sizeCalls})`);
+    assert.ok(firstDup.hashCalls < TOTAL, 'first Duplicate should not wait for hashing the whole library');
+
+    const firstBlurry = partials.find((p) => p.blurry > 0);
+    assert.ok(firstBlurry, 'expected a Blurry result to stream');
+    assert.ok(firstBlurry.sizeCalls < TOTAL, `first Blurry arrived after every asset was sized (${firstBlurry.sizeCalls})`);
+    assert.ok(firstBlurry.hashCalls < TOTAL, 'first Blurry should not wait for hashing the whole library');
 
     const percents = progressLog.map((e) => e.p.percent).filter((n): n is number => n != null);
     assert.ok(percents.length >= 2, 'expected weighted percent ticks');
@@ -237,7 +251,6 @@ describe('scanLibrary streaming path', () => {
 
     const analyzing = progressLog.filter((e) => e.p.phase === 'analyzing');
     assert.ok(analyzing.length >= 2, 'expected analyzing progress ticks');
-    assert.ok(analyzing.some((e) => (e.p.label ?? '').startsWith('Matched ')), 'expected “Matched X of Y” progress');
     const span = analyzing[analyzing.length - 1].t - analyzing[0].t;
     if (span >= 2000) {
       for (let i = 1; i < analyzing.length; i++) {

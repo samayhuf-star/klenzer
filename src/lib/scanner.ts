@@ -100,8 +100,10 @@ async function enrichDevice(item: Item, mode: 'size' | 'hash' | 'blur') {
 export async function scanLibrary(
   handlers: ScanHandlers,
   signal: ScanSignal = { cancelled: false },
+  extras: { initialPercent?: number } = {},
 ): Promise<ScanResult> {
   return scanLibraryWithIO(handlers, signal, {
+    initialPercent: extras.initialPercent,
     getPage: async (after) => {
       const page = await withTimeout(
         MediaLibrary.getAssetsAsync({

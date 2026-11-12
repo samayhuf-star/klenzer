@@ -51,3 +51,17 @@ export function formatFreeAmount(freeBytes: number): string {
 export function formatFreeOfTotal(freeBytes: number, reportedTotal: number): string {
   return `${formatFreeAmount(freeBytes)} free of ${formatMarketedTotal(reportedTotal)}`;
 }
+
+
+/** Thousands separators that stay stable across locales, e.g. 29570 → "29,570". */
+export function formatCount(n: number): string {
+  const v = Math.max(0, Math.round(Number.isFinite(n) ? n : 0));
+  return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+export const SCAN_CLEANUP_LINE = 'Start cleaning anytime while we finish up.';
+
+export function scanLookingLine(total: number, percent: number): string {
+  const pct = Math.max(0, Math.min(100, Math.round(percent)));
+  return `Looking through ${formatCount(total)} photos · ${pct}%`;
+}

@@ -30,7 +30,7 @@ export default function Cleaning() {
   const rows = cleaning?.rows ?? [];
   const finishedRows = rows.filter((r) => r.status === 'done').length;
   const headline =
-    phase === 'cancelled' ? 'Nothing was deleted' : phase === 'error' ? 'Something went wrong' : phase === 'finished' ? 'Cleaned!' : 'Cleaning your device…';
+    phase === 'cancelled' ? 'Nothing was deleted' : phase === 'error' ? 'Something went wrong' : phase === 'finished' ? 'Cleaned!' : 'Cleaning your device';
 
   return (
     <LinearGradient colors={['#0B1020', '#12307A']} style={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 20 }]}>

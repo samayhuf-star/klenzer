@@ -96,9 +96,7 @@ function toGroups(buckets: Map<string, Item[]>, used: Set<string>): DuplicateGro
     }
     const sizeGroups = [...bySize.values()];
     if (!sizeGroups.length) {
-      const items = [...fresh].sort((a, b) => b.size - a.size || a.creationTime - b.creationTime);
-      for (const i of items) used.add(i.id);
-      groups.push({ key, items });
+      // Cheap-key matches stay candidates until at least two items have a confirmed file size.
       continue;
     }
     for (const sized of sizeGroups) {
@@ -131,6 +129,24 @@ export function groupExact(items: Item[]): DuplicateGroup[] {
   const used = new Set<string>();
   const groups = [...toGroups(byMeta, used), ...toGroups(byName, used)];
   return groups.sort((a, b) => b.items[0].creationTime - a.items[0].creationTime);
+}
+
+
+/** Items that share a cheap exact-dup key (dimensions + capture second, or filename + dimensions). Size is confirmed only for these. */
+export function exactCandidateItems(items: Item[]): Item[] {
+  const meta = new Map<string, number>();
+  const names = new Map<string, number>();
+  for (const item of items) {
+    const m = metaExactKey(item);
+    meta.set(m, (meta.get(m) ?? 0) + 1);
+    const fn = filenameExactKey(item);
+    if (fn) names.set(fn, (names.get(fn) ?? 0) + 1);
+  }
+  return items.filter((item) => {
+    if ((meta.get(metaExactKey(item)) ?? 0) > 1) return true;
+    const fn = filenameExactKey(item);
+    return !!fn && (names.get(fn) ?? 0) > 1;
+  });
 }
 
 /** Photos worth hashing: only burst neighbours (~60s). Isolated shots are skipped so we never all-pairs the library. */

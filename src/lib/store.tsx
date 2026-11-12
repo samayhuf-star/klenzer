@@ -70,7 +70,7 @@ type Ctx = {
   lastFreed: { bytes: number; count: number } | null;
 };
 
-const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1' };
+const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1' };
 
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
@@ -99,6 +99,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const afterUnlock = useRef<CleanPlan | null>(null);
   const signal = useRef({ cancelled: false });
   const handledNotif = useRef<string | null>(null);
+  const scanningRef = useRef(false);
+  const scanIncomplete = useRef(false);
+  const progressRef = useRef<Progress | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -111,6 +114,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setOnboarded(o === '1');
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
+        scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';
       } catch {}
       setReady(true);
       // IAP, permissions and reminders must not hold the splash or first render.
@@ -231,19 +235,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [disk.used, disk.total],
   );
 
-  const scan = useCallback(async () => {
+  const markScanIncomplete = (on: boolean) => {
+    scanIncomplete.current = on;
+    if (on) AsyncStorage.setItem(KEYS.scanIncomplete, '1').catch(() => {});
+    else AsyncStorage.removeItem(KEYS.scanIncomplete).catch(() => {});
+  };
+
+  const scan = useCallback(async (opts: { resume?: boolean } = {}) => {
+    if (scanningRef.current) return;
     let a = access;
     if (a === 'unknown' || a === 'denied') a = await requestAccess();
     if (a !== 'granted' && a !== 'limited') return;
     signal.current = { cancelled: false };
     setScanError(null);
+    scanningRef.current = true;
     setScanning(true);
-    setProgress({ phase: 'reading', done: 0, total: 0 });
+    if (!opts.resume) {
+      setProgress({ phase: 'reading', done: 0, total: 0, percent: 0 });
+      progressRef.current = { phase: 'reading', done: 0, total: 0, percent: 0 };
+    }
     setScanCats({
       photos: { category: 'photos', status: 'running', done: 0, total: 0 },
       screenshots: { category: 'screenshots', status: 'running', done: 0, total: 0 },
       videos: { category: 'videos', status: 'running', done: 0, total: 0 },
     });
+    markScanIncomplete(true);
     const finishCats = () =>
       setScanCats((c) => ({
         photos: { ...c.photos, status: 'done' },
@@ -253,24 +269,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const r = await scanLibrary(
         {
-          onProgress: setProgress,
+          onProgress: (p) => {
+            progressRef.current = p;
+            setProgress(p);
+          },
           onCategory: (p) => setScanCats((prev) => ({ ...prev, [p.category]: p })),
           onPartial: (partial) => setResult({ ...partial }),
           onError: (message) => setScanError(message),
         },
         signal.current,
+        { initialPercent: opts.resume ? (progressRef.current?.percent ?? 0) : 0 },
       );
       if (!signal.current.cancelled) {
         setResult(r);
+        markScanIncomplete(false);
         const reclaim = reclaimableBytes(r, tempBytes());
         AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
-        askAboutReminders(reclaim);
+        if (!opts.resume) askAboutReminders(reclaim);
       }
     } catch (e) {
       setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');
       finishCats();
     } finally {
       finishCats();
+      scanningRef.current = false;
       setScanning(false);
       setProgress(null);
       refreshDisk();
@@ -281,6 +303,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     scanRef.current = scan;
   }, [scan]);
+
+  // If a scan was in progress when the app left the foreground, resume from the SQLite cache
+  // without wiping results. Do not promise background completion and do not fire a notification.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st !== 'active') return;
+      if (scanningRef.current) return;
+      if (!scanIncomplete.current) return;
+      void scanRef.current({ resume: true });
+    });
+    return () => sub.remove();
+  }, []);
 
   // Tapping a reminder opens the app and starts a scan. Never request notification permission here.
   useEffect(() => {
@@ -301,6 +335,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const cancelScan = useCallback(() => {
     signal.current.cancelled = true;
+    markScanIncomplete(false);
   }, []);
 
   const patch = (fn: (rows: CleanRow[]) => CleanRow[], extra: Partial<Cleaning> = {}) =>
@@ -335,7 +370,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const media = plan.filter((p) => p.kind !== 'temp');
       const all = media.flatMap((p) => p.items);
       if (all.length) {
-        patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'active', note: 'Waiting for your confirmation…' })));
+        patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'active', note: 'Waiting for your confirmation' })));
         const ok = await deleteItems(all);
         if (!ok) {
           patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'cancelled', note: 'Cancelled. Nothing was deleted.' })), {

@@ -11,7 +11,7 @@ import { Button } from '../components/Button';
 import { ScanProgress } from '../components/ScanProgress';
 import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
-import { formatBytes, formatFreeAmount, formatMarketedTotal } from '../lib/format';
+import { formatBytes, formatFreeAmount, formatMarketedTotal, SCAN_CLEANUP_LINE, scanLookingLine } from '../lib/format';
 import { KINDS, Kind } from '../lib/kinds';
 import { dupExtraCount, dupExtras, dupReclaimable, Item, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
@@ -107,8 +107,8 @@ export default function Home() {
         {scanning && (
           <ScanProgress
             percent={pct}
-            label={progress?.label
-              ?? (progress?.phase === 'reading' ? 'Analyzing files on your device…' : 'Measuring and matching photos…')}
+            line1={scanLookingLine(progress?.libraryTotal ?? progress?.total ?? 0, pct)}
+            line2={SCAN_CLEANUP_LINE}
             reduceMotion={!!reduceMotion}
           />
         )}

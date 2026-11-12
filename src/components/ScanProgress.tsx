@@ -6,11 +6,13 @@ import { colors, fonts } from '../theme';
 /** Live scan radar with a large monotonic percentage. Reduce Motion: static ring + % only. */
 export function ScanProgress({
   percent,
-  label,
+  line1,
+  line2,
   reduceMotion,
 }: {
   percent: number;
-  label?: string;
+  line1: string;
+  line2: string;
   reduceMotion: boolean;
 }) {
   const spin = useSharedValue(0);
@@ -30,7 +32,7 @@ export function ScanProgress({
   const pct = Math.max(0, Math.min(100, Math.round(percent)));
 
   return (
-    <View style={styles.wrap} accessibilityLabel={`Scan ${pct} percent complete`}>
+    <View style={styles.wrap} accessibilityLabel={`${line1}. ${line2}`}>
       <View style={styles.radar}>
         <View style={styles.ringOuter} />
         <View style={styles.ringMid} />
@@ -42,7 +44,10 @@ export function ScanProgress({
         )}
         <Text style={styles.percent}>{pct}%</Text>
       </View>
-      {!!label && <Text style={styles.label}>{label}</Text>}
+      <View style={styles.copy}>
+        <Text style={styles.line1}>{line1}</Text>
+        <Text style={styles.line2}>{line2}</Text>
+      </View>
     </View>
   );
 }
@@ -86,5 +91,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   percent: { fontFamily: fonts.display, fontSize: 36, color: colors.ink, letterSpacing: -1, zIndex: 2 },
-  label: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.ink3, textAlign: 'center', paddingHorizontal: 16 },
+  copy: { alignItems: 'center', gap: 4, paddingHorizontal: 16 },
+  line1: { fontFamily: fonts.semi, fontSize: 14.5, color: colors.ink, textAlign: 'center' },
+  line2: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.ink3, textAlign: 'center' },
 });
