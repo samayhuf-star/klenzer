@@ -24,7 +24,31 @@ export type Progress = {
   total: number;
   category?: ScanCategory;
   label?: string;
+  /** Weighted 0–100 across stages. Monotonic: never lower than a previous tick. */
+  percent?: number;
 };
+
+export const STAGE_WEIGHTS = { reading: 12, sizing: 55, hashing: 18, blur: 15 } as const;
+export type StageKey = keyof typeof STAGE_WEIGHTS;
+export type StageState = { done: number; total: number; reached: boolean; complete?: boolean };
+
+/** Per-stage weighted progress. Later stages contribute 0 until reached; a reached stage with no work counts as complete. */
+export function weightedScanPercent(stages: Record<StageKey, StageState>, floor = 0): number {
+  let raw = 0;
+  for (const key of Object.keys(STAGE_WEIGHTS) as StageKey[]) {
+    const weight = STAGE_WEIGHTS[key];
+    const stage = stages[key];
+    if (!stage.reached) continue;
+    // A reached stage with an unknown total (0, not yet complete) contributes nothing so the
+    // opening "reading" tick does not jump to 12% and then freeze.
+    if (stage.total <= 0) {
+      if (stage.complete) raw += weight;
+      continue;
+    }
+    raw += weight * Math.min(1, Math.max(0, stage.done / stage.total));
+  }
+  return Math.max(floor, Math.min(100, Math.round(raw)));
+}
 
 export type ScanHandlers = {
   onProgress: (p: Progress) => void;
@@ -97,7 +121,7 @@ function itemFromAsset(asset: LibraryAsset): Item {
   };
 }
 
-async function mapPool<T>(items: T[], workers: number, fn: (item: T) => Promise<void>): Promise<void> {
+async function mapPool<T>(items: T[], workers: number, fn: (item: T) => Promise<void>, onDone?: () => void): Promise<void> {
   let next = 0;
   async function worker() {
     while (true) {
@@ -106,6 +130,7 @@ async function mapPool<T>(items: T[], workers: number, fn: (item: T) => Promise<
       try {
         await fn(items[i]);
       } catch {}
+      onDone?.();
     }
   }
   const n = Math.max(1, Math.min(workers, items.length || 1));
@@ -146,12 +171,21 @@ export async function scanLibraryWithIO(
   };
 
   let lastProgress = 0;
-  let latest: Progress = { phase: 'reading', done: 0, total: 0, label: 'Reading your library…' };
+  let percentFloor = 0;
+  const stages: Record<StageKey, StageState> = {
+    reading: { done: 0, total: 0, reached: true },
+    sizing: { done: 0, total: 0, reached: false },
+    hashing: { done: 0, total: 0, reached: false },
+    blur: { done: 0, total: 0, reached: false },
+  };
+  let latest: Progress = { phase: 'reading', done: 0, total: 0, label: 'Reading your library…', percent: 0 };
   const pushProgress = (p: Progress, force = false) => {
-    latest = p;
+    percentFloor = weightedScanPercent(stages, percentFloor);
+    const next = { ...p, percent: percentFloor };
+    latest = next;
     const t = now();
     if (force || t - lastProgress >= 250) {
-      onProgress(p);
+      onProgress(next);
       lastProgress = t;
     }
   };
@@ -215,6 +249,8 @@ export async function scanLibraryWithIO(
         else photoItems.push(item);
         if (seen.size >= MAX_ASSETS) break;
       }
+      stages.reading.done = seen.size;
+      stages.reading.total = total || seen.size;
       pushProgress({
         phase: 'reading',
         done: seen.size,
@@ -254,6 +290,25 @@ export async function scanLibraryWithIO(
     const measured = new Set<string>();
     let shotsDone = false;
     let videosDone = false;
+    stages.reading.done = stages.reading.total = Math.max(stages.reading.total, seen.size);
+    stages.reading.complete = true;
+    stages.sizing.reached = true;
+    stages.sizing.total = sizeQueue.length;
+    stages.sizing.done = 0;
+
+    const reportSize = (force = false) => {
+      const sized = measured.size;
+      const category: ScanCategory =
+        sized <= screenshots.length ? 'screenshots' : sized <= screenshots.length + videos.length ? 'videos' : 'photos';
+      stages.sizing.done = sized;
+      pushProgress({
+        phase: 'analyzing',
+        done: sized,
+        total: sizeQueue.length,
+        category,
+        label: `Matched ${sized.toLocaleString()} of ${sizeQueue.length.toLocaleString()}`,
+      }, force);
+    };
 
     for (let start = 0; start < sizeQueue.length && !cancelled(signal); start += sizeBatch) {
       const batch = sizeQueue.slice(start, start + sizeBatch);
@@ -263,17 +318,8 @@ export async function scanLibraryWithIO(
           apply(item, await enrich(item, 'size'));
         } catch {}
         measured.add(item.id);
-      });
-      const sized = measured.size;
-      const category: ScanCategory =
-        sized <= screenshots.length ? 'screenshots' : sized <= screenshots.length + videos.length ? 'videos' : 'photos';
-      pushProgress({
-        phase: 'analyzing',
-        done: sized,
-        total: sizeQueue.length,
-        category,
-        label: `Matched ${sized.toLocaleString()} of ${sizeQueue.length.toLocaleString()}`,
-      }, true);
+      }, () => reportSize(false));
+      reportSize(true);
       emit(photos, screenshots, livePhotos, videos, photoCount, videoCount);
       if (!shotsDone && screenshots.every((i) => measured.has(i.id))) {
         shotsDone = true;
@@ -290,7 +336,26 @@ export async function scanLibraryWithIO(
       return result;
     }
 
+    stages.sizing.done = stages.sizing.total;
+    stages.sizing.complete = true;
     const hashTargets = newestFirst(similarHashCandidates(photos));
+    stages.hashing.reached = true;
+    stages.hashing.total = hashTargets.length;
+    stages.hashing.done = 0;
+    stages.hashing.complete = hashTargets.length === 0;
+    let hashed = 0;
+    const reportHash = (force = false) => {
+      pushProgress({
+        phase: 'analyzing',
+        done: hashed,
+        total: hashTargets.length || 1,
+        category: 'photos',
+        label: hashTargets.length
+          ? `Matched ${sizeQueue.length.toLocaleString()} of ${sizeQueue.length.toLocaleString()} · similar ${hashed.toLocaleString()} of ${hashTargets.length.toLocaleString()}`
+          : `Matched ${sizeQueue.length.toLocaleString()} of ${sizeQueue.length.toLocaleString()}`,
+      }, force);
+    };
+    reportHash(true);
     for (let start = 0; start < hashTargets.length && !cancelled(signal); start += hashBatch) {
       const batch = hashTargets.slice(start, start + hashBatch);
       await mapPool(batch, Math.max(2, Math.min(workers, 6)), async (item) => {
@@ -298,19 +363,37 @@ export async function scanLibraryWithIO(
         try {
           apply(item, await enrich(item, 'hash'));
         } catch {}
+      }, () => {
+        hashed = Math.min(hashTargets.length, hashed + 1);
+        stages.hashing.done = hashed;
+        reportHash(false);
       });
-      const hashed = Math.min(hashTargets.length, start + batch.length);
-      pushProgress({
-        phase: 'analyzing',
-        done: hashed,
-        total: hashTargets.length || 1,
-        category: 'photos',
-        label: `Matched ${sizeQueue.length.toLocaleString()} of ${sizeQueue.length.toLocaleString()} · similar ${hashed.toLocaleString()} of ${hashTargets.length.toLocaleString()}`,
-      }, true);
+      hashed = Math.min(hashTargets.length, start + batch.length);
+      stages.hashing.done = hashed;
+      reportHash(true);
       emit(photos, screenshots, livePhotos, videos, photoCount, videoCount);
     }
+    stages.hashing.done = stages.hashing.total;
+    stages.hashing.complete = true;
 
     const blurTargets = photos.filter((p) => p.blur == null);
+    stages.blur.reached = true;
+    stages.blur.total = blurTargets.length;
+    stages.blur.done = 0;
+    stages.blur.complete = blurTargets.length === 0;
+    let blurred = 0;
+    const reportBlur = (force = false) => {
+      pushProgress({
+        phase: 'analyzing',
+        done: blurred,
+        total: blurTargets.length || 1,
+        category: 'photos',
+        label: blurTargets.length
+          ? `Matched ${sizeQueue.length.toLocaleString()} of ${sizeQueue.length.toLocaleString()} · blurry ${blurred.toLocaleString()} of ${blurTargets.length.toLocaleString()}`
+          : `Matched ${sizeQueue.length.toLocaleString()} of ${sizeQueue.length.toLocaleString()}`,
+      }, force);
+    };
+    reportBlur(true);
     for (let start = 0; start < blurTargets.length && !cancelled(signal); start += blurBatch) {
       const batch = blurTargets.slice(start, start + blurBatch);
       await mapPool(batch, 2, async (item) => {
@@ -318,17 +401,18 @@ export async function scanLibraryWithIO(
         try {
           apply(item, await enrich(item, 'blur'));
         } catch {}
+      }, () => {
+        blurred = Math.min(blurTargets.length, blurred + 1);
+        stages.blur.done = blurred;
+        reportBlur(false);
       });
-      const blurred = Math.min(blurTargets.length, start + batch.length);
-      pushProgress({
-        phase: 'analyzing',
-        done: blurred,
-        total: blurTargets.length || 1,
-        category: 'photos',
-        label: `Matched ${sizeQueue.length.toLocaleString()} of ${sizeQueue.length.toLocaleString()} · blurry ${blurred.toLocaleString()} of ${blurTargets.length.toLocaleString()}`,
-      }, true);
+      blurred = Math.min(blurTargets.length, start + batch.length);
+      stages.blur.done = blurred;
+      reportBlur(true);
       emit(photos, screenshots, livePhotos, videos, photoCount, videoCount);
     }
+    stages.blur.done = stages.blur.total;
+    stages.blur.complete = true;
 
     if (cancelled(signal)) {
       stopTicker();
@@ -339,11 +423,19 @@ export async function scanLibraryWithIO(
     onCategory({ category: 'photos', status: 'done', done: photos.length, total: photos.length });
     if (!shotsDone) onCategory({ category: 'screenshots', status: 'done', done: screenshots.length, total: screenshots.length });
     if (!videosDone) onCategory({ category: 'videos', status: 'done', done: videos.length, total: videos.length });
+    stages.reading.reached = stages.sizing.reached = stages.hashing.reached = stages.blur.reached = true;
+    if (stages.reading.total <= 0) stages.reading.total = stages.reading.done;
+    stages.sizing.done = stages.sizing.total;
+    stages.hashing.done = stages.hashing.total;
+    stages.blur.done = stages.blur.total;
+    stages.blur.complete = true;
+    percentFloor = 100;
     pushProgress({
       phase: 'analyzing',
       done: sizeQueue.length,
       total: sizeQueue.length,
       label: `Matched ${sizeQueue.length.toLocaleString()} of ${sizeQueue.length.toLocaleString()}`,
+      percent: 100,
     }, true);
     stopTicker();
     return final;

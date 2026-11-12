@@ -16,6 +16,10 @@ function Shell() {
   // Load fonts in the background. Do not hold the splash or the first render on them.
   useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Fraunces_700Bold });
 
+  // Hide the native splash as soon as this shell mounts. Do not wait on fonts, IAP, or a branded intro.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
   useEffect(() => {
     if (!ready) return;
     SplashScreen.hideAsync().catch(() => {});

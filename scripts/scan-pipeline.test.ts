@@ -3,9 +3,11 @@ import { describe, it } from 'node:test';
 import { dupExtraCount } from '../src/lib/scan-logic';
 import {
   scanLibraryWithIO,
+  weightedScanPercent,
   type LibraryAsset,
   type Progress,
   type ScanResult,
+  type StageState,
 } from '../src/lib/scan-pipeline';
 
 const TOTAL = 30_000;
@@ -77,6 +79,95 @@ function makeAssets(): LibraryAsset[] {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+
+const idle = (reached = false): StageState => ({ done: 0, total: 0, reached });
+const stage = (done: number, total: number, reached = true): StageState => ({ done, total, reached });
+
+describe('weighted scan percent', () => {
+  it('is monotonic across stages and never jumps backward when a new stage starts at 0', () => {
+    const base = { reading: idle(true), sizing: idle(), hashing: idle(), blur: idle() };
+    const r0 = weightedScanPercent({ ...base, reading: stage(0, 10000) });
+    const rHalf = weightedScanPercent({ ...base, reading: stage(5000, 10000) });
+    const rDone = weightedScanPercent({ ...base, reading: stage(10000, 10000) });
+    const sizeStart = weightedScanPercent({
+      reading: stage(10000, 10000),
+      sizing: stage(0, 30000),
+      hashing: idle(),
+      blur: idle(),
+    }, rDone);
+    const sizeHalf = weightedScanPercent({
+      reading: stage(10000, 10000),
+      sizing: stage(15000, 30000),
+      hashing: idle(),
+      blur: idle(),
+    }, sizeStart);
+    const sizeDone = weightedScanPercent({
+      reading: stage(10000, 10000),
+      sizing: stage(30000, 30000),
+      hashing: idle(),
+      blur: idle(),
+    }, sizeHalf);
+    const hashStart = weightedScanPercent({
+      reading: stage(10000, 10000),
+      sizing: stage(30000, 30000),
+      hashing: stage(0, 800),
+      blur: idle(),
+    }, sizeDone);
+    const hashDone = weightedScanPercent({
+      reading: stage(10000, 10000),
+      sizing: stage(30000, 30000),
+      hashing: stage(800, 800),
+      blur: idle(),
+    }, hashStart);
+    const blurStart = weightedScanPercent({
+      reading: stage(10000, 10000),
+      sizing: stage(30000, 30000),
+      hashing: stage(800, 800),
+      blur: stage(0, 20000),
+    }, hashDone);
+    const done = weightedScanPercent({
+      reading: stage(10000, 10000),
+      sizing: stage(30000, 30000),
+      hashing: stage(800, 800),
+      blur: stage(20000, 20000),
+    }, blurStart);
+    const seq = [r0, rHalf, rDone, sizeStart, sizeHalf, sizeDone, hashStart, hashDone, blurStart, done];
+    for (let i = 1; i < seq.length; i++) {
+      assert.ok(seq[i] >= seq[i - 1], `percent went backward at ${i}: ${seq[i - 1]} -> ${seq[i]}`);
+    }
+    assert.equal(r0, 0);
+    assert.equal(rHalf, 6);
+    assert.equal(rDone, 12);
+    assert.equal(sizeStart, 12);
+    assert.equal(sizeHalf, 40); // 12 + 27.5 rounded
+    assert.equal(sizeDone, 67);
+    assert.equal(hashStart, 67);
+    assert.equal(hashDone, 85);
+    assert.equal(blurStart, 85);
+    assert.equal(done, 100);
+  });
+
+  it('counts a reached stage with no work as complete so progress does not stall', () => {
+    const empty: StageState = { done: 0, total: 0, reached: true, complete: true };
+    const percent = weightedScanPercent({
+      reading: stage(100, 100),
+      sizing: stage(100, 100),
+      hashing: empty,
+      blur: empty,
+    });
+    assert.equal(percent, 100);
+  });
+
+  it('does not treat an unknown (0/0, not complete) stage as finished', () => {
+    assert.equal(weightedScanPercent({
+      reading: { done: 0, total: 0, reached: true },
+      sizing: idle(),
+      hashing: idle(),
+      blur: idle(),
+    }), 0);
+  });
+});
+
 describe('scanLibrary streaming path', () => {
   it('emits the first Duplicate within 10s and progress at least every 2s on a 30k library', { timeout: 60_000 }, async () => {
     const assets = makeAssets();
@@ -135,6 +226,14 @@ describe('scanLibrary streaming path', () => {
     assert.ok(firstDup, 'expected a Duplicate group to stream');
     const firstDupMs = firstDup.t - started;
     assert.ok(firstDupMs <= 10_000, `first Duplicate took ${firstDupMs}ms`);
+
+    const percents = progressLog.map((e) => e.p.percent).filter((n): n is number => n != null);
+    assert.ok(percents.length >= 2, 'expected weighted percent ticks');
+    for (let i = 1; i < percents.length; i++) {
+      assert.ok(percents[i] >= percents[i - 1], `percent went backward: ${percents[i - 1]} -> ${percents[i]}`);
+    }
+    assert.equal(percents[percents.length - 1], 100);
+    assert.ok(percents.some((n) => n > 0 && n < 100), 'percent should advance through the scan, not jump 0 to 100');
 
     const analyzing = progressLog.filter((e) => e.p.phase === 'analyzing');
     assert.ok(analyzing.length >= 2, 'expected analyzing progress ticks');

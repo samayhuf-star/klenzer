@@ -7,7 +7,6 @@ import {
   finishTransaction,
   getActiveSubscriptions,
   getAvailablePurchases,
-  getPendingTransactionsIOS,
   hasActiveSubscriptions,
   initConnection,
   isTransactionVerifiedIOS,
@@ -77,19 +76,8 @@ async function verifyOnDevice(purchase: Purchase): Promise<boolean> {
     } catch (e) {
       logErr('currentEntitlementIOS', e);
     }
-    try {
-      const pending = await getPendingTransactionsIOS();
-      if (pending.some((p) => p.id === purchase.id || p.productId === purchase.productId)) return true;
-    } catch (e) {
-      logErr('getPendingTransactionsIOS', e);
-    }
-    try {
-      const available = await getAvailablePurchases({ onlyIncludeActiveItemsIOS: false });
-      if (available.some((p) => p.id === purchase.id || p.productId === purchase.productId)) return true;
-    } catch (e) {
-      logErr('getAvailablePurchases', e);
-    }
     // StoreKit 2 already signed this transaction if it arrived via Transaction.updates.
+    // Do not call getAvailablePurchases or sync here — a listener firing at connect would prompt for the Apple ID.
     return purchase.purchaseState === 'purchased' || purchase.purchaseState === 'unknown';
   }
 

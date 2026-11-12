@@ -11,7 +11,7 @@ function src(rel: string) {
 }
 
 function functionBody(source: string, name: string): string {
-  const re = new RegExp(`(?:export )?async function ${name}\\s*\\([^)]*\\)\\s*(?::[^{]+)?\\{`);
+  const re = new RegExp(`(?:export )?(?:async )?function ${name}\\s*\\([^)]*\\)\\s*(?::[^{]+)?\\{`);
   const m = re.exec(source);
   if (!m || m.index == null) throw new Error(`Could not find function ${name}`);
   let i = m.index + m[0].length;
@@ -85,9 +85,33 @@ describe('IAP startup must not prompt for Apple ID', () => {
     assert.ok(iapAt < 0 || readyAt < iapAt, 'setReady(true) must run before initIAP so the splash does not wait on StoreKit');
   });
 
+  it('the purchase-update listener path does not call getAvailablePurchases, sync, or restore', () => {
+    for (const name of ['verifyOnDevice', 'verifyAndFinish', 'attachListeners'] as const) {
+      const body = functionBody(purchases, name);
+      for (const re of PROMPTING) {
+        assert.equal(re.test(body), false, `${re} must not run inside ${name}`);
+      }
+    }
+    const verify = functionBody(purchases, 'verifyOnDevice');
+    assert.match(verify, /currentEntitlementIOS|isTransactionVerifiedIOS/);
+    assert.match(verify, /purchase\.purchaseState/);
+    const attach = functionBody(purchases, 'attachListeners');
+    assert.match(attach, /purchaseUpdatedListener/);
+    assert.match(attach, /verifyAndFinish/);
+    // Prompting purchase lookups stay isolated to the user-tapped restore() path.
+    const restore = functionBody(purchases, 'restore');
+    const everywhere = purchases;
+    const callRe = /getAvailablePurchases\s*\(/g;
+    const allCalls = everywhere.match(callRe) ?? [];
+    const restoreCalls = restore.match(callRe) ?? [];
+    assert.equal(allCalls.length, restoreCalls.length);
+    assert.ok(restoreCalls.length >= 1, 'restore() may still call getAvailablePurchases after the user taps Restore');
+  });
+
   it('the root layout does not keep a splash up for IAP, fonts, or an animated delay', () => {
     assert.doesNotMatch(layout, /AnimatedSplash/);
     assert.doesNotMatch(layout, /initIAP|refreshEntitlements|syncIOS|restorePurchases/);
     assert.doesNotMatch(layout, /loaded && ready/);
+    assert.match(layout, /SplashScreen\.hideAsync/);
   });
 });

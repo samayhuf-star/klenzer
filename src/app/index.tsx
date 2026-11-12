@@ -5,9 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
+import { ScanProgress } from '../components/ScanProgress';
 import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes, formatFreeAmount, formatMarketedTotal } from '../lib/format';
@@ -51,7 +52,9 @@ export default function Home() {
   }, [scanCats, scanning, scanError]);
 
   const usedPct = disk.total ? Math.min(1, disk.used / disk.total) : 0;
-  const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : scanning ? 4 : 0;
+  const pct = scanning
+    ? Math.max(0, Math.min(100, progress?.percent ?? (progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 1)))
+    : 0;
   const denied = access === 'denied';
 
   const smartClean = () => {
@@ -102,19 +105,12 @@ export default function Home() {
         </View>
 
         {scanning && (
-          <View style={styles.analyze}>
-            <View style={styles.track}>
-              <View style={[styles.trackFill, { width: `${Math.max(6, pct)}%` }]} />
-              <ScanSweep reduceMotion={!!reduceMotion} />
-            </View>
-            <View style={styles.analyzeRow}>
-              <Ionicons name="search" size={15} color={colors.ink3} />
-              <Text style={styles.analyzeText}>
-                {progress?.label
-                  ?? (progress?.phase === 'reading' ? 'Analyzing files on your device…' : 'Measuring and matching photos…')}
-              </Text>
-            </View>
-          </View>
+          <ScanProgress
+            percent={pct}
+            label={progress?.label
+              ?? (progress?.phase === 'reading' ? 'Analyzing files on your device…' : 'Measuring and matching photos…')}
+            reduceMotion={!!reduceMotion}
+          />
         )}
 
         {!!scanError && !scanning && (
@@ -259,19 +255,6 @@ export default function Home() {
   );
 }
 
-function ScanSweep({ reduceMotion }: { reduceMotion: boolean }) {
-  const x = useSharedValue(0);
-  useEffect(() => {
-    if (reduceMotion) return;
-    x.value = withRepeat(withTiming(1, { duration: 1100 }), -1, false);
-  }, [reduceMotion, x]);
-  const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: (x.value * 2 - 0.3) * 220 }],
-    opacity: reduceMotion ? 0 : 0.55,
-  }));
-  if (reduceMotion) return null;
-  return <Animated.View pointerEvents="none" style={[styles.sweep, style]} />;
-}
 
 function CatCard({
   kind, title, count, bytes, thumbs, spinning, wide, reduceMotion,
@@ -370,12 +353,6 @@ const styles = StyleSheet.create({
   brand: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, letterSpacing: -0.4 },
   pro: { height: 32, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.goldSoft, flexDirection: 'row', alignItems: 'center', gap: 5 },
   proText: { fontFamily: fonts.bold, fontSize: 13, color: '#6B5310', letterSpacing: 0.4 },
-  analyze: { marginBottom: 12 },
-  track: { height: 4, borderRadius: 4, backgroundColor: colors.track, overflow: 'hidden' },
-  trackFill: { height: '100%', backgroundColor: colors.blue, borderRadius: 4 },
-  sweep: { position: 'absolute', top: 0, bottom: 0, width: 48, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 4 },
-  analyzeRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  analyzeText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.ink3 },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, ...shadow },
   storage: { padding: 20, paddingBottom: 18 },
   storageLabel: { fontFamily: fonts.semi, fontSize: 13, color: colors.ink2 },
