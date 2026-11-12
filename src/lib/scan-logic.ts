@@ -272,7 +272,10 @@ export function buildScanResult(input: {
   hashes?: { item: Item; dhash: string }[];
   blurry?: Item[];
 }): ScanResult {
-  const duplicates = groupExact(input.photos);
+  // Live Photos are ordinary camera stills for Duplicate, Similar and Blurry. On a modern iPhone most
+  // camera shots are Live Photos, so leaving them out made both cards read 0 on real libraries.
+  const stills = [...input.photos, ...input.livePhotos];
+  const duplicates = groupExact(stills);
   const inExact = new Set(duplicates.flatMap((g) => g.items.map((i) => i.id)));
   const similar = groupSimilarWindowed((input.hashes ?? []).filter((h) => !inExact.has(h.item.id)));
   return {
@@ -287,7 +290,7 @@ export function buildScanResult(input: {
     shortVideos: input.videos.filter(isShortVideo).sort((a, b) => b.size - a.size),
     screenRecordings: input.videos.filter((v) => isScreenRecordingName(v.filename)).sort((a, b) => b.size - a.size),
     livePhotos: [...input.livePhotos].sort((a, b) => b.size - a.size),
-    blurry: [...(input.blurry ?? input.photos.filter((p) => p.blur != null && isBlurryVariance(p.blur)))].sort((a, b) => a.creationTime - b.creationTime),
+    blurry: [...(input.blurry ?? stills.filter((p) => p.blur != null && isBlurryVariance(p.blur)))].sort((a, b) => a.creationTime - b.creationTime),
     photos: [...input.photos, ...input.screenshots, ...input.livePhotos].sort((a, b) => b.size - a.size),
   };
 }

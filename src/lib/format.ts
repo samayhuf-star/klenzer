@@ -65,3 +65,10 @@ export function scanLookingLine(total: number, percent: number): string {
   const pct = Math.max(0, Math.min(100, Math.round(percent)));
   return `Looking through ${formatCount(total)} photos · ${pct}%`;
 }
+
+/** Never says None yet while the scan is still checking this group. */
+export function tileNote(bytes: number, count: number, spinning: boolean, pct: number): string {
+  if (bytes > 0) return formatBytes(bytes);
+  if (count) return 'items';
+  return spinning ? `Scanning ${Math.max(1, Math.min(99, Math.round(pct)))}%` : 'None yet';
+}
