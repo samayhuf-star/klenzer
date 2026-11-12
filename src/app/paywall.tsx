@@ -12,7 +12,7 @@ import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
-import { buy, loadOfferings, logPaywallOfferingsDiagnostic, Plan, plansFor, purchasesAvailable, restore, storefrontCountry } from '../lib/purchases';
+import { buy, loadOfferings, logPaywallOfferingsDiagnostic, Plan, plansFor, purchasesAvailable, restore } from '../lib/purchases';
 import { reclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
@@ -26,7 +26,6 @@ export default function Paywall() {
   const { result, tempSize, completeUnlock } = useStore();
   const reclaim = reclaimableBytes(result, tempSize);
   const [offers, setOffers] = useState<Offers | null>(null);
-  const [country, setCountry] = useState('US');
   const [second, setSecond] = useState(false);
   const [sel, setSel] = useState<Plan['kind']>('lifetime');
   const [busy, setBusy] = useState(false);
@@ -34,11 +33,10 @@ export default function Paywall() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([loadOfferings(), storefrontCountry()]).then(([o, c]) => {
+    loadOfferings().then((o) => {
       if (!alive) return;
       setOffers(o);
-      setCountry(c);
-      if (plansFor(o.main, c).length === 0) logPaywallOfferingsDiagnostic(o.raw);
+      if (plansFor(o.main).length === 0) logPaywallOfferingsDiagnostic(o.raw);
     });
     return () => {
       alive = false;
@@ -46,7 +44,7 @@ export default function Paywall() {
   }, [attempt]);
 
   const offering = second && offers?.secondChance ? offers.secondChance : (offers?.main ?? null);
-  const plans = plansFor(offering, country);
+  const plans = plansFor(offering);
   const chosen = plans.find((p) => p.kind === sel) ?? plans[0];
   const loading = offers === null;
 

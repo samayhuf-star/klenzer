@@ -3,14 +3,10 @@ import { Platform } from 'react-native';
 import { RC_ANDROID_KEY, RC_ENTITLEMENT, RC_IOS_KEY, RC_SECOND_CHANCE_OFFERING } from './config';
 
 /**
- * Pricing is set per country in App Store Connect / Play Console, so the app never hard-codes a price:
- * it shows whatever the store returns (priceString). The only market-specific rule here is WHICH plans to show.
- *   - India and similar low-price markets: lifetime only (store price ₹599 for India).
- *   - Everywhere else: monthly ($3.99) and lifetime ($14.99).
+ * Pricing comes from App Store Connect / Play Console, so the app never hard-codes a price:
+ * it shows whatever the store returns (priceString). Lifetime and monthly plans are offered
+ * in every country.
  */
-const LIFETIME_ONLY = new Set([
-  'IN', 'PK', 'BD', 'LK', 'NP', 'ID', 'PH', 'VN', 'EG', 'NG', 'KE', 'GH', 'ZA', 'MA', 'DZ', 'TN', 'BR', 'MX', 'CO', 'PE', 'AR', 'TR', 'UA', 'TH', 'MY',
-]);
 
 const LIFETIME_PRODUCT_ID = 'com.krosz.klenzer.lifetime';
 const MONTHLY_PRODUCT_ID = 'com.krosz.klenzer.monthly';
@@ -56,18 +52,6 @@ export function onCustomerInfo(cb: (info: CustomerInfo) => void): () => void {
   };
 }
 
-export async function storefrontCountry(): Promise<string> {
-  try {
-    const s = await Purchases.getStorefront();
-    if (s?.countryCode) return s.countryCode.toUpperCase();
-  } catch {}
-  try {
-    const region = Intl.DateTimeFormat().resolvedOptions().locale.split('-').pop();
-    if (region && region.length === 2) return region.toUpperCase();
-  } catch {}
-  return 'US';
-}
-
 export type Plan = { pkg: PurchasesPackage; kind: 'lifetime' | 'monthly'; price: string };
 
 function productId(pkg: PurchasesPackage | null | undefined): string {
@@ -99,10 +83,10 @@ function samePackage(a: PurchasesPackage, b: PurchasesPackage): boolean {
   return a === b || a.identifier === b.identifier || (productId(a) !== '' && productId(a) === productId(b));
 }
 
-function buildPlans(lifetime: PurchasesPackage | null, monthly: PurchasesPackage | null, country: string): Plan[] {
+function buildPlans(lifetime: PurchasesPackage | null, monthly: PurchasesPackage | null): Plan[] {
   const plans: Plan[] = [];
   if (lifetime) plans.push({ pkg: lifetime, kind: 'lifetime', price: lifetime.product.priceString });
-  if (monthly && !LIFETIME_ONLY.has(country) && (!lifetime || !samePackage(monthly, lifetime))) {
+  if (monthly && (!lifetime || !samePackage(monthly, lifetime))) {
     plans.push({ pkg: monthly, kind: 'monthly', price: monthly.product.priceString });
   }
   return plans;
@@ -169,10 +153,10 @@ function selectMainOffering(offerings: PurchasesOfferings): PurchasesOffering | 
   return offeringFromMatches(lifetime, monthly, source);
 }
 
-/** Picks the plans to show for this storefront, lifetime first (it is pre-selected). */
-export function plansFor(offering: PurchasesOffering | null, country: string): Plan[] {
+/** Picks the plans to show, lifetime first (it is pre-selected). */
+export function plansFor(offering: PurchasesOffering | null): Plan[] {
   if (!offering) return [];
-  return buildPlans(pickLifetime(offering), pickMonthly(offering), country);
+  return buildPlans(pickLifetime(offering), pickMonthly(offering));
 }
 
 /** Package and product ids only. Never logs API keys or app user IDs. */
