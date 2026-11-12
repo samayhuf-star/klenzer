@@ -5,9 +5,10 @@ import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInUp, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
+import { CountUp } from '../components/CountUp';
 import { formatBytes } from '../lib/format';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow } from '../theme';
@@ -15,13 +16,14 @@ import { colors, fonts, shadow } from '../theme';
 export default function Done() {
   const { lastFreed, lifetimeFreed } = useStore();
   const insets = useSafeAreaInsets();
-  const pop = useSharedValue(0);
+  const reduceMotion = useReducedMotion();
+  const pop = useSharedValue(reduceMotion ? 1 : 0);
   const badge = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
 
   useEffect(() => {
     // Reanimated shared values are mutated by design.
     // eslint-disable-next-line react-hooks/immutability
-    pop.value = withDelay(150, withSequence(withSpring(1.15, { damping: 7 }), withSpring(1)));
+    pop.value = reduceMotion ? 1 : withDelay(150, withSequence(withSpring(1.15, { damping: 7 }), withSpring(1)));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     const t = setTimeout(async () => {
       try {
@@ -29,7 +31,7 @@ export default function Done() {
       } catch {}
     }, 2600);
     return () => clearTimeout(t);
-  }, [pop]);
+  }, [pop, reduceMotion]);
 
   const bytes = lastFreed?.bytes ?? 0;
   const count = lastFreed?.count ?? 0;
@@ -42,15 +44,15 @@ export default function Done() {
             <Ionicons name="checkmark" size={72} color="#fff" />
           </LinearGradient>
         </Animated.View>
-        <Animated.View entering={FadeInUp.delay(450)} style={{ alignItems: 'center', marginTop: 32 }}>
+        <Animated.View entering={reduceMotion ? undefined : FadeInUp.delay(450)} style={{ alignItems: 'center', marginTop: 32 }}>
           <Text style={styles.kicker}>ALL DONE</Text>
-          <Text style={styles.big}>{bytes > 0 ? `${formatBytes(bytes)} cleared` : `${count} items cleared`}</Text>
+          {bytes > 0 ? <CountUp value={bytes} format={(n) => `${formatBytes(n)} cleared`} style={styles.big} /> : <Text style={styles.big}>{count} items cleared</Text>}
           <Text style={styles.sub}>
             {count > 0
               ? `${count.toLocaleString()} ${count === 1 ? 'item was' : 'items were'} removed from your library.`
               : 'Temporary files removed.'}
           </Text>
-          {lifetimeFreed > 0 && <Text style={styles.total}>{formatBytes(lifetimeFreed)} freed with Klenzer so far</Text>}
+          {lifetimeFreed > 0 && <CountUp value={lifetimeFreed} format={(n) => `${formatBytes(n)} freed with Klenzer so far`} style={styles.total} />}
         </Animated.View>
       </View>
       <PressableScale onPress={() => router.replace('/')} accessibilityLabel="Done" style={styles.doneBtn}>

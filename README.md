@@ -10,6 +10,9 @@ Scanning and reviewing are free. Deleting items and clearing Klenzer’s tempora
 - Screenshot, blurry-photo, Live Photo, and large-video review
 - Incremental scans: an on-device SQLite cache keyed by asset id and modification date, so unchanged items are not remeasured
 - Split progress for Photos, Screenshots, and Videos — results appear as each category finishes
+- The Videos tab shares that same scan: large videos and duplicate videos fill in when the video pass finishes
+- Scan steps time out if a file hangs, so Home spinners always stop; an error banner lets you retry
+- Space freed only counts items this install actually deleted in Klenzer, and starts at 0
 - Confirm-before-delete (a single system dialog for the whole selection)
 - Optional local reminder every 3 days (no push server)
 - Klenzer Pro: a one-time lifetime unlock or an auto-renewing monthly subscription, restored from Settings

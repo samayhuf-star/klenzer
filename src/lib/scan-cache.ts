@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { withTimeout } from './scan-logic';
 
 export type CachedAsset = {
   id: string;
@@ -8,22 +9,31 @@ export type CachedAsset = {
   blur: number | null;
 };
 
-let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase | null> | null = null;
+let cacheDisabled = false;
 
-async function db(): Promise<SQLite.SQLiteDatabase> {
+async function db(): Promise<SQLite.SQLiteDatabase | null> {
+  if (cacheDisabled) return null;
   if (!dbPromise) {
     dbPromise = (async () => {
-      const database = await SQLite.openDatabaseAsync('klenzer-scan-cache.db');
-      await database.execAsync(`
-        PRAGMA journal_mode = WAL;
-        CREATE TABLE IF NOT EXISTS asset_cache (
-          id TEXT PRIMARY KEY NOT NULL,
-          modificationTime INTEGER NOT NULL,
-          size INTEGER NOT NULL DEFAULT 0,
-          dhash TEXT,
-          blur REAL
-        );
-      `);
+      const database = await withTimeout(
+        SQLite.openDatabaseAsync('klenzer-scan-cache.db').then(async (opened) => {
+          await opened.execAsync(`
+            PRAGMA journal_mode = WAL;
+            CREATE TABLE IF NOT EXISTS asset_cache (
+              id TEXT PRIMARY KEY NOT NULL,
+              modificationTime INTEGER NOT NULL,
+              size INTEGER NOT NULL DEFAULT 0,
+              dhash TEXT,
+              blur REAL
+            );
+          `);
+          return opened;
+        }),
+        4000,
+        null,
+      );
+      if (!database) cacheDisabled = true;
       return database;
     })();
   }
@@ -32,9 +42,15 @@ async function db(): Promise<SQLite.SQLiteDatabase> {
 
 export async function getCached(id: string, modificationTime: number): Promise<CachedAsset | null> {
   try {
-    const row = await (await db()).getFirstAsync<CachedAsset>(
-      'SELECT id, modificationTime, size, dhash, blur FROM asset_cache WHERE id = ? AND modificationTime = ?',
-      [id, modificationTime],
+    const database = await db();
+    if (!database) return null;
+    const row = await withTimeout(
+      database.getFirstAsync<CachedAsset>(
+        'SELECT id, modificationTime, size, dhash, blur FROM asset_cache WHERE id = ? AND modificationTime = ?',
+        [id, modificationTime],
+      ),
+      3000,
+      null,
     );
     return row ?? null;
   } catch {
@@ -44,9 +60,15 @@ export async function getCached(id: string, modificationTime: number): Promise<C
 
 export async function putCached(row: CachedAsset): Promise<void> {
   try {
-    await (await db()).runAsync(
-      'INSERT OR REPLACE INTO asset_cache (id, modificationTime, size, dhash, blur) VALUES (?, ?, ?, ?, ?)',
-      [row.id, row.modificationTime, row.size, row.dhash, row.blur],
+    const database = await db();
+    if (!database) return;
+    await withTimeout(
+      database.runAsync(
+        'INSERT OR REPLACE INTO asset_cache (id, modificationTime, size, dhash, blur) VALUES (?, ?, ?, ?, ?)',
+        [row.id, row.modificationTime, row.size, row.dhash, row.blur],
+      ).then(() => true),
+      3000,
+      false,
     );
   } catch {}
 }
@@ -55,6 +77,7 @@ export async function putCached(row: CachedAsset): Promise<void> {
 export async function pruneCache(liveIds: string[]): Promise<void> {
   try {
     const database = await db();
+    if (!database) return;
     if (!liveIds.length) {
       await database.execAsync('DELETE FROM asset_cache');
       return;

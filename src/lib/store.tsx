@@ -3,7 +3,7 @@ import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Notifications from 'expo-notifications';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
-import { Alert, AppState, Linking, Platform } from 'react-native';
+import { Alert, AppState, Linking } from 'react-native';
 import { formatBytes } from './format';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
@@ -25,7 +25,6 @@ export type CleanRow = {
 };
 export type Cleaning = { rows: CleanRow[]; phase: 'working' | 'finished' | 'cancelled' | 'error'; freed: number };
 export type CleanPlan = { kind: Kind; items: Item[] }[];
-type Pending = { bytes: number; baselineFree: number };
 
 export type CategoryScanMap = Record<ScanCategory, CategoryProgress>;
 
@@ -62,14 +61,15 @@ type Ctx = {
   tempSize: number;
   reminders: boolean;
   setReminders: (on: boolean) => Promise<'on' | 'off' | 'blocked'>;
-  /** Space Klenzer has actually given back (on iOS: only once Recently Deleted is emptied). */
+  /** Cumulative size of items this install actually deleted through Klenzer. Starts at 0. */
   lifetimeFreed: number;
+  scanError: string | null;
   /** Every photo, video and temp file Klenzer has removed, so the total moves even when sizes are unknown. */
   lifetimeItems: number;
   lastFreed: { bytes: number; count: number } | null;
 };
 
-const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v1', items: 'klenzer.items.v1', pending: 'klenzer.pending.v1', reclaim: 'klenzer.reclaim.v1' };
+const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1' };
 
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
@@ -92,7 +92,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [lastFreed, setLastFreed] = useState<{ bytes: number; count: number } | null>(null);
   const [cleaning, setCleaning] = useState<Cleaning | null>(null);
   const [tempSize, setTempSize] = useState(0);
-  const [pending, setPending] = useState<Pending | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [reminders, setRemindersState] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const afterUnlock = useRef<CleanPlan | null>(null);
@@ -102,16 +102,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [o, f, it, pd] = await Promise.all([
+        const [o, f, it] = await Promise.all([
           AsyncStorage.getItem(KEYS.onboarded),
           AsyncStorage.getItem(KEYS.freed),
           AsyncStorage.getItem(KEYS.items),
-          AsyncStorage.getItem(KEYS.pending),
         ]);
         setOnboarded(o === '1');
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
-        if (pd) setPending(JSON.parse(pd));
       } catch {}
       if (configurePurchases()) setIsPro(hasPro(await currentCustomer()));
       try {
@@ -168,21 +166,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Recently Deleted was emptied: that space is now really free, so it joins the lifetime total.
-  // Tracked silently — the UI no longer tells the user to empty the album by hand.
-  const pendingRef = useRef<Pending | null>(null);
-  useEffect(() => {
-    pendingRef.current = pending;
-  }, [pending]);
-  const settlePending = useCallback(() => {
-    const p = pendingRef.current;
-    if (!p) return;
-    pendingRef.current = null;
-    addFreed(p.bytes);
-    setPending(null);
-    AsyncStorage.removeItem(KEYS.pending).catch(() => {});
-  }, [addFreed]);
-
   useEffect(() => {
     // Initial and foreground disk refresh; the setter is inside refreshDisk.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -198,10 +181,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (++n >= 20) clearInterval(t);
     }, 1500);
   }, [refreshDisk]);
-
-  useEffect(() => {
-    if (pending && disk.free - pending.baselineFree >= pending.bytes * 0.5) settlePending();
-  }, [disk.free, pending, settlePending]);
 
   // Cancel and reschedule the 3-day local reminder with fresh used/total on open and foreground.
   const reminderInfo = useRef({ used: 0, total: 0 });
@@ -250,6 +229,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (a === 'unknown' || a === 'denied') a = await requestAccess();
     if (a !== 'granted' && a !== 'limited') return;
     signal.current = { cancelled: false };
+    setScanError(null);
     setScanning(true);
     setProgress({ phase: 'reading', done: 0, total: 0 });
     setScanCats({
@@ -257,12 +237,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       screenshots: { category: 'screenshots', status: 'running', done: 0, total: 0 },
       videos: { category: 'videos', status: 'running', done: 0, total: 0 },
     });
+    const finishCats = () =>
+      setScanCats((c) => ({
+        photos: { ...c.photos, status: 'done' },
+        screenshots: { ...c.screenshots, status: 'done' },
+        videos: { ...c.videos, status: 'done' },
+      }));
     try {
       const r = await scanLibrary(
         {
           onProgress: setProgress,
-          onCategory: (p) => setScanCats((c) => ({ ...c, [p.category]: p })),
+          onCategory: (p) => setScanCats((prev) => ({ ...prev, [p.category]: p })),
           onPartial: (partial) => setResult({ ...partial }),
+          onError: (message) => setScanError(message),
         },
         signal.current,
       );
@@ -272,7 +259,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
         askAboutReminders(reclaim);
       }
+    } catch (e) {
+      setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');
+      finishCats();
     } finally {
+      finishCats();
       setScanning(false);
       setProgress(null);
       refreshDisk();
@@ -372,16 +363,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               similar: r.similar
                 .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
                 .filter((g) => g.items.length > 1),
+              duplicateVideos: r.duplicateVideos
+                .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
+                .filter((g) => g.items.length > 1),
             },
         );
-        if (Platform.OS === 'ios' && mediaBytes > 0) {
-          // Photos keeps these in Recently Deleted for 30 days, so the space isn't free yet.
-          freedNow -= mediaBytes;
-          const baselineFree = pending?.baselineFree ?? (await getDiskInfo()).free;
-          const next = { bytes: mediaBytes + (pending?.bytes ?? 0), baselineFree };
-          setPending(next);
-          AsyncStorage.setItem(KEYS.pending, JSON.stringify(next)).catch(() => {});
-        }
       }
 
       const count = plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0);
@@ -395,7 +381,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       patch((r) => r, { phase: 'error', freed });
       refreshDisk();
     }
-  }, [pending, refreshDisk, pollDisk, addFreed, addItems]);
+  }, [refreshDisk, pollDisk, addFreed, addItems]);
 
   // Klenzer scans for free; clearing is the paid part. Every Fix / Clear button comes through here.
   const isProRef = useRef(false);
@@ -433,9 +419,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
+      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

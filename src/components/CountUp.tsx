@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleProp, Text, TextStyle } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 
 type Props = { value: number; format: (n: number) => string; style?: StyleProp<TextStyle>; duration?: number };
 
 /** Counts from the previously shown value to the new one, so live updates glide instead of restarting at zero. */
 export function CountUp({ value, format, style, duration = 1200 }: Props) {
+  const reduceMotion = useReducedMotion();
   const [n, setN] = useState(0);
   const from = useRef(0);
   useEffect(() => {
+    if (reduceMotion) {
+      from.current = value;
+      return;
+    }
     let raf = 0;
     const start = from.current;
     const t0 = Date.now();
@@ -20,6 +26,6 @@ export function CountUp({ value, format, style, duration = 1200 }: Props) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, duration]);
-  return <Text style={style}>{format(n)}</Text>;
+  }, [value, duration, reduceMotion]);
+  return <Text style={style}>{format(reduceMotion ? value : n)}</Text>;
 }

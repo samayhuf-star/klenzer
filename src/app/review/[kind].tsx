@@ -18,9 +18,10 @@ const COPY = {
   screenshots: { title: 'Screenshots', help: 'Nothing is selected by default. Tap the ones you want to clear.' },
   videos: { title: 'Large videos', help: 'Videos over 100 MB, biggest first. Nothing is selected by default.' },
   live: { title: 'Live Photos', help: 'Deleting a Live Photo removes the photo and its motion clip. Sizes shown are the still photo only, so you will free more than shown. Nothing is selected by default.' },
+  videoDuplicates: { title: 'Duplicate videos', help: 'Videos with the same size, dimensions and capture time. We keep the largest file in each set; tap any video to change what’s selected.' },
 } as const;
 type Kind = keyof typeof COPY;
-const GROUPED: Kind[] = ['duplicates', 'similar'];
+const GROUPED: Kind[] = ['duplicates', 'similar', 'videoDuplicates'];
 
 export default function Review() {
   const { kind: raw } = useLocalSearchParams<{ kind: string }>();
@@ -29,12 +30,13 @@ export default function Review() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  const groups: DuplicateGroup[] = useMemo(
-    () => (kind === 'similar' ? (result?.similar ?? []) : (result?.duplicates ?? [])),
-    [kind, result],
-  );
+  const groups: DuplicateGroup[] = useMemo(() => {
+    if (kind === 'similar') return result?.similar ?? [];
+    if (kind === 'videoDuplicates') return result?.duplicateVideos ?? [];
+    return result?.duplicates ?? [];
+  }, [kind, result]);
   const flat: Item[] = useMemo(() => {
-    if (kind === 'duplicates' || kind === 'similar') return groups.flatMap((g) => g.items);
+    if (kind === 'duplicates' || kind === 'similar' || kind === 'videoDuplicates') return groups.flatMap((g) => g.items);
     if (kind === 'screenshots') return result?.screenshots ?? [];
     if (kind === 'blurry') return result?.blurry ?? [];
     if (kind === 'live') return result?.livePhotos ?? [];
@@ -88,7 +90,7 @@ export default function Review() {
   );
 
   const renderThumb = (i: Item, size: number, badge?: string) => (
-    <Thumb key={i.id} item={i} size={size} selected={sel.has(i.id)} onPress={() => toggle(i.id)} badge={badge} showVideo={kind === 'videos'} />
+    <Thumb key={i.id} item={i} size={size} selected={sel.has(i.id)} onPress={() => toggle(i.id)} badge={badge} showVideo={kind === 'videos' || kind === 'videoDuplicates'} />
   );
 
   return (

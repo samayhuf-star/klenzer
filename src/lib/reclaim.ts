@@ -6,6 +6,7 @@ export function reclaimableBytes(r: ScanResult | null, tempSize = 0): number {
   return (
     dupReclaimable(r.duplicates) +
     dupReclaimable(r.similar) +
+    dupReclaimable(r.duplicateVideos) +
     sum(r.screenshots) +
     sum(r.largeVideos) +
     sum(r.livePhotos) +

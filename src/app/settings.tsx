@@ -44,8 +44,8 @@ export default function Settings() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40, gap: 16 }}>
         <View style={styles.card}>
           <Row icon="images-outline" label="Photo access" value={accessLabel} onPress={openSettings} />
-          <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} />
-          <Row icon="sparkles-outline" label="Klenzer" value={isPro ? 'Unlocked' : 'Free scan'} onPress={isPro ? undefined : () => router.push('/paywall')} chevron={!isPro} />
+          {lifetimeFreed > 0 ? <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} /> : <Row icon="leaf-outline" label="Space freed" value="0 MB" />}
+          <Row icon="sparkles-outline" label={isPro ? 'Plan: Pro' : 'Plan: Free'} value={isPro ? undefined : 'Upgrade'} onPress={isPro ? undefined : () => router.push('/paywall')} chevron={!isPro} />
           <Row
             icon="refresh-outline"
             label="Restore purchase"
