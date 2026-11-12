@@ -33,7 +33,7 @@ Reminders are local only: no server, no push token, and no remote push entitleme
 - `expo-media-library` for on-device PhotoKit / Android media access
 - `expo-sqlite` for the scan cache; `expo-image-manipulator` for thumbnail hashing
 - `expo-notifications` for local reminders
-- RevenueCat (`react-native-purchases`) for offerings, purchases, and restore
+- StoreKit 2 / Play Billing via `expo-iap` for products, purchases, restore, and entitlements (no RevenueCat)
 
 ## Identifiers
 
@@ -41,8 +41,8 @@ Reminders are local only: no server, no push token, and no remote push entitleme
 - iOS bundle ID / Android package: `com.krosz.klenzer`
 - App version on this branch: 1.1.0
 - `supportsTablet`: false
-- RevenueCat entitlement: `klenzer_pro`
-- Expected store product IDs (loaded from RevenueCat offerings, not hard-coded in the paywall): `com.krosz.klenzer.lifetime`, `com.krosz.klenzer.monthly`
+- Store product IDs (loaded by ID from Apple or Google; prices come from the store’s localized displayPrice, never hard-coded): `com.krosz.klenzer.yearly` (auto-renew, default-selected, Best value), `com.krosz.klenzer.monthly` (auto-renew), `com.krosz.klenzer.lifetime` (non-consumable). Yearly and monthly are in the “Klenzer Pro” subscription group. If a product is missing from the store, the paywall shows the ones that load.
+- Pro is a verified lifetime purchase or an active yearly or monthly subscription, checked from StoreKit / Play entitlements on launch and when transactions update.
 
 ## Run locally
 
@@ -52,7 +52,7 @@ npm run typecheck
 npx expo start
 ```
 
-Photo-library features and store purchases need a development or production build, not Expo Go (the scan cache and reminder plugins are native). RevenueCat public keys are supplied as `EXPO_PUBLIC_RC_IOS_KEY` / `EXPO_PUBLIC_RC_ANDROID_KEY` in EAS profiles.
+Photo-library features and store purchases need a development or production build, not Expo Go (the scan cache, reminder, and IAP plugins are native).
 
 ## Privacy and support
 
@@ -61,4 +61,4 @@ Photo-library features and store purchases need a development or production buil
 - Support: https://samayhuf-star.github.io/app-legal/klenzer/support.html
 - Contact: samayhuf@gmail.com (no phone number)
 
-The in-app Privacy Policy screen matches that policy: photos stay on the device, scan cache (sizes and tiny hashes) stays on the device, and purchase status is handled by Apple or Google and RevenueCat using an anonymous ID. The app does not collect device identifiers or advertising attribution.
+The in-app Privacy Policy screen matches that policy: photos stay on the device, scan cache (sizes and tiny hashes) stays on the device, and purchase status is handled by Apple or Google on the device. The app does not collect device identifiers, an account ID, or advertising attribution.

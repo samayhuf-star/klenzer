@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
 import { SUPPORT_URL, TERMS_URL } from '../lib/config';
-import { restore } from '../lib/purchases';
+import { manageSubscriptions, restore } from '../lib/purchases';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
@@ -48,10 +48,11 @@ export default function Settings() {
           <Row icon="sparkles-outline" label={isPro ? 'Plan: Pro' : 'Plan: Free'} value={isPro ? undefined : 'Upgrade'} onPress={isPro ? undefined : () => router.push('/paywall')} chevron={!isPro} />
           <Row
             icon="refresh-outline"
-            label="Restore purchase"
+            label="Restore purchases"
             onPress={doRestore}
             chevron
           />
+          {isPro ? <Row icon="card-outline" label="Manage subscription" onPress={() => void manageSubscriptions()} chevron /> : null}
           <View style={styles.row}>
             <Ionicons name="notifications-outline" size={22} color={colors.blue} />
             <Text style={styles.label}>Cleanup reminders</Text>

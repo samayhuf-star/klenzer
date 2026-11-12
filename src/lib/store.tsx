@@ -10,7 +10,7 @@ import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
 import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders } from './reminders';
-import { currentCustomer, hasPro, onCustomerInfo, whenConfigured } from './purchases';
+import { initIAP, onEntitlementChange, refreshEntitlements } from './purchases';
 import { reclaimableBytes } from './reclaim';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
@@ -111,7 +111,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
       } catch {}
-      if (await whenConfigured()) setIsPro(hasPro(await currentCustomer()));
+      try {
+        await initIAP();
+        setIsPro(await refreshEntitlements());
+      } catch {}
       try {
         setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
       } catch {}
@@ -125,7 +128,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Keep the unlocked state live: a purchase, a restore, or a refund all arrive here.
-  useEffect(() => onCustomerInfo((info) => setIsPro(hasPro(info))), [ready]);
+  useEffect(() => onEntitlementChange(setIsPro), []);
 
   const finishOnboarding = useCallback(() => {
     setOnboarded(true);

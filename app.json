@@ -112,7 +112,8 @@
         {
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true

@@ -6,11 +6,14 @@ Every claim below is something the app actually does. Do not add "boost", "speed
 
 | Field | Value | Limit |
 |---|---|---|
-| Name | Klenzer - Clean Photo Clutter | 29/30 |
+| Name | Klenzer - Phone Storage Cleaner | 31/30 (one over the App Store 30-character name limit; see note below) |
 | Subtitle | Duplicate & Screenshot Cleaner | 30/30 |
 | Category | Primary: Utilities · Secondary: Photo & Video | |
 | Age rating | 4+ | |
-| Price | Free to download. In-app purchases: lifetime unlock (`com.krosz.klenzer.lifetime`) and auto-renewing monthly (`com.krosz.klenzer.monthly`). Prices are shown in the app. | |
+| Price | Free to download. In-app purchases: yearly auto-renew (`com.krosz.klenzer.yearly`), monthly auto-renew (`com.krosz.klenzer.monthly`), and lifetime unlock (`com.krosz.klenzer.lifetime`). Prices are shown in the app from the store and are not hard-coded. | |
+
+
+**Name-limit note:** Samay’s tagline is “Phone Storage Cleaner”. “Klenzer - Phone Storage Cleaner” is 31 characters, one over Apple’s 30-character name limit. At submit time use a 30-character form such as “Klenzer Storage Cleaner” (23) if App Store Connect rejects the 31-character name. The home-screen icon label stays “Klenzer”. Play’s 30-character title “Klenzer: Phone Storage Cleaner” fits exactly.
 
 **Keywords (100 max):**
 `duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,large files,organizer,tidy`
@@ -34,7 +37,7 @@ Your camera roll is full of things you never meant to keep: the same photo taken
 Nothing is ever deleted automatically. You review every item, choose what goes, and your iPhone asks you to confirm. Deleted items land in Recently Deleted, so you can change your mind.
 
 **PRIVATE BY DESIGN**
-Your photos are never uploaded, shared or analysed in the cloud. There is no account, no tracking and no ads. Purchase status for Klenzer Pro is handled by the store and RevenueCat using an anonymous ID.
+Your photos are never uploaded, shared or analysed in the cloud. There is no account, no tracking and no ads. Purchase status for Klenzer Pro is handled by the Apple App Store or Google Play on the device.
 
 **GOOD TO KNOW**
 Klenzer cleans photos and videos, which are usually the biggest users of space. It does not and cannot clear other apps' data or system files. Photos stored only in iCloud are not measured. To free space after deleting, empty Recently Deleted in the Photos app: iOS doesn't allow apps to do this, so Klenzer shows how much is waiting there and opens Photos for you.
@@ -51,13 +54,13 @@ Questions? Contact us from Settings › Contact support.
 Klenzer is a native app (Expo/React Native) that uses PhotoKit via expo-media-library to scan the user's library on-device. No login required; no demo account needed. To test, allow Photos access and tap "Scan my library". Deletion uses the system confirmation dialog (PHPhotoLibrary performChanges). No data is transmitted off device. Photo access purpose is stated in NSPhotoLibraryUsageDescription. The app can optionally schedule local (on-device) reminder notifications if the user enables them in Settings or on the success screen; no push server or remote notifications are used.
 
 ### App Privacy ("nutrition label") answers
-**Purchases — Purchase History** and **Identifiers — User ID** (RevenueCat anonymous app user ID) are collected and linked to the user, for App Functionality, not used for tracking. Photos stay on the device and are not collected. No Device ID and no advertising attribution.
+No data is collected by the app for purchases. Apple or Google processes the payment under their policies. The app checks store entitlements on the device only; it does not collect a user ID, and photos stay on the device. No Device ID and no advertising attribution.
 
 ## Google Play
 
 | Field | Value | Limit |
 |---|---|---|
-| Title | Klenzer: Clean Photo Clutter | 28/30 |
+| Title | Klenzer: Phone Storage Cleaner | 30/30 |
 | Short description | Find duplicate photos, screenshots & big videos. Private, on-device. | 68/80 |
 | Category | Tools (or Photography) | |
 | Content rating | Everyone (complete IARC questionnaire: no UGC, no ads, no purchases) | |
@@ -79,7 +82,7 @@ Your gallery is full of things you never meant to keep: the same photo three tim
 Nothing is deleted automatically. You review every item and choose what goes. Android asks you to confirm before anything is deleted. Deleted items can't be restored by Klenzer, so check your selection.
 
 ★ PRIVATE BY DESIGN
-Photos are never uploaded or shared. There is no account, no tracking and no ads. Purchase status for Klenzer Pro is handled by the store and RevenueCat using an anonymous ID.
+Photos are never uploaded or shared. There is no account, no tracking and no ads. Purchase status for Klenzer Pro is handled by the Apple App Store or Google Play on the device.
 
 ★ GOOD TO KNOW
 Klenzer cleans photos and videos, typically the biggest users of space. It does not clear other apps' data or system files.
@@ -89,8 +92,8 @@ Optional reminders: if you turn them on, Klenzer sends a few occasional notifica
 Klenzer needs permission to read your photos and videos to find clutter. You can change this any time in Settings.
 
 ### Data safety answers
-- Data collected: purchase history and an anonymous RevenueCat app user ID (for Klenzer Pro). Photos are not uploaded. No device identifiers or tracking.
-- Data shared: RevenueCat (purchase/entitlement status only).
+- Data collected: none by the app for purchases. Photos are not uploaded. No device identifiers, user ID, or tracking.
+- Data shared: none. Apple or Google processes the payment under their own policies.
 - Privacy policy URL: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
 - Terms URL: https://samayhuf-star.github.io/app-legal/klenzer/terms.html
 - Support URL: https://samayhuf-star.github.io/app-legal/klenzer/support.html
@@ -104,10 +107,10 @@ Play restricts `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`. In Play Console › App
 ## Pre-submission compliance checklist
 - [x] No fake/hardcoded device data; all numbers from the OS or computed from the user's library
 - [x] No misleading optimizer claims
-- [x] No ads or tracking SDKs. RevenueCat is used only for purchases and entitlements (anonymous app user ID). Device-identifier and AdServices collection are not enabled.
+- [x] No ads or tracking SDKs. Purchases use StoreKit / Play Billing only. Device-identifier and AdServices collection are not enabled.
 - [x] Permission strings explain exactly why (iOS) and permissions minimised (Android: audio/location/overlay blocked)
 - [x] Deletion needs user selection + OS confirmation; never automatic
-- [x] Privacy manifest included (iOS). Data Safety / App Privacy must list purchase history and the RevenueCat user ID; photos are not collected.
+- [x] Privacy manifest included (iOS). Data Safety / App Privacy: the app does not collect a user ID or purchase history on its own servers; photos are not collected.
 - [x] Not a thin web wrapper: native photo-library integration (Apple 4.2)
 - [x] Reminders are opt-in, local-only (no push/APNs), capped at 5 over ~6 weeks, and reset on each open
 - [x] Hosted privacy, terms and support at https://samayhuf-star.github.io/app-legal/klenzer/ (set in `src/lib/config.ts`)

@@ -11,7 +11,7 @@ import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
-import { buy, loadOfferings, Plan, plansFor, purchasesAvailable, restore, type OfferingsLoad } from '../lib/purchases';
+import { buy, defaultPlanKind, loadPlans, Plan, restore, type PlansLoad } from '../lib/purchases';
 import { scanReclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
@@ -22,34 +22,29 @@ export default function Paywall() {
   const insets = useSafeAreaInsets();
   const { result, completeUnlock } = useStore();
   const reclaim = scanReclaimableBytes(result);
-  const [offers, setOffers] = useState<OfferingsLoad | null>(null);
-  const [second, setSecond] = useState(false);
-  const [sel, setSel] = useState<Plan['kind']>('lifetime');
+  const [offers, setOffers] = useState<PlansLoad | null>(null);
+  const [sel, setSel] = useState<Plan['kind']>('yearly');
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
-    loadOfferings().then((o) => {
+    loadPlans().then((o) => {
       if (!alive) return;
       setOffers(o);
+      const kind = defaultPlanKind(o.plans.map((p) => p.kind));
+      if (kind) setSel(kind);
     });
     return () => {
       alive = false;
     };
   }, [attempt]);
 
-  const plans = second && offers?.secondChance ? plansFor(offers.secondChance) : (offers?.plans ?? []);
+  const plans = offers?.plans ?? [];
   const chosen = plans.find((p) => p.kind === sel) ?? plans[0];
   const loading = offers === null;
 
-  // The first time the user closes the paywall, show the optional "second chance" offering (if one is set up in RevenueCat).
   const close = () => {
-    if (!second && offers?.secondChance) {
-      setSecond(true);
-      setSel('lifetime');
-      return;
-    }
     router.back();
   };
 
@@ -61,6 +56,8 @@ export default function Paywall() {
     if (r === 'purchased') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       completeUnlock();
+    } else if (r === 'pending') {
+      Alert.alert('Purchase pending', 'This purchase is waiting for approval. Klenzer will unlock once it is confirmed.');
     } else if (r === 'error') {
       Alert.alert('Purchase didn’t go through', 'You haven’t been charged. Please try again in a moment.');
     }
@@ -75,7 +72,6 @@ export default function Paywall() {
   };
 
   const headline = reclaim > 0 ? `Free ${formatBytes(reclaim)} now` : 'Unlock Klenzer';
-  const monthlyShown = chosen?.kind === 'monthly';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -83,11 +79,6 @@ export default function Paywall() {
         <PressableScale onPress={close} accessibilityLabel="Close" style={styles.close}>
           <Ionicons name="close" size={22} color="#fff" />
         </PressableScale>
-        {second && offers?.secondChance && (
-          <View style={styles.offerTag}>
-            <Text style={styles.offerTagText}>ONE-TIME OFFER</Text>
-          </View>
-        )}
         <Text style={styles.title}>{headline}</Text>
         <Text style={styles.sub}>
           {reclaim > 0 ? 'That is what Klenzer found on your phone. Unlock once and clear it in a tap.' : 'Scanning is free. Unlock Klenzer to clear what it finds.'}
@@ -108,11 +99,9 @@ export default function Paywall() {
           <ActivityIndicator style={{ marginVertical: 28 }} color={colors.blue} />
         ) : plans.length === 0 ? (
           <View style={styles.unavailable}>
-            <Text style={styles.unavailableTitle}>{purchasesAvailable() ? 'Couldn’t load prices' : 'Purchases aren’t available yet'}</Text>
+            <Text style={styles.unavailableTitle}>Plans unavailable right now, try again later</Text>
             <Text style={styles.unavailableBody}>
-              {purchasesAvailable()
-                ? (offers?.error ? `${offers.error} Check your connection and try again.` : 'Check your connection and try again.')
-                : 'This build has no store connection. Install a release or development build to buy.'}
+              {offers?.error ?? 'We couldn’t load plans from the store. Check your connection and try again.'}
             </Text>
             <Button variant="light" label="Try again" onPress={() => setAttempt((n) => n + 1)} />
           </View>
@@ -129,9 +118,11 @@ export default function Paywall() {
               style={{ marginTop: 6 }}
             />
             <Text style={styles.fine}>
-              {monthlyShown
-                ? `${chosen?.price} per month. Renews automatically until you cancel in your App Store or Google Play subscriptions.`
-                : `${chosen?.price} one time. No subscription, no renewal.`}
+              {chosen?.kind === 'yearly'
+                ? `${chosen.price} per year. Renews automatically until you cancel in your App Store or Google Play subscriptions.`
+                : chosen?.kind === 'monthly'
+                  ? `${chosen.price} per month. Renews automatically until you cancel in your App Store or Google Play subscriptions.`
+                  : `${chosen?.price} one time. No subscription, no renewal.`}
             </Text>
           </>
         )}
@@ -159,22 +150,21 @@ export default function Paywall() {
 }
 
 function PlanCard({ plan, selected, onPress }: { plan: Plan; selected: boolean; onPress: () => void }) {
-  const life = plan.kind === 'lifetime';
   return (
     <PressableScale
       onPress={onPress}
-      accessibilityLabel={`${life ? 'Lifetime' : 'Monthly'} plan, ${plan.price}`}
+      accessibilityLabel={`${plan.title} plan, ${plan.price}`}
       accessibilityState={{ checked: selected }}
       style={[styles.plan, selected && styles.planOn]}>
       <View style={[styles.radio, selected && styles.radioOn]}>{selected && <Ionicons name="checkmark" size={15} color="#fff" />}</View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.planTitle}>{life ? 'Lifetime' : 'Monthly'}</Text>
-        <Text style={styles.planHint}>{life ? 'Pay once, clean forever' : 'Cancel any time'}</Text>
+        <Text style={styles.planTitle}>{plan.title}</Text>
+        <Text style={styles.planHint}>{plan.hint}</Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
-        {life && (
+        {!!plan.badge && (
           <View style={styles.best}>
-            <Text style={styles.bestText}>BEST VALUE</Text>
+            <Text style={styles.bestText}>{plan.badge}</Text>
           </View>
         )}
         <Text style={styles.planPrice}>{plan.price}</Text>

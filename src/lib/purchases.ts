@@ -1,320 +1,324 @@
-import Purchases, { CustomerInfo, LOG_LEVEL, PACKAGE_TYPE, PurchasesOffering, PurchasesOfferings, PurchasesPackage, PurchasesStoreProduct } from 'react-native-purchases';
 import { Platform } from 'react-native';
-import { RC_ANDROID_KEY, RC_ENTITLEMENT, RC_IOS_KEY, RC_SECOND_CHANCE_OFFERING } from './config';
+import {
+  currentEntitlementIOS,
+  deepLinkToSubscriptions,
+  ErrorCode,
+  fetchProducts,
+  finishTransaction,
+  getActiveSubscriptions,
+  getAvailablePurchases,
+  getPendingTransactionsIOS,
+  hasActiveSubscriptions,
+  initConnection,
+  isTransactionVerifiedIOS,
+  isUserCancelledError,
+  purchaseErrorListener,
+  purchaseUpdatedListener,
+  requestPurchase,
+  restorePurchases as storeRestore,
+  showManageSubscriptionsIOS,
+  syncIOS,
+  type Product,
+  type ProductOrSubscription,
+  type Purchase,
+} from 'expo-iap';
+import { defaultPlanKind, defForId, isKnownProduct, PRODUCT_CATALOG, productIds, type PlanKind, type ProductDef } from './products';
 
-/**
- * Pricing comes from App Store Connect / Play Console, so the app never hard-codes a price:
- * it shows whatever the store returns (priceString). Lifetime and monthly plans are offered
- * in every country.
- */
+const LOG = '[klenzer-paywall]';
 
-const LIFETIME_PRODUCT_ID = 'com.krosz.klenzer.lifetime';
-const MONTHLY_PRODUCT_ID = 'com.krosz.klenzer.monthly';
-const PAYWALL_LOG = '[klenzer-paywall]';
+export type { PlanKind };
+export { defaultPlanKind, PRODUCT_CATALOG };
 
-const key = Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY;
-let configured = false;
+export type Plan = ProductDef & { price: string; product: ProductOrSubscription };
 
-/** True once the SDK has a key; without one (e.g. a fresh clone) the paywall shows a friendly "unavailable" state. */
-export const purchasesAvailable = () => configured;
+export type BuyResult = 'purchased' | 'cancelled' | 'pending' | 'error';
 
-/** Configure if needed, then wait until the SDK reports it is ready. */
-export async function whenConfigured(): Promise<boolean> {
-  if (!configurePurchases()) return false;
+export type PlansLoad = { plans: Plan[]; error: string | null };
+
+let connected = false;
+let listeners = false;
+const entitlementListeners = new Set<(isPro: boolean) => void>();
+let purchaseWaiter: ((result: BuyResult) => void) | null = null;
+
+const emitPro = (isPro: boolean) => {
+  entitlementListeners.forEach((cb) => cb(isPro));
+};
+
+const logErr = (action: string, e: unknown) => {
+  const err = e as { code?: unknown; message?: string; debugMessage?: string };
+  console.log(LOG, `${action} failed`, { code: err?.code, message: err?.message, debugMessage: err?.debugMessage });
+};
+
+async function ensureConnected(): Promise<boolean> {
+  if (connected) return true;
   try {
-    return await Purchases.isConfigured();
-  } catch {
-    return configured;
+    connected = !!(await initConnection());
+  } catch (e) {
+    logErr('initConnection', e);
+    connected = false;
+  }
+  return connected;
+}
+
+async function verifyOnDevice(purchase: Purchase): Promise<boolean> {
+  if (purchase.purchaseState === 'pending') return false;
+  if ('isSuspendedAndroid' in purchase && purchase.isSuspendedAndroid) return false;
+  if (!isKnownProduct(purchase.productId)) return false;
+
+  if (Platform.OS === 'ios') {
+    try {
+      if (await isTransactionVerifiedIOS(purchase.productId)) return true;
+    } catch (e) {
+      logErr('isTransactionVerifiedIOS', e);
+    }
+    try {
+      const entitlement = await currentEntitlementIOS(purchase.productId);
+      if (entitlement) return true;
+    } catch (e) {
+      logErr('currentEntitlementIOS', e);
+    }
+    try {
+      const pending = await getPendingTransactionsIOS();
+      if (pending.some((p) => p.id === purchase.id || p.productId === purchase.productId)) return true;
+    } catch (e) {
+      logErr('getPendingTransactionsIOS', e);
+    }
+    try {
+      const available = await getAvailablePurchases({ onlyIncludeActiveItemsIOS: false });
+      if (available.some((p) => p.id === purchase.id || p.productId === purchase.productId)) return true;
+    } catch (e) {
+      logErr('getAvailablePurchases', e);
+    }
+    // StoreKit 2 already signed this transaction if it arrived via Transaction.updates.
+    return purchase.purchaseState === 'purchased' || purchase.purchaseState === 'unknown';
+  }
+
+  return purchase.purchaseState === 'purchased' || purchase.purchaseState === 'unknown';
+}
+
+async function verifyAndFinish(purchase: Purchase): Promise<boolean> {
+  if (purchase.purchaseState === 'pending') return false;
+  const ok = await verifyOnDevice(purchase);
+  if (!ok) {
+    console.log(LOG, 'purchase did not verify', { productId: purchase.productId, state: purchase.purchaseState });
+    return false;
+  }
+  const def = defForId(purchase.productId);
+  try {
+    await finishTransaction({ purchase, isConsumable: false });
+  } catch (e) {
+    logErr('finishTransaction', e);
+  }
+  return !!def;
+}
+
+function attachListeners() {
+  if (listeners) return;
+  listeners = true;
+  purchaseUpdatedListener(async (purchase) => {
+    if (purchase.purchaseState === 'pending') {
+      purchaseWaiter?.('pending');
+      purchaseWaiter = null;
+      return;
+    }
+    const ok = await verifyAndFinish(purchase);
+    if (ok) {
+      const entitled = await refreshEntitlements();
+      emitPro(entitled);
+    }
+    purchaseWaiter?.(ok ? 'purchased' : 'error');
+    purchaseWaiter = null;
+  });
+  purchaseErrorListener((error) => {
+    logErr('purchaseError', error);
+    if (isUserCancelledError(error) || error.code === ErrorCode.UserCancelled) {
+      purchaseWaiter?.('cancelled');
+    } else if (error.code === ErrorCode.Pending || error.code === ErrorCode.DeferredPayment) {
+      purchaseWaiter?.('pending');
+    } else {
+      purchaseWaiter?.('error');
+    }
+    purchaseWaiter = null;
+  });
+}
+
+/** Start the store connection and listen for transaction updates. Safe to call more than once. */
+export async function initIAP(): Promise<boolean> {
+  attachListeners();
+  const ok = await ensureConnected();
+  if (ok && Platform.OS === 'ios') {
+    try {
+      await syncIOS();
+    } catch (e) {
+      logErr('syncIOS', e);
+    }
+  }
+  return ok;
+}
+
+export async function loadPlans(): Promise<PlansLoad> {
+  if (!(await ensureConnected())) {
+    return { plans: [], error: 'Plans unavailable right now, try again later.' };
+  }
+  const inAppIds = productIds('in-app');
+  const subIds = productIds('subs');
+  let inApp: ProductOrSubscription[] = [];
+  let subs: ProductOrSubscription[] = [];
+  try {
+    if (inAppIds.length) inApp = (await fetchProducts({ skus: inAppIds, type: 'in-app' })) ?? [];
+  } catch (e) {
+    logErr('fetchProducts in-app', e);
+  }
+  try {
+    if (subIds.length) subs = (await fetchProducts({ skus: subIds, type: 'subs' })) ?? [];
+  } catch (e) {
+    logErr('fetchProducts subs', e);
+  }
+  const byId = new Map<string, ProductOrSubscription>();
+  for (const product of [...inApp, ...subs]) {
+    if (product?.id && product.displayPrice) byId.set(product.id, product);
+  }
+  // Keep catalog order; skip IDs the store did not return (e.g. yearly not in ASC yet).
+  const plans: Plan[] = [];
+  for (const def of PRODUCT_CATALOG) {
+    const product = byId.get(def.id);
+    if (!product) continue;
+    plans.push({ ...def, price: product.displayPrice, product });
+  }
+  if (!plans.length) {
+    console.log(LOG, 'no store products loaded', { inApp: inApp.map((p) => p.id), subs: subs.map((p) => p.id) });
+    return { plans: [], error: 'Plans unavailable right now, try again later.' };
+  }
+  return { plans, error: null };
+}
+
+export async function refreshEntitlements(): Promise<boolean> {
+  if (!(await ensureConnected())) return false;
+  try {
+    const lifetimeId = productIds('in-app');
+    const subIds = productIds('subs');
+    const purchases = await getAvailablePurchases({ onlyIncludeActiveItemsIOS: true });
+    const hasLifetime = purchases.some(
+      (p) => lifetimeId.includes(p.productId) && p.purchaseState !== 'pending' && !('isSuspendedAndroid' in p && p.isSuspendedAndroid),
+    );
+    if (hasLifetime) return true;
+
+    if (Platform.OS === 'ios') {
+      for (const id of lifetimeId) {
+        try {
+          if (await currentEntitlementIOS(id)) return true;
+        } catch {}
+      }
+    }
+
+    if (subIds.length) {
+      try {
+        if (await hasActiveSubscriptions(subIds)) return true;
+      } catch (e) {
+        logErr('hasActiveSubscriptions', e);
+      }
+      try {
+        const active = await getActiveSubscriptions(subIds);
+        if (active.some((s) => s.isActive)) return true;
+      } catch (e) {
+        logErr('getActiveSubscriptions', e);
+      }
+    }
+    return false;
+  } catch (e) {
+    logErr('refreshEntitlements', e);
+    return false;
   }
 }
 
-export function configurePurchases(): boolean {
-  if (configured) return true;
-  if (!key) return false;
-  try {
-    if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.WARN);
-    // Anonymous RevenueCat app user ID only. Do not collect device identifiers
-    // or Apple Search Ads (AdServices) attribution, and do not set utm/campaign attributes.
-    Purchases.configure({ apiKey: key });
-    configured = true;
-  } catch {
-    configured = false;
-  }
-  return configured;
-}
-
-export const hasPro = (info: CustomerInfo | null | undefined) => !!info?.entitlements.active[RC_ENTITLEMENT];
-
-export async function currentCustomer(): Promise<CustomerInfo | null> {
-  if (!configured) return null;
-  try {
-    return await Purchases.getCustomerInfo();
-  } catch {
-    return null;
-  }
-}
-
-export function onCustomerInfo(cb: (info: CustomerInfo) => void): () => void {
-  if (!configured) return () => {};
-  Purchases.addCustomerInfoUpdateListener(cb);
+export function onEntitlementChange(cb: (isPro: boolean) => void): () => void {
+  entitlementListeners.add(cb);
   return () => {
-    Purchases.removeCustomerInfoUpdateListener(cb);
+    entitlementListeners.delete(cb);
   };
 }
-
-export type Plan = {
-  kind: 'lifetime' | 'monthly';
-  price: string;
-  pkg?: PurchasesPackage;
-  product?: PurchasesStoreProduct;
-};
-
-function productId(pkg: PurchasesPackage | null | undefined): string {
-  return pkg?.product?.identifier ?? '';
-}
-
-function isLifetimePkg(pkg: PurchasesPackage): boolean {
-  return pkg.packageType === PACKAGE_TYPE.LIFETIME || productId(pkg) === LIFETIME_PRODUCT_ID;
-}
-
-function isMonthlyPkg(pkg: PurchasesPackage): boolean {
-  return pkg.packageType === PACKAGE_TYPE.MONTHLY || productId(pkg) === MONTHLY_PRODUCT_ID;
-}
-
-function pickLifetime(offering: PurchasesOffering): PurchasesPackage | null {
-  return offering.lifetime ?? offering.availablePackages.find(isLifetimePkg) ?? null;
-}
-
-function pickMonthly(offering: PurchasesOffering): PurchasesPackage | null {
-  return offering.monthly ?? offering.availablePackages.find(isMonthlyPkg) ?? null;
-}
-
-function hasMatchingPackages(offering: PurchasesOffering | null | undefined): boolean {
-  if (!offering) return false;
-  return !!(pickLifetime(offering) || pickMonthly(offering));
-}
-
-function samePackage(a: PurchasesPackage, b: PurchasesPackage): boolean {
-  return a === b || a.identifier === b.identifier || (productId(a) !== '' && productId(a) === productId(b));
-}
-
-function buildPlans(lifetime: PurchasesPackage | null, monthly: PurchasesPackage | null): Plan[] {
-  const plans: Plan[] = [];
-  if (lifetime) plans.push({ pkg: lifetime, kind: 'lifetime', price: lifetime.product.priceString });
-  if (monthly && (!lifetime || !samePackage(monthly, lifetime))) {
-    plans.push({ pkg: monthly, kind: 'monthly', price: monthly.product.priceString });
-  }
-  return plans;
-}
-
-function collectMatchingPackages(offerings: Iterable<PurchasesOffering>): {
-  lifetime: PurchasesPackage | null;
-  monthly: PurchasesPackage | null;
-  source: PurchasesOffering | null;
-} {
-  let lifetime: PurchasesPackage | null = null;
-  let monthly: PurchasesPackage | null = null;
-  let source: PurchasesOffering | null = null;
-  for (const offering of offerings) {
-    if (!lifetime) {
-      const found = pickLifetime(offering);
-      if (found) {
-        lifetime = found;
-        source = source ?? offering;
-      }
-    }
-    if (!monthly) {
-      const found = pickMonthly(offering);
-      if (found) {
-        monthly = found;
-        source = source ?? offering;
-      }
-    }
-    if (lifetime && monthly) break;
-  }
-  return { lifetime, monthly, source };
-}
-
-function offeringFromMatches(
-  lifetime: PurchasesPackage | null,
-  monthly: PurchasesPackage | null,
-  source: PurchasesOffering | null,
-): PurchasesOffering | null {
-  if (!lifetime && !monthly) return null;
-  if (source && pickLifetime(source) === lifetime && pickMonthly(source) === monthly) return source;
-  const availablePackages: PurchasesPackage[] = [];
-  if (lifetime) availablePackages.push(lifetime);
-  if (monthly && (!lifetime || !samePackage(monthly, lifetime))) availablePackages.push(monthly);
-  return {
-    identifier: source?.identifier ?? 'fallback',
-    serverDescription: source?.serverDescription ?? '',
-    metadata: source?.metadata ?? {},
-    availablePackages,
-    lifetime,
-    monthly,
-    annual: null,
-    sixMonth: null,
-    threeMonth: null,
-    twoMonth: null,
-    weekly: null,
-    webCheckoutUrl: source?.webCheckoutUrl ?? null,
-  };
-}
-
-function selectMainOffering(offerings: PurchasesOfferings): PurchasesOffering | null {
-  const current = offerings.current ?? null;
-  if (hasMatchingPackages(current)) return current;
-  const { lifetime, monthly, source } = collectMatchingPackages(Object.values(offerings.all ?? {}));
-  return offeringFromMatches(lifetime, monthly, source);
-}
-
-/** Picks the plans to show, lifetime first (it is pre-selected). */
-export function plansFor(offering: PurchasesOffering | null): Plan[] {
-  if (!offering) return [];
-  return buildPlans(pickLifetime(offering), pickMonthly(offering));
-}
-
-/** Package and product ids only. Never logs API keys or app user IDs. */
-export function logPaywallOfferingsDiagnostic(offerings: PurchasesOfferings | null | undefined): void {
-  if (!offerings) {
-    console.log(PAYWALL_LOG, 'no offerings object (SDK not configured, or getOfferings threw)');
-    return;
-  }
-  console.log(PAYWALL_LOG, {
-    all: Object.keys(offerings.all),
-    current: offerings.current?.identifier ?? null,
-    packages: Object.entries(offerings.all).map(([id, offering]) => ({
-      offering: id,
-      packages: (offering.availablePackages ?? []).map((pkg) => ({
-        identifier: pkg.identifier,
-        productIdentifier: pkg.product?.identifier ?? null,
-      })),
-    })),
-  });
-}
-
-function errorDetails(e: unknown): { code?: unknown; readableErrorCode: string; underlyingErrorMessage: string; message: string } {
-  if (!e || typeof e !== 'object') return { readableErrorCode: '', underlyingErrorMessage: '', message: String(e) };
-  const x = e as Record<string, unknown>;
-  const userInfo = x.userInfo && typeof x.userInfo === 'object' ? (x.userInfo as Record<string, unknown>) : null;
-  return {
-    code: x.code,
-    readableErrorCode: String(x.readableErrorCode ?? userInfo?.readableErrorCode ?? ''),
-    underlyingErrorMessage: String(x.underlyingErrorMessage ?? ''),
-    message: String(x.message ?? ''),
-  };
-}
-
-export function shortPaywallReason(details: { readableErrorCode: string; underlyingErrorMessage: string; message: string }, emptyOfferings = false): string {
-  const code = details.readableErrorCode || '';
-  const blob = `${details.underlyingErrorMessage} ${details.message}`;
-  if (code.includes('CONFIGURATION') || /configuration/i.test(blob)) return 'Purchases isn’t configured correctly.';
-  if (code.includes('PRODUCT') || /product(s)? not found|could not find product/i.test(blob)) {
-    return 'The store did not return Klenzer’s products.';
-  }
-  if (/NETWORK|OFFLINE|INTERNET/i.test(code) || /network|offline|internet/i.test(blob)) {
-    return 'A network error stopped prices from loading.';
-  }
-  if (emptyOfferings) return 'No current offering, or the offering has no matching products.';
-  if (details.underlyingErrorMessage) return details.underlyingErrorMessage.slice(0, 160);
-  if (details.message) return details.message.slice(0, 160);
-  return '';
-}
-
-function logCaught(action: string, e: unknown) {
-  const d = errorDetails(e);
-  console.log(PAYWALL_LOG, `${action} failed`, {
-    code: d.code,
-    readableErrorCode: d.readableErrorCode,
-    underlyingErrorMessage: d.underlyingErrorMessage,
-    message: d.message,
-  });
-  return d;
-}
-
-async function plansFromStoreProducts(): Promise<Plan[]> {
-  const plans: Plan[] = [];
-  try {
-    const lifetime = await Purchases.getProducts([LIFETIME_PRODUCT_ID], Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION);
-    const product = lifetime.find((p) => p.identifier === LIFETIME_PRODUCT_ID) ?? lifetime[0];
-    if (product?.priceString) plans.push({ kind: 'lifetime', price: product.priceString, product });
-    else console.log(PAYWALL_LOG, 'getProducts lifetime returned', lifetime.map((p) => p.identifier));
-  } catch (e) {
-    logCaught('getProducts lifetime', e);
-  }
-  try {
-    const monthly = await Purchases.getProducts([MONTHLY_PRODUCT_ID], Purchases.PRODUCT_CATEGORY.SUBSCRIPTION);
-    const product = monthly.find((p) => p.identifier === MONTHLY_PRODUCT_ID) ?? monthly[0];
-    if (product?.priceString) plans.push({ kind: 'monthly', price: product.priceString, product });
-    else console.log(PAYWALL_LOG, 'getProducts monthly returned', monthly.map((p) => p.identifier));
-  } catch (e) {
-    logCaught('getProducts monthly', e);
-  }
-  return plans;
-}
-
-export type OfferingsLoad = {
-  main: PurchasesOffering | null;
-  secondChance: PurchasesOffering | null;
-  raw: PurchasesOfferings | null;
-  plans: Plan[];
-  error: string | null;
-};
-
-export async function loadOfferings(): Promise<OfferingsLoad> {
-  const empty: OfferingsLoad = { main: null, secondChance: null, raw: null, plans: [], error: null };
-  if (!(await whenConfigured())) {
-    console.log(PAYWALL_LOG, 'SDK is not configured; skipping getOfferings');
-    return { ...empty, error: 'Purchases aren’t configured in this build.' };
-  }
-  let raw: PurchasesOfferings | null = null;
-  let offeringsError: ReturnType<typeof errorDetails> | null = null;
-  try {
-    raw = await Purchases.getOfferings();
-    logPaywallOfferingsDiagnostic(raw);
-  } catch (e) {
-    offeringsError = logCaught('getOfferings', e);
-  }
-  const main = raw ? selectMainOffering(raw) : null;
-  const secondChance = raw?.all[RC_SECOND_CHANCE_OFFERING] ?? null;
-  let plans = plansFor(main);
-  if (plans.length === 0) {
-    console.log(PAYWALL_LOG, 'offerings empty or unmatched, trying getProducts fallback');
-    plans = await plansFromStoreProducts();
-  }
-  let error: string | null = null;
-  if (plans.length === 0) {
-    error = offeringsError
-      ? shortPaywallReason(offeringsError)
-      : shortPaywallReason({ readableErrorCode: '', underlyingErrorMessage: '', message: '' }, true);
-  }
-  return { main, secondChance, raw, plans, error };
-}
-
-export type BuyResult = 'purchased' | 'cancelled' | 'error';
 
 export async function buy(plan: Plan): Promise<BuyResult> {
+  if (!(await ensureConnected())) return 'error';
+  const result = new Promise<BuyResult>((resolve) => {
+    purchaseWaiter = resolve;
+  });
   try {
-    const result = plan.pkg
-      ? await Purchases.purchasePackage(plan.pkg)
-      : plan.product
-        ? await Purchases.purchaseStoreProduct(plan.product)
-        : null;
-    if (!result) return 'error';
-    return hasPro(result.customerInfo) ? 'purchased' : 'error';
+    const offers =
+      plan.type === 'subs'
+        ? ((plan.product as Product & { subscriptionOffers?: { offerTokenAndroid?: string }[] }).subscriptionOffers ?? [])
+            .filter((offer) => offer.offerTokenAndroid)
+            .map((offer) => ({ sku: plan.id, offerToken: offer.offerTokenAndroid as string }))
+        : [];
+    await requestPurchase({
+      request: {
+        apple: { sku: plan.id },
+        google: {
+          skus: [plan.id],
+          ...(offers.length ? { subscriptionOffers: offers } : {}),
+        },
+      },
+      type: plan.type,
+    });
   } catch (e) {
-    const d = errorDetails(e);
-    if ((e as { userCancelled?: boolean })?.userCancelled) return 'cancelled';
-    logCaught('purchase', e);
-    void d;
+    purchaseWaiter = null;
+    if (isUserCancelledError(e) || (e as { code?: string })?.code === ErrorCode.UserCancelled) return 'cancelled';
+    if ((e as { code?: string })?.code === ErrorCode.Pending || (e as { code?: string })?.code === ErrorCode.DeferredPayment) {
+      return 'pending';
+    }
+    logErr('requestPurchase', e);
     return 'error';
   }
+  return result;
 }
 
 export async function restore(): Promise<boolean> {
+  if (!(await ensureConnected())) return false;
+  if (Platform.OS === 'ios') {
+    try {
+      await syncIOS();
+    } catch (e) {
+      logErr('syncIOS restore', e);
+    }
+  }
   try {
-    return hasPro(await Purchases.restorePurchases());
-  } catch {
-    return false;
+    await storeRestore();
+  } catch (e) {
+    logErr('restorePurchases', e);
+  }
+  try {
+    const purchases = await getAvailablePurchases({ onlyIncludeActiveItemsIOS: false });
+    for (const purchase of purchases) {
+      if (purchase.purchaseState === 'pending') continue;
+      if (!isKnownProduct(purchase.productId)) continue;
+      try {
+        if (await verifyOnDevice(purchase)) {
+          await finishTransaction({ purchase, isConsumable: false });
+        }
+      } catch (e) {
+        logErr('restore finish', e);
+      }
+    }
+  } catch (e) {
+    logErr('restore getAvailablePurchases', e);
+  }
+  const entitled = await refreshEntitlements();
+  emitPro(entitled);
+  return entitled;
+}
+
+/** Open the system subscription manager (Settings › Subscriptions / Play subscriptions). */
+export async function manageSubscriptions(): Promise<void> {
+  try {
+    if (Platform.OS === 'ios') {
+      await showManageSubscriptionsIOS();
+      emitPro(await refreshEntitlements());
+      return;
+    }
+    const yearly = defForId('com.krosz.klenzer.yearly');
+    const monthly = defForId('com.krosz.klenzer.monthly');
+    await deepLinkToSubscriptions({ skuAndroid: (yearly ?? monthly)?.id });
+  } catch (e) {
+    logErr('manageSubscriptions', e);
   }
 }

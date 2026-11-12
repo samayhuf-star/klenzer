@@ -3,7 +3,7 @@ export const PRIVACY_UPDATED = '12 November 2026';
 export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   {
     h: 'The short version',
-    p: 'Your photos and videos stay on this device and are never uploaded. There is no account and no sign-in. Purchase status for Klenzer Pro is handled by Apple (or Google Play) and RevenueCat, using an anonymous ID. The app does not collect a name, email address, or payment card details.',
+    p: 'Your photos and videos stay on this device and are never uploaded. There is no account and no sign-in. Purchase status for Klenzer Pro is handled by the Apple App Store or Google Play on your device. The app does not collect a name, email address, payment card details, or an account ID.',
   },
   {
     h: 'What Klenzer accesses',
@@ -15,7 +15,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Purchases',
-    p: 'Scanning and reviewing your library is free. Deleting items and clearing temporary files requires Klenzer Pro, sold as a one-time lifetime unlock or an auto-renewing monthly subscription. Apple or Google processes the payment. RevenueCat checks and restores whether Pro is active, using an anonymous app user ID — the app does not create an account or send a name or email. You can restore a previous purchase from Settings. Prices are shown in the app at the time of purchase.',
+    p: 'Scanning and reviewing your library is free. Deleting items and clearing temporary files requires Klenzer Pro, sold as a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Apple or Google processes the payment and the app checks those store entitlements on the device — it does not create an account or send a name or email. You can restore a previous purchase from Settings. Prices are shown in the app at the time of purchase and are not hard-coded.',
   },
   {
     h: 'Deleting photos',
@@ -31,7 +31,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Children',
-    p: 'Klenzer is not directed at children under 13. Photos stay on the device. Purchase status, if you buy Pro, is handled with an anonymous ID as described above.',
+    p: 'Klenzer is not directed at children under 13. Photos stay on the device. Purchase status, if you buy Pro, is checked with the store on this device as described above.',
   },
   {
     h: 'Changes',

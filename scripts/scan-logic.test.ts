@@ -288,3 +288,21 @@ describe('stress grouping', () => {
     console.log(`stress: ${photos.length} photos, ${videos.length} videos, ${elapsed}ms`);
   });
 });
+
+import { defaultPlanKind, PRODUCT_CATALOG } from '../src/lib/products';
+
+describe('product catalog', () => {
+  it('lists yearly, monthly and lifetime, with yearly first and badged Best value', () => {
+    assert.deepEqual(PRODUCT_CATALOG.map((p) => p.kind), ['yearly', 'monthly', 'lifetime']);
+    assert.equal(PRODUCT_CATALOG[0].id, 'com.krosz.klenzer.yearly');
+    assert.equal(PRODUCT_CATALOG[0].type, 'subs');
+    assert.equal(PRODUCT_CATALOG[0].badge, 'BEST VALUE');
+    assert.equal(PRODUCT_CATALOG.find((p) => p.kind === 'lifetime')?.type, 'in-app');
+  });
+
+  it('defaults to yearly when it loaded, otherwise the first plan that loaded', () => {
+    assert.equal(defaultPlanKind(['monthly', 'lifetime', 'yearly']), 'yearly');
+    assert.equal(defaultPlanKind(['lifetime', 'monthly']), 'lifetime');
+    assert.equal(defaultPlanKind([]), null);
+  });
+});
