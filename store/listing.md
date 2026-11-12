@@ -6,14 +6,12 @@ Every claim below is something the app actually does. Do not add "boost", "speed
 
 | Field | Value | Limit |
 |---|---|---|
-| Name | Klenzer - Phone Storage Cleaner | 31/30 (one over the App Store 30-character name limit; see note below) |
+| Name | Klenzer: Phone Storage Cleaner | 30/30 |
 | Subtitle | Duplicate & Screenshot Cleaner | 30/30 |
 | Category | Primary: Utilities · Secondary: Photo & Video | |
 | Age rating | 4+ | |
 | Price | Free to download. In-app purchases: yearly auto-renew (`com.krosz.klenzer.yearly`), monthly auto-renew (`com.krosz.klenzer.monthly`), and lifetime unlock (`com.krosz.klenzer.lifetime`). Prices are shown in the app from the store and are not hard-coded. | |
 
-
-**Name-limit note:** Samay’s tagline is “Phone Storage Cleaner”. “Klenzer - Phone Storage Cleaner” is 31 characters, one over Apple’s 30-character name limit. At submit time use a 30-character form such as “Klenzer Storage Cleaner” (23) if App Store Connect rejects the 31-character name. The home-screen icon label stays “Klenzer”. Play’s 30-character title “Klenzer: Phone Storage Cleaner” fits exactly.
 
 **Keywords (100 max):**
 `duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,large files,organizer,tidy`

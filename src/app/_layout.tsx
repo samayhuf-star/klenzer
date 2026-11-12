@@ -3,10 +3,9 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, us
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
+import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AnimatedSplash } from '../components/AnimatedSplash';
 import { StoreProvider, useStore } from '../lib/store';
 import { colors } from '../theme';
 
@@ -14,15 +13,18 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function Shell() {
   const { ready, onboarded } = useStore();
-  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Fraunces_700Bold });
-  const [splashDone, setSplashDone] = useState(false);
-  const done = useCallback(() => setSplashDone(true), []);
-  const loaded = fontsLoaded || !!fontError;
+  // Load fonts in the background. Do not hold the splash or the first render on them.
+  useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Fraunces_700Bold });
+
+  useEffect(() => {
+    if (!ready) return;
+    SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <StatusBar style="dark" />
-      {loaded && ready && (
+      {ready && (
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
           <Stack.Protected guard={!onboarded}>
             <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
@@ -38,7 +40,6 @@ function Shell() {
           </Stack.Protected>
         </Stack>
       )}
-      {!splashDone && <AnimatedSplash ready={loaded && ready} onDone={done} />}
     </View>
   );
 }

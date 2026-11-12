@@ -15,6 +15,13 @@ import {
   type Item,
 } from '../src/lib/scan-logic';
 
+import {
+  formatFreeAmount,
+  formatFreeOfTotal,
+  formatMarketedTotal,
+  marketedTotalBytes,
+} from '../src/lib/format';
+
 const item = (partial: Partial<Item> & Pick<Item, 'id'>): Item => ({
   uri: `file:///${partial.id}.jpg`,
   filename: `${partial.id}.jpg`,
@@ -304,5 +311,45 @@ describe('product catalog', () => {
     assert.equal(defaultPlanKind(['monthly', 'lifetime', 'yearly']), 'yearly');
     assert.equal(defaultPlanKind(['lifetime', 'monthly']), 'lifetime');
     assert.equal(defaultPlanKind([]), null);
+  });
+});
+
+describe('filename exact grouping', () => {
+  it('groups copies that share a filename and dimensions even when the clock differs', () => {
+    const a = item({ id: 'f1', filename: 'IMG_1000.JPG', width: 4000, height: 3000, size: 3_000_000, creationTime: 10_000 });
+    const b = item({ id: 'f2', filename: 'IMG_1000.JPG', width: 4000, height: 3000, size: 3_000_000, creationTime: 90_000 });
+    const c = item({ id: 'f3', filename: 'IMG_1001.JPG', width: 4000, height: 3000, size: 3_000_000, creationTime: 190_000 });
+    const groups = groupExact([a, b, c]);
+    assert.equal(groups.length, 1);
+    assert.deepEqual(groups[0].items.map((i) => i.id).sort(), ['f1', 'f2']);
+  });
+});
+
+describe('marketed capacity rounding', () => {
+  it('rounds a reported total up to the smallest marketed size at or above it', () => {
+    assert.equal(formatMarketedTotal(255.4e9), '256 GB');
+    assert.equal(formatMarketedTotal(256e9), '256 GB');
+    assert.equal(formatMarketedTotal(127.1e9), '128 GB');
+    assert.equal(formatMarketedTotal(31e9), '32 GB');
+    assert.equal(formatMarketedTotal(64e9), '64 GB');
+    assert.equal(formatMarketedTotal(500e9), '512 GB');
+    assert.equal(formatMarketedTotal(1000e9), '1 TB');
+    assert.equal(formatMarketedTotal(1024e9), '1 TB');
+    assert.equal(formatMarketedTotal(2000e9), '2 TB');
+    assert.equal(formatMarketedTotal(2048e9), '2 TB');
+    assert.equal(marketedTotalBytes(255.4e9), 256e9);
+  });
+
+  it('shows reported free bytes, not rounded-total minus used, in the storage headline', () => {
+    const reportedTotal = 255.4e9;
+    const used = 187e9;
+    const reportedFree = reportedTotal - used; // 68.4 GB
+    const roundedMinusUsed = marketedTotalBytes(reportedTotal) - used; // 69 GB
+    assert.ok(Math.abs(reportedFree - 68.4e9) < 1e6);
+    assert.ok(roundedMinusUsed !== reportedFree);
+    assert.equal(formatFreeAmount(73e9), '73 GB');
+    assert.equal(formatFreeOfTotal(73e9, reportedTotal), '73 GB free of 256 GB');
+    assert.equal(formatFreeOfTotal(reportedFree, reportedTotal), `${formatFreeAmount(reportedFree)} free of 256 GB`);
+    assert.notEqual(formatFreeOfTotal(reportedFree, reportedTotal), `${formatFreeAmount(roundedMinusUsed)} free of 256 GB`);
   });
 });

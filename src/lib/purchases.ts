@@ -142,18 +142,10 @@ function attachListeners() {
   });
 }
 
-/** Start the store connection and listen for transaction updates. Safe to call more than once. */
+/** Connect and listen for transaction updates. Never calls AppStore.sync or restore — those prompt for the Apple ID password. */
 export async function initIAP(): Promise<boolean> {
   attachListeners();
-  const ok = await ensureConnected();
-  if (ok && Platform.OS === 'ios') {
-    try {
-      await syncIOS();
-    } catch (e) {
-      logErr('syncIOS', e);
-    }
-  }
-  return ok;
+  return ensureConnected();
 }
 
 export async function loadPlans(): Promise<PlansLoad> {
@@ -197,17 +189,15 @@ export async function refreshEntitlements(): Promise<boolean> {
   try {
     const lifetimeId = productIds('in-app');
     const subIds = productIds('subs');
-    const purchases = await getAvailablePurchases({ onlyIncludeActiveItemsIOS: true });
-    const hasLifetime = purchases.some(
-      (p) => lifetimeId.includes(p.productId) && p.purchaseState !== 'pending' && !('isSuspendedAndroid' in p && p.isSuspendedAndroid),
-    );
-    if (hasLifetime) return true;
-
+    // Current entitlements only. Do not call syncIOS, restorePurchases, or getAvailablePurchases here —
+    // those can show Apple's "Sign in to Apple Account" prompt.
     if (Platform.OS === 'ios') {
-      for (const id of lifetimeId) {
+      for (const id of [...lifetimeId, ...subIds]) {
         try {
           if (await currentEntitlementIOS(id)) return true;
-        } catch {}
+        } catch (e) {
+          logErr(`currentEntitlementIOS ${id}`, e);
+        }
       }
     }
 

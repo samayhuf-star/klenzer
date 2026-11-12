@@ -11,6 +11,7 @@ import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult
 import { clearTemp, tempBytes } from './temp';
 import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders } from './reminders';
 import { initIAP, onEntitlementChange, refreshEntitlements } from './purchases';
+import { withTimeout } from './scan-logic';
 import { reclaimableBytes } from './reclaim';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
@@ -111,19 +112,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
       } catch {}
-      try {
-        await initIAP();
-        setIsPro(await refreshEntitlements());
-      } catch {}
-      try {
-        setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
-      } catch {}
-      try {
-        const p = await MediaLibrary.getPermissionsAsync(false, ['photo', 'video']);
-        setAccess(toAccess(p));
-        setCanAskAgain(p.canAskAgain);
-      } catch {}
       setReady(true);
+      // IAP, permissions and reminders must not hold the splash or first render.
+      void (async () => {
+        try {
+          const ok = await withTimeout(initIAP(), 4000, false);
+          if (ok) setIsPro(await withTimeout(refreshEntitlements(), 4000, false));
+        } catch {}
+        try {
+          setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
+        } catch {}
+        try {
+          const p = await MediaLibrary.getPermissionsAsync(false, ['photo', 'video']);
+          setAccess(toAccess(p));
+          setCanAskAgain(p.canAskAgain);
+        } catch {}
+      })();
     })();
   }, []);
 

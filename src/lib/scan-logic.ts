@@ -11,7 +11,14 @@ export type Item = {
   duration: number;
   size: number;
   isVideo: boolean;
+  dhash?: string | null;
+  blur?: number | null;
+  isScreenshot?: boolean;
+  isLive?: boolean;
 };
+
+export const BLUR_THRESHOLD = 80;
+export const isBlurryVariance = (variance: number) => variance > 0 && variance < BLUR_THRESHOLD;
 
 export type DuplicateGroup = { key: string; items: Item[] };
 
@@ -50,6 +57,8 @@ export const isScreenshotName = (filename: string, subtypes?: string[] | null) =
 export const isLivePhoto = (mediaType: string, subtypes?: string[] | null, screenshot?: boolean) =>
   mediaType === 'photo' && !!subtypes?.includes('livePhoto') && !screenshot;
 
+export const SIMILAR_WINDOW_MS = 60_000;
+
 export function exactKey(item: Item): string {
   const second = Math.round(item.creationTime / 1000);
   const sizePart = item.size > 0 ? String(item.size) : 'unk';
@@ -57,21 +66,120 @@ export function exactKey(item: Item): string {
   return `${sizePart}|${item.width}x${item.height}|${second}${durationPart}`;
 }
 
-export function groupExact(items: Item[]): DuplicateGroup[] {
-  const buckets = new Map<string, Item[]>();
-  for (const item of items) {
-    const key = exactKey(item);
-    const list = buckets.get(key);
-    if (list) list.push(item);
-    else buckets.set(key, [item]);
+/** Same capture second and dimensions, used to surface exact duplicates before sizes are known. */
+export function metaExactKey(item: Item): string {
+  const second = Math.round(item.creationTime / 1000);
+  const durationPart = item.isVideo ? `|${Math.round(item.duration)}` : '';
+  return `${item.width}x${item.height}|${second}${durationPart}`;
+}
+
+export function filenameExactKey(item: Item): string | null {
+  const name = item.filename?.trim().toLowerCase();
+  if (!name) return null;
+  return `fn:${name}|${item.width}x${item.height}`;
+}
+
+function toGroups(buckets: Map<string, Item[]>, used: Set<string>): DuplicateGroup[] {
+  const groups: DuplicateGroup[] = [];
+  for (const [key, list] of buckets) {
+    const fresh = list.filter((i) => !used.has(i.id));
+    if (fresh.length < 2) continue;
+    // If sizes are known and disagree, split; unsized items stay with the matching-size majority when possible.
+    const bySize = new Map<number, Item[]>();
+    const unknown: Item[] = [];
+    for (const item of fresh) {
+      if (item.size > 0) {
+        const row = bySize.get(item.size);
+        if (row) row.push(item);
+        else bySize.set(item.size, [item]);
+      } else unknown.push(item);
+    }
+    const sizeGroups = [...bySize.values()];
+    if (!sizeGroups.length) {
+      const items = [...fresh].sort((a, b) => b.size - a.size || a.creationTime - b.creationTime);
+      for (const i of items) used.add(i.id);
+      groups.push({ key, items });
+      continue;
+    }
+    for (const sized of sizeGroups) {
+      const items = [...sized].sort((a, b) => b.size - a.size || a.creationTime - b.creationTime);
+      if (items.length + (sizeGroups.length === 1 ? unknown.length : 0) < 2 && items.length < 2) continue;
+      if (sizeGroups.length === 1) items.push(...unknown);
+      if (items.length < 2) continue;
+      for (const i of items) used.add(i.id);
+      groups.push({ key: `${key}|${items[0].size || 'm'}`, items });
+    }
   }
-  return [...buckets.entries()]
-    .filter(([, list]) => list.length > 1)
-    .map(([key, list]) => ({
-      key,
-      items: list.sort((a, b) => b.size - a.size || a.creationTime - b.creationTime),
-    }))
-    .sort((a, b) => b.items[0].creationTime - a.items[0].creationTime);
+  return groups;
+}
+
+export function groupExact(items: Item[]): DuplicateGroup[] {
+  const byMeta = new Map<string, Item[]>();
+  const byName = new Map<string, Item[]>();
+  for (const item of items) {
+    const meta = metaExactKey(item);
+    const m = byMeta.get(meta);
+    if (m) m.push(item);
+    else byMeta.set(meta, [item]);
+    const fn = filenameExactKey(item);
+    if (fn) {
+      const n = byName.get(fn);
+      if (n) n.push(item);
+      else byName.set(fn, [item]);
+    }
+  }
+  const used = new Set<string>();
+  const groups = [...toGroups(byMeta, used), ...toGroups(byName, used)];
+  return groups.sort((a, b) => b.items[0].creationTime - a.items[0].creationTime);
+}
+
+/** Photos worth hashing: only burst neighbours (~60s). Isolated shots are skipped so we never all-pairs the library. */
+export function similarHashCandidates(items: Item[]): Item[] {
+  if (items.length < 2) return [];
+  const sorted = [...items].sort((a, b) => a.creationTime - b.creationTime);
+  const burst = new Set<string>();
+  for (let i = 0; i < sorted.length; i++) {
+    const prev = i > 0 && sorted[i].creationTime - sorted[i - 1].creationTime <= SIMILAR_WINDOW_MS;
+    const next = i + 1 < sorted.length && sorted[i + 1].creationTime - sorted[i].creationTime <= SIMILAR_WINDOW_MS;
+    if (prev || next) burst.add(sorted[i].id);
+  }
+  return items.filter((item) => burst.has(item.id));
+}
+
+export function groupSimilarWindowed(items: { item: Item; dhash: string }[], maxHamming = HAMMING_MAX): DuplicateGroup[] {
+  const used = new Set<string>();
+  const groups: DuplicateGroup[] = [];
+  const buckets = new Map<string, { item: Item; dhash: string }[]>();
+  for (const row of items) {
+    const prefix = row.dhash.slice(0, 2);
+    const list = buckets.get(prefix);
+    if (list) list.push(row);
+    else buckets.set(prefix, [row]);
+  }
+  for (const bucket of buckets.values()) {
+    const sorted = [...bucket].sort((a, b) => a.item.creationTime - b.item.creationTime);
+    for (let i = 0; i < sorted.length; i++) {
+      const seed = sorted[i];
+      if (used.has(seed.item.id)) continue;
+      const members = [seed.item];
+      for (let j = i + 1; j < sorted.length; j++) {
+        const other = sorted[j];
+        if (used.has(other.item.id)) continue;
+        const close = Math.abs(other.item.creationTime - seed.item.creationTime) <= SIMILAR_WINDOW_MS;
+        const sameDim = other.item.width === seed.item.width && other.item.height === seed.item.height;
+        if (!close && !sameDim) continue;
+        if (hamming(seed.dhash, other.dhash) <= maxHamming) members.push(other.item);
+      }
+      if (members.length > 1) {
+        for (const m of members) used.add(m.id);
+        groups.push({
+          key: `sim:${seed.dhash}`,
+          items: members.sort((a, b) => b.size - a.size || a.creationTime - b.creationTime),
+        });
+      }
+    }
+  }
+  return groups.sort((a, b) => b.items[0].creationTime - a.items[0].creationTime);
 }
 
 export function hamming(a: string, b: string): number {
@@ -137,7 +245,7 @@ export function buildScanResult(input: {
 }): ScanResult {
   const duplicates = groupExact(input.photos);
   const inExact = new Set(duplicates.flatMap((g) => g.items.map((i) => i.id)));
-  const similar = groupSimilar((input.hashes ?? []).filter((h) => !inExact.has(h.item.id)));
+  const similar = groupSimilarWindowed((input.hashes ?? []).filter((h) => !inExact.has(h.item.id)));
   return {
     scannedAt: Date.now(),
     photoCount: input.photoCount,
@@ -148,7 +256,7 @@ export function buildScanResult(input: {
     largeVideos: input.videos.filter((v) => v.size >= LARGE_VIDEO_BYTES).sort((a, b) => b.size - a.size),
     duplicateVideos: groupExact(input.videos),
     livePhotos: [...input.livePhotos].sort((a, b) => b.size - a.size),
-    blurry: [...(input.blurry ?? [])].sort((a, b) => a.creationTime - b.creationTime),
+    blurry: [...(input.blurry ?? input.photos.filter((p) => p.blur != null && isBlurryVariance(p.blur)))].sort((a, b) => a.creationTime - b.creationTime),
   };
 }
 

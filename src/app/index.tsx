@@ -10,14 +10,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
-import { formatBytes } from '../lib/format';
-import { Kind } from '../lib/kinds';
+import { formatBytes, formatFreeAmount, formatMarketedTotal } from '../lib/format';
+import { KINDS, Kind } from '../lib/kinds';
 import { dupExtraCount, dupExtras, dupReclaimable, Item, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
-type Segment = 'photos' | 'contacts';
-type Tab = 'clean' | 'videos' | 'compress';
+type Tab = 'clean' | 'compress';
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -25,7 +24,6 @@ export default function Home() {
     disk, access, canAskAgain, requestAccess, openSettings, manageLimited,
     scanning, progress, scanCats, result, scan, startClean, refreshDisk, scanError,
   } = useStore();
-  const [segment, setSegment] = useState<Segment>('photos');
   const [tab, setTab] = useState<Tab>('clean');
   const reduceMotion = useReducedMotion();
   const prevCats = useRef(scanCats);
@@ -83,6 +81,8 @@ export default function Home() {
   const photosSpin = scanning && scanCats.photos.status !== 'done';
   const shotsSpin = scanning && scanCats.screenshots.status !== 'done';
   const videoSpin = scanning && scanCats.videos.status !== 'done';
+  const showLargeVideos = (result?.largeVideos.length ?? 0) > 0 || (videoSpin && (result?.largeVideos.length ?? 0) > 0);
+  const showLive = (result?.livePhotos.length ?? 0) > 0 || (photosSpin && (result?.livePhotos.length ?? 0) > 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -110,7 +110,8 @@ export default function Home() {
             <View style={styles.analyzeRow}>
               <Ionicons name="search" size={15} color={colors.ink3} />
               <Text style={styles.analyzeText}>
-                {progress?.phase === 'reading' ? 'Analyzing files on your device…' : 'Measuring and matching photos…'}
+                {progress?.label
+                  ?? (progress?.phase === 'reading' ? 'Analyzing files on your device…' : 'Measuring and matching photos…')}
               </Text>
             </View>
           </View>
@@ -137,8 +138,8 @@ export default function Home() {
           <View style={[styles.card, styles.storage]}>
             <Text style={styles.storageLabel}>Storage</Text>
             <View style={styles.nums}>
-              <Text style={styles.storageBig}>{formatBytes(disk.used)}</Text>
-              <Text style={styles.storageOf}>of {formatBytes(disk.total, 0)}</Text>
+              <Text style={styles.storageBig}>{formatFreeAmount(disk.free)}</Text>
+              <Text style={styles.storageOf}>free of {formatMarketedTotal(disk.total)}</Text>
             </View>
             <View style={styles.gbar}>
               <LinearGradient
@@ -156,88 +157,75 @@ export default function Home() {
         )}
 
         {tab === 'clean' && (
-          <>
-            <View style={styles.seg}>
-              {(['photos', 'contacts'] as Segment[]).map((s) => (
-                <PressableScale key={s} onPress={() => setSegment(s)} style={[styles.segBtn, segment === s && styles.segOn]} haptic={false}>
-                  <Text style={[styles.segLabel, segment === s && styles.segLabelOn]}>{s === 'photos' ? 'Photos' : 'Contacts'}</Text>
-                </PressableScale>
-              ))}
-            </View>
-
-            {segment === 'photos' && (
-              <View style={styles.grid}>
-                <CatCard
-                  kind="similar"
-                  title="Similar"
-                  count={result ? dupExtraCount(result.similar) : 0}
-                  bytes={result ? dupReclaimable(result.similar) : 0}
-                  thumbs={result?.similar.flatMap((g) => g.items).slice(0, 3) ?? []}
-                  spinning={photosSpin}
-                  reduceMotion={!!reduceMotion}
-                />
-                <CatCard
-                  kind="duplicates"
-                  title="Duplicate"
-                  count={result ? dupExtraCount(result.duplicates) : 0}
-                  bytes={result ? dupReclaimable(result.duplicates) : 0}
-                  thumbs={result?.duplicates.flatMap((g) => g.items).slice(0, 3) ?? []}
-                  spinning={photosSpin}
-                  reduceMotion={!!reduceMotion}
-                />
-                <CatCard
-                  kind="blurry"
-                  title="Blurry"
-                  count={result?.blurry.length ?? 0}
-                  bytes={result ? sum(result.blurry) : 0}
-                  thumbs={result?.blurry.slice(0, 3) ?? []}
-                  spinning={photosSpin}
-                  reduceMotion={!!reduceMotion}
-                />
-                <CatCard
-                  kind="screenshots"
-                  title="Screenshots"
-                  count={result?.screenshots.length ?? 0}
-                  bytes={result ? sum(result.screenshots) : 0}
-                  thumbs={result?.screenshots.slice(0, 3) ?? []}
-                  spinning={shotsSpin}
-                  reduceMotion={!!reduceMotion}
-                />
-              </View>
-            )}
-
-            {segment === 'contacts' && (
-              <PressableScale onPress={() => comingSoon('Contacts')} style={[styles.card, styles.soonCard]}>
-                <Text style={styles.soonTitle}>Contacts</Text>
-                <Text style={styles.soonBody}>Merging duplicate contacts is coming soon.</Text>
-                <View style={styles.soonPill}><Text style={styles.soonPillText}>COMING SOON</Text></View>
-              </PressableScale>
-            )}
-          </>
-        )}
-
-        {tab === 'videos' && (
-          <View style={{ gap: 10, marginTop: 14 }}>
+          <View style={[styles.grid, { marginTop: 14 }]}>
             <CatCard
-              kind="videos"
-              title="Large videos"
-              count={result?.largeVideos.length ?? 0}
-              bytes={result ? sum(result.largeVideos) : 0}
-              thumbs={result?.largeVideos.slice(0, 3) ?? []}
-              spinning={videoSpin}
-              wide
+              kind="similar"
+              title="Similar"
+              count={result ? dupExtraCount(result.similar) : 0}
+              bytes={result ? dupReclaimable(result.similar) : 0}
+              thumbs={result?.similar.flatMap((g) => g.items).slice(0, 3) ?? []}
+              spinning={photosSpin}
+              reduceMotion={!!reduceMotion}
+            />
+            <CatCard
+              kind="duplicates"
+              title="Duplicates"
+              count={result ? dupExtraCount(result.duplicates) : 0}
+              bytes={result ? dupReclaimable(result.duplicates) : 0}
+              thumbs={result?.duplicates.flatMap((g) => g.items).slice(0, 3) ?? []}
+              spinning={photosSpin}
+              reduceMotion={!!reduceMotion}
+            />
+            <CatCard
+              kind="blurry"
+              title="Blurry"
+              count={result?.blurry.length ?? 0}
+              bytes={result ? sum(result.blurry) : 0}
+              thumbs={result?.blurry.slice(0, 3) ?? []}
+              spinning={photosSpin}
+              reduceMotion={!!reduceMotion}
+            />
+            <CatCard
+              kind="screenshots"
+              title="Screenshots"
+              count={result?.screenshots.length ?? 0}
+              bytes={result ? sum(result.screenshots) : 0}
+              thumbs={result?.screenshots.slice(0, 3) ?? []}
+              spinning={shotsSpin}
               reduceMotion={!!reduceMotion}
             />
             <CatCard
               kind="videoDuplicates"
-              title="Duplicate videos"
+              title="Videos"
               count={result ? dupExtraCount(result.duplicateVideos) : 0}
               bytes={result ? dupReclaimable(result.duplicateVideos) : 0}
               thumbs={result?.duplicateVideos.flatMap((g) => g.items).slice(0, 3) ?? []}
               spinning={videoSpin}
-              wide
               reduceMotion={!!reduceMotion}
             />
+            {showLargeVideos && (
+              <CatCard
+                kind="videos"
+                title="Large videos"
+                count={result?.largeVideos.length ?? 0}
+                bytes={result ? sum(result.largeVideos) : 0}
+                thumbs={result?.largeVideos.slice(0, 3) ?? []}
+                spinning={videoSpin}
+                reduceMotion={!!reduceMotion}
+              />
+            )}
+            {showLive && (
+              <CatCard
+                kind="live"
+                title="Live Photos"
+                count={result?.livePhotos.length ?? 0}
+                bytes={result ? sum(result.livePhotos) : 0}
+                thumbs={result?.livePhotos.slice(0, 3) ?? []}
+                spinning={photosSpin}
+                reduceMotion={!!reduceMotion}
+              />
+            )}
+            <ContactsCard reduceMotion={!!reduceMotion} onPress={() => comingSoon('Contacts')} />
           </View>
         )}
 
@@ -257,10 +245,6 @@ export default function Home() {
         <PressableScale onPress={() => setTab('clean')} style={styles.tab} haptic={false}>
           <Ionicons name="sparkles" size={22} color={tab === 'clean' ? colors.blue : colors.ink3} />
           <Text style={[styles.tabLabel, tab === 'clean' && { color: colors.blue }]}>Clean</Text>
-        </PressableScale>
-        <PressableScale onPress={() => setTab('videos')} style={styles.tab} haptic={false}>
-          <Ionicons name="videocam-outline" size={22} color={tab === 'videos' ? colors.blue : colors.ink3} />
-          <Text style={[styles.tabLabel, tab === 'videos' && { color: colors.blue }]}>Videos</Text>
         </PressableScale>
         <PressableScale onPress={() => setTab('compress')} style={styles.tab} haptic={false}>
           <Ionicons name="archive-outline" size={22} color={tab === 'compress' ? colors.blue : colors.ink3} />
@@ -306,6 +290,9 @@ function CatCard({
     router.push({ pathname: '/review/[kind]', params: { kind } });
   };
   const realThumbs = thumbs.filter((item) => !!item?.uri).slice(0, 3);
+  const meta = KINDS[kind];
+  const icon = meta.icon as keyof typeof Ionicons.glyphMap;
+  const showSpin = spinning && count === 0;
   const body = (
     <PressableScale onPress={open} accessibilityLabel={`${title}, ${count} items`} style={[styles.card, styles.tile]}>
       <View style={styles.tileTop}>
@@ -315,15 +302,50 @@ function CatCard({
         <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
       </View>
       <CountUp value={bytes} format={(n) => (n > 0 ? formatBytes(n) : count ? `${count}` : '0 MB')} style={styles.tileBytes} duration={700} />
-      {spinning ? <ActivityIndicator style={{ marginTop: 16, alignSelf: 'flex-start' }} color={colors.blue} /> : <View style={{ height: 22, marginTop: 16 }} />}
+      {showSpin ? <ActivityIndicator style={{ marginTop: 16, alignSelf: 'flex-start' }} color={colors.blue} /> : <View style={{ height: 22, marginTop: 16 }} />}
       <View style={styles.stack}>
-        {realThumbs.map((item, i) => (
-          <Image key={item.id} source={{ uri: item.uri }} recyclingKey={item.id} style={[styles.stackThumb, styles[`stack${i}` as 'stack0' | 'stack1' | 'stack2']]} contentFit="cover" />
-        ))}
+        {realThumbs.length ? (
+          <>
+            {realThumbs.map((item, i) => (
+              <Image key={item.id} source={{ uri: item.uri }} recyclingKey={item.id} style={[styles.stackThumb, styles[`stack${i}` as 'stack0' | 'stack1' | 'stack2']]} contentFit="cover" />
+            ))}
+            <View style={[styles.badge, { backgroundColor: meta.soft }]}>
+              <Ionicons name={icon} size={12} color={meta.tone} />
+            </View>
+          </>
+        ) : (
+          <View style={[styles.placeholder, { backgroundColor: meta.soft }]}>
+            <Ionicons name={icon} size={22} color={meta.tone} />
+          </View>
+        )}
       </View>
     </PressableScale>
   );
   const wrapStyle = wide ? ({ width: '100%' } as const) : ({ width: '48.5%', flexGrow: 1 } as const);
+  if (reduceMotion) return <View style={wrapStyle}>{body}</View>;
+  return (
+    <Animated.View entering={FadeIn.duration(280)} style={wrapStyle}>
+      {body}
+    </Animated.View>
+  );
+}
+
+function ContactsCard({ reduceMotion, onPress }: { reduceMotion: boolean; onPress: () => void }) {
+  const body = (
+    <PressableScale onPress={onPress} accessibilityLabel="Contacts, coming soon" style={[styles.card, styles.tile]}>
+      <View style={styles.tileTop}>
+        <Text style={styles.tileTitle}>Contacts</Text>
+      </View>
+      <Text style={styles.tileBytes}>Coming soon</Text>
+      <View style={{ height: 22, marginTop: 16 }} />
+      <View style={styles.stack}>
+        <View style={[styles.placeholder, { backgroundColor: colors.violetSoft }]}>
+          <Ionicons name="people" size={22} color={colors.violet} />
+        </View>
+      </View>
+    </PressableScale>
+  );
+  const wrapStyle = { width: '48.5%', flexGrow: 1 } as const;
   if (reduceMotion) return <View style={wrapStyle}>{body}</View>;
   return (
     <Animated.View entering={FadeIn.duration(280)} style={wrapStyle}>
@@ -357,17 +379,12 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.lg, ...shadow },
   storage: { padding: 20, paddingBottom: 18 },
   storageLabel: { fontFamily: fonts.semi, fontSize: 13, color: colors.ink2 },
-  nums: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6 },
+  nums: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6, flexWrap: 'wrap' },
   storageBig: { fontFamily: fonts.display, fontSize: 34, color: colors.ink, letterSpacing: -1 },
   storageOf: { fontFamily: fonts.medium, fontSize: 16, color: colors.ink3 },
   gbar: { marginTop: 14, marginBottom: 18, height: 8, borderRadius: 8, backgroundColor: colors.track, overflow: 'hidden' },
   smart: { height: 52, borderRadius: 999, backgroundColor: colors.blue, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: colors.blue, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
   smartText: { fontFamily: fonts.bold, fontSize: 17, color: '#fff' },
-  seg: { marginTop: 14, marginBottom: 12, backgroundColor: '#E6E4F0', borderRadius: 999, flexDirection: 'row', padding: 4 },
-  segBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 999 },
-  segOn: { backgroundColor: colors.card, ...shadow },
-  segLabel: { fontFamily: fonts.semi, fontSize: 14, color: colors.ink3 },
-  segLabelOn: { color: colors.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: { width: '100%', padding: 14, minHeight: 128, overflow: 'hidden' },
   tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
@@ -379,6 +396,8 @@ const styles = StyleSheet.create({
   stack0: { right: 10, top: 0, transform: [{ rotate: '-8deg' }] },
   stack1: { right: 0, top: 4, transform: [{ rotate: '8deg' }] },
   stack2: { right: 5, top: 2, zIndex: 2 },
+  badge: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', zIndex: 4 },
+  placeholder: { position: 'absolute', right: 4, bottom: 0, width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   compressIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FDE8F2', alignItems: 'center', justifyContent: 'center' },
   soonCard: { padding: 20, gap: 8 },
   soonTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.ink },
