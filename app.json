@@ -69,7 +69,10 @@
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.USE_BIOMETRIC"
       ]
     },
     "web": {
@@ -90,8 +93,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Klenzer reads your photo library on-device to find duplicates, screenshots, Live Photos and large videos, and to convert a Live Photo to a still when you ask. Nothing is uploaded, and nothing is deleted until you confirm.",
-          "savePhotosPermission": "Klenzer saves a still photo in your library when you convert a Live Photo to a still. Nothing is uploaded.",
+          "photosPermission": "Klenzer reads your photo library on-device to find duplicates, screenshots, Live Photos and large videos, to convert a Live Photo to a still when you ask, and to move photos you pick into Secret Album. Nothing is uploaded, and nothing is deleted until you confirm.",
+          "savePhotosPermission": "Klenzer saves a still photo when you convert a Live Photo, and saves a photo back to your library when you export it from Secret Album. Nothing is uploaded.",
           "granularPermissions": [
             "photo",
             "video"
@@ -117,7 +120,33 @@
           "enableBackgroundRemoteNotifications": false
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Klenzer finds and merges duplicate contacts on your device. Contacts never leave your phone."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Klenzer uses Face ID to unlock your Secret Album. Face data stays with iOS and is never shared with Klenzer."
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Klenzer uses Face ID to unlock your Secret Album. Face data stays with iOS and is never shared with Klenzer."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Klenzer reads your photo library on-device to find duplicates, screenshots, Live Photos and large videos, to convert a Live Photo to a still when you ask, and to move photos you pick into Secret Album. Nothing is uploaded, and nothing is deleted until you confirm.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

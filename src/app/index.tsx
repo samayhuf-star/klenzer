@@ -257,7 +257,32 @@ export default function Home() {
               </View>
             )}
 
-            {section === 'contacts' && <ContactsCard reduceMotion={rm} onPress={() => comingSoon('Contacts')} />}
+            {section === 'photos' && (
+              <View style={{ gap: 10 }}>
+                <FeatureRow
+                  icon="albums"
+                  tone={colors.blue}
+                  soft={colors.blueSoft}
+                  title="Swipe to Organize"
+                  hint="Go month by month. Swipe left to delete, right to keep."
+                  onPress={() => router.push('/swipe')}
+                  testID="open-swipe"
+                  reduceMotion={rm}
+                />
+                <FeatureRow
+                  icon="lock-closed"
+                  tone={colors.violet}
+                  soft={colors.violetSoft}
+                  title="Secret Album"
+                  hint="Encrypted photos behind Face ID or a PIN."
+                  onPress={() => router.push('/secret-album')}
+                  testID="open-secret-album"
+                  reduceMotion={rm}
+                />
+              </View>
+            )}
+
+            {section === 'contacts' && <ContactsCard reduceMotion={rm} onPress={() => router.push('/contacts')} />}
 
             <PressableScale onPress={() => setTab('compress')} accessibilityLabel="Want to save up extra space? Compress" style={[styles.card, styles.compressRow]} testID="compress-row">
               <View style={{ flex: 1 }}>
@@ -364,13 +389,43 @@ function CatCard({
 
 function ContactsCard({ reduceMotion, onPress }: { reduceMotion: boolean; onPress: () => void }) {
   const body = (
-    <PressableScale onPress={onPress} accessibilityLabel="Contacts, coming soon" style={[styles.card, styles.soonCard]} testID="contacts-soon">
+    <PressableScale onPress={onPress} accessibilityLabel="Merge duplicate contacts" style={[styles.card, styles.soonCard]} testID="open-contacts">
       <View style={[styles.compressIcon, { backgroundColor: colors.violetSoft }]}>
         <Ionicons name="people" size={18} color={colors.violet} />
       </View>
-      <Text style={styles.soonTitle}>Contacts</Text>
-      <Text style={styles.soonBody}>Merge duplicate contacts and clear empty ones. Coming soon.</Text>
-      <View style={styles.soonPill}><Text style={styles.soonPillText}>COMING SOON</Text></View>
+      <Text style={styles.soonTitle}>Merge duplicate contacts</Text>
+      <Text style={styles.soonBody}>Find contacts with the same name, number or email, preview the result, then merge. Contacts never leave your phone.</Text>
+      <View style={[styles.soonPill, { backgroundColor: colors.violetSoft }]}>
+        <Text style={[styles.soonPillText, { color: colors.violet }]}>FIND DUPLICATES</Text>
+      </View>
+    </PressableScale>
+  );
+  if (reduceMotion) return body;
+  return <Animated.View entering={FadeIn.duration(280)}>{body}</Animated.View>;
+}
+
+function FeatureRow({
+  icon, tone, soft, title, hint, onPress, testID, reduceMotion,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: string;
+  soft: string;
+  title: string;
+  hint: string;
+  onPress: () => void;
+  testID: string;
+  reduceMotion: boolean;
+}) {
+  const body = (
+    <PressableScale onPress={onPress} accessibilityLabel={title} style={[styles.card, styles.compressRow]} testID={testID}>
+      <View style={[styles.compressIcon, { backgroundColor: soft }]}>
+        <Ionicons name={icon} size={18} color={tone} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.soonTitle}>{title}</Text>
+        <Text style={styles.compressHint}>{hint}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
     </PressableScale>
   );
   if (reduceMotion) return body;

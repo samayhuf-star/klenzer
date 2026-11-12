@@ -13,6 +13,19 @@ import { disableReminders, enableReminders, isScanNotification, permissionState,
 import { initIAP, onEntitlementChange, refreshEntitlements } from './purchases';
 import { withTimeout } from './scan-logic';
 import { reclaimableBytes } from './reclaim';
+import {
+  consumeAllowance,
+  crossLimitMessage,
+  decideGate,
+  normalizeAllowance,
+  parseAllowance,
+  remainingFree,
+  takeAcrossGroups,
+  type Allowance,
+  type GateVerb,
+  type ProFeature,
+} from './gating';
+import { DEMO, demoScanResult } from './demo';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
 
@@ -54,7 +67,8 @@ type Ctx = {
   scan: () => Promise<void>;
   cancelScan: () => void;
   cleaning: Cleaning | null;
-  clean: (plan: CleanPlan) => Promise<void>;
+  /** Runs a clean and resolves with how many gated items completed (media deleted, plus 1 if temporary files were cleared). */
+  clean: (plan: CleanPlan) => Promise<number>;
   /** Entry point for every Fix / Clear button: opens the paywall first unless Klenzer is unlocked. */
   startClean: (plan: CleanPlan) => void;
   /** Called by the paywall once the user has paid: continues the clean they asked for. */
@@ -72,9 +86,17 @@ type Ctx = {
   hideRdSheet: boolean;
   setHideRdSheet: (hide: boolean) => void;
   startConvert: (items: Item[], videoBytes?: number) => void;
+  /** Free items left today for non-Pro users (deletes, merges and Secret Album adds share one count). */
+  freeLeft: number;
+  /**
+   * The one gate for every other Pro action (merging contacts, adding to the Secret Album, Compress).
+   * Pro runs everything. Free users run up to their daily allowance; the rest goes to the paywall,
+   * which continues the full action after a purchase. `run` resolves with how many items completed.
+   */
+  runGated: <T>(feature: ProFeature, items: T[], run: (items: T[]) => Promise<number>, verb?: GateVerb) => void;
 };
 
-const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1', hideRdSheet: 'klenzer.rdSheet.hide.v1', convertPending: 'klenzer.convert.pending.v1' };
+const KEYS = { allowance: 'klenzer.allowance.v1', onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1', hideRdSheet: 'klenzer.rdSheet.hide.v1', convertPending: 'klenzer.convert.pending.v1' };
 
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
@@ -101,6 +123,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [scanError, setScanError] = useState<string | null>(null);
   const [reminders, setRemindersState] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [allowance, setAllowance] = useState<Allowance>(() => normalizeAllowance(null, new Date()));
+  const allowanceRef = useRef(allowance);
+  const [dayTick, setDayTick] = useState(0);
+  const afterUnlockAction = useRef<(() => void) | null>(null);
   const afterUnlock = useRef<CleanPlan | null>(null);
   const afterUnlockConvert = useRef<{ items: Item[]; videoBytes: number } | null>(null);
   const signal = useRef({ cancelled: false });
@@ -122,6 +148,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
         setHideRdSheetState(hide === '1');
+        const stored = normalizeAllowance(parseAllowance(await AsyncStorage.getItem(KEYS.allowance)), new Date());
+        allowanceRef.current = stored;
+        setAllowance(stored);
+        if (DEMO) setResult(demoScanResult());
         scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';
       } catch {}
       setReady(true);
@@ -349,7 +379,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const patch = (fn: (rows: CleanRow[]) => CleanRow[], extra: Partial<Cleaning> = {}) =>
     setCleaning((c) => (c ? { ...c, ...extra, rows: fn(c.rows) } : c));
 
-  const clean = useCallback(async (plan: CleanPlan) => {
+  const clean = useCallback(async (plan: CleanPlan): Promise<number> => {
     const rows: CleanRow[] = plan.map(({ kind, items }) => ({
       kind,
       count: kind === 'temp' ? 0 : items.length,
@@ -387,7 +417,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           });
           addFreed(freedNow); // temporary files were still cleared
           refreshDisk();
-          return;
+          return ti >= 0 ? 1 : 0;
         }
         const gone = new Set(all.map((i) => i.id));
         const mediaBytes = all.reduce((n, i) => n + i.size, 0);
@@ -430,9 +460,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       patch((r) => r, { phase: 'finished', freed });
       refreshDisk();
       pollDisk();
+      return all.length + (ti >= 0 ? 1 : 0);
     } catch {
       patch((r) => r, { phase: 'error', freed });
       refreshDisk();
+      return 0;
     }
   }, [refreshDisk, pollDisk, addFreed, addItems]);
 
@@ -506,17 +538,82 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     isProRef.current = isPro;
   }, [isPro]);
+
+  // Free daily allowance: one shared count of items, reset at local midnight. Pro is unlimited.
+  const spendFree = useCallback((items: number) => {
+    if (items <= 0 || isProRef.current) return;
+    const next = consumeAllowance(allowanceRef.current, items, new Date());
+    allowanceRef.current = next;
+    setAllowance(next);
+    AsyncStorage.setItem(KEYS.allowance, JSON.stringify(next)).catch(() => {});
+  }, []);
+  const freeLeftNow = () => remainingFree(allowanceRef.current, new Date());
+  // Re-read the day on foreground and at the next local midnight so the count resets on screen too.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && setDayTick((n) => n + 1));
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1).getTime();
+    const t = setTimeout(() => setDayTick((n) => n + 1), Math.max(1000, midnight - now.getTime()));
+    return () => {
+      sub.remove();
+      clearTimeout(t);
+    };
+  }, [dayTick]);
+  // dayTick forces a re-read of the clock after midnight or a return to the app.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const freeLeft = useMemo(() => remainingFree(allowance, new Date()), [allowance, dayTick]);
+
+  /** Shown when a free batch would cross the daily limit: run the free part now, or upgrade for all of it. */
+  const askCrossLimit = (freeNow: number, total: number, verb: GateVerb, runFree: () => void, upgrade: () => void) => {
+    const label = verb === 'merge' ? 'Merge' : verb === 'add' ? 'Add' : 'Clean';
+    const buttons: { text: string; style?: 'cancel'; onPress?: () => void }[] = [{ text: 'Not now', style: 'cancel' }];
+    if (freeNow > 0) buttons.push({ text: `${label} ${freeNow.toLocaleString('en-US')} free`, onPress: runFree });
+    buttons.push({ text: 'Upgrade', onPress: upgrade });
+    Alert.alert(freeNow > 0 ? 'Daily free limit' : 'Free items used up', crossLimitMessage(freeNow, total, verb), buttons);
+  };
+
+  const runGated = useCallback(
+    <T,>(feature: ProFeature, items: T[], run: (items: T[]) => Promise<number>, verb: GateVerb = 'clean') => {
+      if (!items.length) return;
+      const d = decideGate({ isPro: isProRef.current, feature, count: items.length, remaining: freeLeftNow() });
+      const go = (subset: T[], counts: boolean) => {
+        void run(subset).then((done) => counts && spendFree(done)).catch(() => {});
+      };
+      if (!d.needsPaywall) return go(items, d.countsAgainstAllowance);
+      const upgrade = () => {
+        afterUnlock.current = null;
+        afterUnlockConvert.current = null;
+        afterUnlockAction.current = () => go(items, false);
+        router.push('/paywall');
+      };
+      if (!d.countsAgainstAllowance) return upgrade();
+      askCrossLimit(d.freeNow, items.length, verb, () => go(items.slice(0, d.freeNow), true), upgrade);
+    },
+    [spendFree],
+  );
+
   const startClean = useCallback(
     (plan: CleanPlan) => {
-      if (isProRef.current) {
+      const hasTemp = plan.some((p) => p.kind === 'temp');
+      const mediaCount = plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0);
+      // Temporary files count as one item.
+      const total = mediaCount + (hasTemp ? 1 : 0);
+      const run = (p: CleanPlan, counts: boolean) => {
         router.push('/cleaning');
-        void clean(plan);
-        return;
-      }
-      afterUnlock.current = plan;
-      router.push('/paywall');
+        void clean(p).then((done) => counts && spendFree(done));
+      };
+      const d = decideGate({ isPro: isProRef.current, feature: 'delete', count: total, remaining: freeLeftNow() });
+      if (!d.needsPaywall) return run(plan, d.countsAgainstAllowance);
+      const upgrade = () => {
+        afterUnlock.current = plan;
+        afterUnlockConvert.current = null;
+        afterUnlockAction.current = null;
+        router.push('/paywall');
+      };
+      const freePlan = takeAcrossGroups(plan, d.freeNow - (hasTemp ? 1 : 0), (g) => g.kind === 'temp');
+      askCrossLimit(d.freeNow, mediaCount || total, 'clean', () => run(freePlan, true), upgrade);
     },
-    [clean],
+    [clean, spendFree],
   );
 
   const startConvert = useCallback(
@@ -533,13 +630,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ]);
         return;
       }
-      if (isProRef.current) {
+      // Convert Live Photos is Pro only: no free daily allowance.
+      if (!decideGate({ isPro: isProRef.current, feature: 'convert', count: items.length, remaining: 0 }).needsPaywall) {
         router.push('/cleaning');
         void convertLive(items, videoBytes);
         return;
       }
       afterUnlockConvert.current = { items, videoBytes };
       afterUnlock.current = null;
+      afterUnlockAction.current = null;
       router.push('/paywall');
     },
     [access, requestAccess, convertLive],
@@ -549,7 +648,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     afterUnlock.current = null;
     const convert = afterUnlockConvert.current;
     afterUnlockConvert.current = null;
-    if (convert) {
+    const action = afterUnlockAction.current;
+    afterUnlockAction.current = null;
+    if (action) {
+      if (router.canGoBack()) router.back();
+      setTimeout(action, 250);
+    } else if (convert) {
       router.replace('/cleaning');
       void convertLive(convert.items, convert.videoBytes);
     } else if (plan) {
@@ -568,9 +672,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert,
+      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

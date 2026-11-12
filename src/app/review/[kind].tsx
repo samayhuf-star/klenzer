@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FreeLeftNote } from '../../components/FreeLeftNote';
 import { PressableScale } from '../../components/PressableScale';
 import { formatBytes, formatDate, formatDuration } from '../../lib/format';
 import { dupExtras, DuplicateGroup, Item } from '../../lib/scanner';
@@ -209,6 +210,7 @@ export default function Review() {
                 ? 'Your iPhone will ask you to confirm before anything is deleted. Items go to Recently Deleted.'
                 : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}
             </Text>
+            <FreeLeftNote style={{ fontSize: 12 }} />
           </>
         )}
       </View>

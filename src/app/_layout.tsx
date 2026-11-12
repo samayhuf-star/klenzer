@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StoreProvider, useStore } from '../lib/store';
 import { colors } from '../theme';
@@ -41,6 +42,9 @@ function Shell() {
             <Stack.Screen name="paywall" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
             <Stack.Screen name="settings" />
             <Stack.Screen name="privacy" />
+            <Stack.Screen name="swipe" />
+            <Stack.Screen name="contacts" />
+            <Stack.Screen name="secret-album" options={{ gestureEnabled: true }} />
           </Stack.Protected>
         </Stack>
       )}
@@ -50,10 +54,12 @@ function Shell() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <StoreProvider>
-        <Shell />
-      </StoreProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StoreProvider>
+          <Shell />
+        </StoreProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
