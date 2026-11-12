@@ -12,7 +12,7 @@ import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
-import { buy, loadOfferings, Plan, plansFor, purchasesAvailable, restore, storefrontCountry } from '../lib/purchases';
+import { buy, loadOfferings, logPaywallOfferingsDiagnostic, Plan, plansFor, purchasesAvailable, restore, storefrontCountry } from '../lib/purchases';
 import { reclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
@@ -38,6 +38,7 @@ export default function Paywall() {
       if (!alive) return;
       setOffers(o);
       setCountry(c);
+      if (plansFor(o.main, c).length === 0) logPaywallOfferingsDiagnostic(o.raw);
     });
     return () => {
       alive = false;
