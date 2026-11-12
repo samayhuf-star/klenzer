@@ -1,23 +1,35 @@
 # Klenzer
 
-Private, on-device photo clutter cleaner for iOS and Android. Klenzer finds duplicate or near-identical photos, screenshots, Live Photos, and large videos, then lets you review and delete only what you choose. Photos are never uploaded.
+Private, on-device photo clutter cleaner for iOS and Android. Klenzer finds duplicate and similar photos, screenshots, blurry shots, Live Photos, and large videos, then lets you review and delete only what you choose. Photos are never uploaded.
 
-This branch is the 1.1.0 paywall build (git `8078b978` plus submit fixes). Scanning and reviewing are free. Deleting items and clearing Klenzer’s temporary files requires Klenzer Pro.
+Scanning and reviewing are free. Deleting items and clearing Klenzer’s temporary files requires Klenzer Pro.
 
 ## Features
 
-- Duplicate and near-identical photo sets (keeps the largest file by default)
-- Screenshot, Live Photo, and large-video review
-- Temporary-file cleanup for Klenzer’s own cache
-- Real device free/total storage figures
-- Confirm-before-delete (system dialog); on iOS, items go to Recently Deleted
-- Optional local reminder notifications (no push server)
+- Exact duplicates (same file size, dimensions, and capture time) and basic similar photos (dHash on small thumbnails)
+- Screenshot, blurry-photo, Live Photo, and large-video review
+- Incremental scans: an on-device SQLite cache keyed by asset id and modification date, so unchanged items are not remeasured
+- Split progress for Photos, Screenshots, and Videos — results appear as each category finishes
+- Confirm-before-delete (a single system dialog for the whole selection)
+- Optional local reminder every 3 days (no push server)
 - Klenzer Pro: a one-time lifetime unlock or an auto-renewing monthly subscription, restored from Settings
+
+## Reminders
+
+Reminders are local only: no server, no push token, and no remote push entitlement.
+
+- After the first scan completes, Klenzer may ask for notification permission. It never asks on launch.
+- If you turn them on, a notification is scheduled 3 days out with your current used and total storage, for example: “You've used 128.4 GB of 256 GB. Time to run Klenzer”.
+- Every time the app opens or returns to the foreground, that reminder is cancelled and rescheduled with fresh numbers.
+- Tapping the notification opens Klenzer and starts a scan.
+- The Settings toggle is persisted. Turning it off cancels all scheduled reminders.
 
 ## Tech stack
 
 - Expo (SDK 57) + Expo Router + TypeScript
 - `expo-media-library` for on-device PhotoKit / Android media access
+- `expo-sqlite` for the scan cache; `expo-image-manipulator` for thumbnail hashing
+- `expo-notifications` for local reminders
 - RevenueCat (`react-native-purchases`) for offerings, purchases, and restore
 
 ## Identifiers
@@ -37,7 +49,7 @@ npm run typecheck
 npx expo start
 ```
 
-Photo-library features and store purchases need a real device (or a development/simulator build), not just Expo Go. RevenueCat public keys are supplied as `EXPO_PUBLIC_RC_IOS_KEY` / `EXPO_PUBLIC_RC_ANDROID_KEY` in EAS profiles.
+Photo-library features and store purchases need a development or production build, not Expo Go (the scan cache and reminder plugins are native). RevenueCat public keys are supplied as `EXPO_PUBLIC_RC_IOS_KEY` / `EXPO_PUBLIC_RC_ANDROID_KEY` in EAS profiles.
 
 ## Privacy and support
 
@@ -46,4 +58,4 @@ Photo-library features and store purchases need a real device (or a development/
 - Support: https://samayhuf-star.github.io/app-legal/klenzer/support.html
 - Contact: samayhuf@gmail.com (no phone number)
 
-The in-app Privacy Policy screen matches that policy: photos stay on the device, and purchase status is handled by Apple or Google and RevenueCat using an anonymous ID. The app does not collect device identifiers or advertising attribution.
+The in-app Privacy Policy screen matches that policy: photos stay on the device, scan cache (sizes and tiny hashes) stays on the device, and purchase status is handled by Apple or Google and RevenueCat using an anonymous ID. The app does not collect device identifiers or advertising attribution.

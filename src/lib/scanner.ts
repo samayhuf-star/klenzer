@@ -79,17 +79,6 @@ const isScreenshot = (a: MediaLibrary.Asset) =>
   a.mediaType === 'photo' &&
   (a.mediaSubtypes?.includes('screenshot') || /^screenshot/i.test(a.filename));
 
-/** Resolve on-disk size without ever downloading from iCloud. */
-async function measure(id: string): Promise<number> {
-  try {
-    const info = await MediaLibrary.getAssetInfoAsync(id, { shouldDownloadFromNetwork: false });
-    if (!info.localUri) return 0;
-    return new File(info.localUri).size ?? 0;
-  } catch {
-    return 0;
-  }
-}
-
 async function localUriFor(id: string): Promise<string | null> {
   try {
     const info = await MediaLibrary.getAssetInfoAsync(id, { shouldDownloadFromNetwork: false });

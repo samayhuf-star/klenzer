@@ -3,30 +3,26 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
-import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from '../components/Button';
-import { CountUp } from '../components/CountUp';
-import { Sparkle } from '../components/Sparkle';
+import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
 import { useStore } from '../lib/store';
-import { colors, fonts } from '../theme';
-
-const IOS = Platform.OS === 'ios';
+import { colors, fonts, shadow } from '../theme';
 
 export default function Done() {
-  const { lastFreed, lifetimeFreed, pending, openPhotos, reminders, setReminders } = useStore();
-  const [asked, setAsked] = useState(false);
+  const { lastFreed, lifetimeFreed } = useStore();
   const insets = useSafeAreaInsets();
   const pop = useSharedValue(0);
   const badge = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
 
   useEffect(() => {
+    // Reanimated shared values are mutated by design.
+    // eslint-disable-next-line react-hooks/immutability
     pop.value = withDelay(150, withSequence(withSpring(1.15, { damping: 7 }), withSpring(1)));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    // Ask for a rating only after a real success, and at most once the OS allows.
     const t = setTimeout(async () => {
       try {
         if (await StoreReview.hasAction()) await StoreReview.requestReview();
@@ -36,61 +32,43 @@ export default function Done() {
   }, [pop]);
 
   const bytes = lastFreed?.bytes ?? 0;
+  const count = lastFreed?.count ?? 0;
+
   return (
-    <LinearGradient colors={['#0B1020', '#12307A']} style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom + 20 }]}>
+    <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.center}>
-        <Animated.View style={[styles.badge, badge]}>
-          <LinearGradient colors={[colors.mint, colors.blue]} style={styles.badgeFill}>
+        <Animated.View style={[styles.markWrap, badge]}>
+          <LinearGradient colors={['#19E3B1', colors.blue]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.mark}>
             <Ionicons name="checkmark" size={72} color="#fff" />
           </LinearGradient>
         </Animated.View>
-        <Sparkle size={34} color={colors.mint} delay={300} style={{ top: '27%', right: '22%' }} />
-        <Sparkle size={22} color="#fff" delay={700} style={{ top: '33%', left: '20%' }} />
-        <Sparkle size={26} color="#8FB2FF" delay={1100} style={{ top: '40%', right: '14%' }} />
-
-        <Animated.View entering={FadeInUp.delay(450)} style={{ alignItems: 'center', gap: 6, marginTop: 34 }}>
-          <Text style={styles.kicker}>All done</Text>
-          {bytes > 0 ? (
-            <CountUp value={bytes} format={(n) => `${formatBytes(n)} ${IOS ? 'cleared' : 'freed'}`} style={styles.big} />
-          ) : (
-            <Text style={styles.big}>{lastFreed?.count ?? 0} items cleared</Text>
-          )}
+        <Animated.View entering={FadeInUp.delay(450)} style={{ alignItems: 'center', marginTop: 32 }}>
+          <Text style={styles.kicker}>ALL DONE</Text>
+          <Text style={styles.big}>{bytes > 0 ? `${formatBytes(bytes)} cleared` : `${count} items cleared`}</Text>
           <Text style={styles.sub}>
-            {IOS
-              ? lastFreed?.count
-                ? `${lastFreed.count.toLocaleString()} ${lastFreed.count === 1 ? 'item is' : 'items are'} in Recently Deleted. iPhone only gives the space back once you empty it, and apps aren’t allowed to do that for you. Tap below, unlock with Face ID, then Select › Delete All.`
-                : 'Temporary files removed.'
-              : !lastFreed?.count
-              ? 'Temporary files removed.'
-              : `${lastFreed?.count.toLocaleString()} ${lastFreed?.count === 1 ? 'item was' : 'items were'} deleted from your device.`}
+            {count > 0
+              ? `${count.toLocaleString()} ${count === 1 ? 'item was' : 'items were'} removed from your library.`
+              : 'Temporary files removed.'}
           </Text>
-          {lifetimeFreed > 0 && <Text style={styles.total}>{formatBytes(lifetimeFreed)} freed with Klenzer so far{IOS && pending ? ` · ${formatBytes(pending.bytes)} waiting in Recently Deleted` : ''}</Text>}
+          {lifetimeFreed > 0 && <Text style={styles.total}>{formatBytes(lifetimeFreed)} freed with Klenzer so far</Text>}
         </Animated.View>
       </View>
-      {!reminders && !asked && (
-        <Animated.View entering={FadeInUp.delay(1200)} style={styles.ask}>
-          <Text style={styles.askText}>Want an occasional nudge to tidy up? A few reminders at most, never more than one a day.</Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Button variant="ghost" label="Not now" onPress={() => setAsked(true)} style={{ flex: 1 }} />
-            <Button label="Remind me" onPress={async () => { await setReminders(true); setAsked(true); }} style={{ flex: 1 }} />
-          </View>
-        </Animated.View>
-      )}
-      {IOS && pending && <Button variant="primary" label="Open Recently Deleted" onPress={openPhotos} style={{ marginBottom: 12 }} />}
-      <Button variant="light" label="Done" onPress={() => router.replace('/')} />
-    </LinearGradient>
+      <PressableScale onPress={() => router.replace('/')} accessibilityLabel="Done" style={styles.doneBtn}>
+        <Text style={styles.doneText}>Done</Text>
+      </PressableScale>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingHorizontal: 24 },
+  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 24 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  badge: { width: 150, height: 150, borderRadius: 75, overflow: 'hidden' },
-  badgeFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  kicker: { fontFamily: fonts.bold, fontSize: 14, letterSpacing: 2, color: colors.mint, textTransform: 'uppercase' },
-  big: { fontFamily: fonts.display, fontSize: 44, color: '#fff', letterSpacing: -1, textAlign: 'center' },
-  sub: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: '#B6C3EA', textAlign: 'center', maxWidth: 320, marginTop: 6 },
-  ask: { gap: 12, marginBottom: 14 },
-  askText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: '#B6C3EA', textAlign: 'center' },
-  total: { fontFamily: fonts.semi, fontSize: 14, color: colors.mint, marginTop: 10 },
+  markWrap: { ...shadow },
+  mark: { width: 140, height: 140, borderRadius: 70, alignItems: 'center', justifyContent: 'center' },
+  kicker: { fontFamily: fonts.bold, fontSize: 13, letterSpacing: 2, color: colors.blue },
+  big: { fontFamily: fonts.display, fontSize: 40, color: colors.ink, letterSpacing: -1, textAlign: 'center', marginTop: 6 },
+  sub: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.ink2, textAlign: 'center', maxWidth: 300, marginTop: 8 },
+  total: { fontFamily: fonts.semi, fontSize: 14, color: '#0BAE86', marginTop: 12 },
+  doneBtn: { height: 52, borderRadius: 999, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center', marginBottom: 8, shadowColor: colors.blue, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  doneText: { fontFamily: fonts.bold, fontSize: 17, color: '#fff' },
 });

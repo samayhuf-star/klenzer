@@ -106,13 +106,13 @@
       ],
       "expo-web-browser",
       "expo-sqlite",
+      "./plugins/withoutPushEntitlement",
       [
         "expo-notifications",
         {
           "enableBackgroundRemoteNotifications": false
         }
-      ],
-      "./plugins/withoutPushEntitlement"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

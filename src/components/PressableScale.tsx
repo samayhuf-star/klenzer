@@ -24,7 +24,10 @@ export function PressableScale({ children, onPress, style, disabled, haptic = tr
       {...a11y}
       accessibilityRole={a11y.accessibilityRole ?? 'button'}
       disabled={disabled}
+      // Reanimated shared values are mutated by design.
+      // eslint-disable-next-line react-hooks/immutability
       onPressIn={() => (s.value = withSpring(0.96, { damping: 18, stiffness: 400 }))}
+      // eslint-disable-next-line react-hooks/immutability
       onPressOut={() => (s.value = withSpring(1, { damping: 14, stiffness: 300 }))}
       onPress={() => {
         if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});

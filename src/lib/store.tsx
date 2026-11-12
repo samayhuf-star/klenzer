@@ -1,14 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as MediaLibrary from 'expo-media-library/legacy';
+import * as Notifications from 'expo-notifications';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Alert, AppState, Linking, Platform } from 'react-native';
 import { formatBytes } from './format';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
-import { deleteItems, Item, Progress, ScanResult, scanLibrary } from './scanner';
+import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
-import { disableReminders, enableReminders, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders } from './reminders';
+import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders } from './reminders';
 import { configurePurchases, currentCustomer, hasPro, onCustomerInfo } from './purchases';
 import { reclaimableBytes } from './reclaim';
 
@@ -26,6 +27,14 @@ export type Cleaning = { rows: CleanRow[]; phase: 'working' | 'finished' | 'canc
 export type CleanPlan = { kind: Kind; items: Item[] }[];
 type Pending = { bytes: number; baselineFree: number };
 
+export type CategoryScanMap = Record<ScanCategory, CategoryProgress>;
+
+const idleCats = (): CategoryScanMap => ({
+  photos: { category: 'photos', status: 'idle', done: 0, total: 0 },
+  screenshots: { category: 'screenshots', status: 'idle', done: 0, total: 0 },
+  videos: { category: 'videos', status: 'idle', done: 0, total: 0 },
+});
+
 type Ctx = {
   ready: boolean;
   onboarded: boolean;
@@ -39,6 +48,7 @@ type Ctx = {
   refreshDisk: () => void;
   scanning: boolean;
   progress: Progress | null;
+  scanCats: CategoryScanMap;
   result: ScanResult | null;
   scan: () => Promise<void>;
   cancelScan: () => void;
@@ -50,9 +60,6 @@ type Ctx = {
   completeUnlock: () => void;
   isPro: boolean;
   tempSize: number;
-  pending: Pending | null;
-  dismissPending: () => void;
-  openPhotos: () => void;
   reminders: boolean;
   setReminders: (on: boolean) => Promise<'on' | 'off' | 'blocked'>;
   /** Space Klenzer has actually given back (on iOS: only once Recently Deleted is emptied). */
@@ -64,9 +71,6 @@ type Ctx = {
 
 const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v1', items: 'klenzer.items.v1', pending: 'klenzer.pending.v1', reclaim: 'klenzer.reclaim.v1' };
 
-// Apple has no public link to Recently Deleted. Photos does handle this internal route (iOS 16+, behind Face ID);
-// if a future iOS drops it we fall back to opening Photos itself.
-const RECENTLY_DELETED_URL = 'photos-navigation://album?name=recently-deleted';
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
 
@@ -81,6 +85,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [disk, setDisk] = useState<DiskInfo>(() => getDiskInfoSync());
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [scanCats, setScanCats] = useState<CategoryScanMap>(idleCats);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [lifetimeFreed, setLifetimeFreed] = useState(0);
   const [lifetimeItems, setLifetimeItems] = useState(0);
@@ -90,21 +95,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<Pending | null>(null);
   const [reminders, setRemindersState] = useState(false);
   const [isPro, setIsPro] = useState(false);
-  const [lastReclaim, setLastReclaim] = useState(0);
   const afterUnlock = useRef<CleanPlan | null>(null);
   const signal = useRef({ cancelled: false });
+  const handledNotif = useRef<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [o, f, it, pd, rc] = await Promise.all([
+        const [o, f, it, pd] = await Promise.all([
           AsyncStorage.getItem(KEYS.onboarded),
           AsyncStorage.getItem(KEYS.freed),
           AsyncStorage.getItem(KEYS.items),
           AsyncStorage.getItem(KEYS.pending),
-          AsyncStorage.getItem(KEYS.reclaim),
         ]);
-        setLastReclaim(Number(rc) || 0);
         setOnboarded(o === '1');
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
@@ -166,7 +169,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Recently Deleted was emptied: that space is now really free, so it joins the lifetime total.
-  // Read through a ref so a double-fired effect can't count the same bytes twice.
+  // Tracked silently — the UI no longer tells the user to empty the album by hand.
   const pendingRef = useRef<Pending | null>(null);
   useEffect(() => {
     pendingRef.current = pending;
@@ -180,9 +183,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     AsyncStorage.removeItem(KEYS.pending).catch(() => {});
   }, [addFreed]);
 
-  // The OS updates free space lazily, so re-read it whenever the app comes back to the foreground
-  // (e.g. after the user empties Recently Deleted in Photos) and keep polling for a while after a clean.
   useEffect(() => {
+    // Initial and foreground disk refresh; the setter is inside refreshDisk.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshDisk();
     const sub = AppState.addEventListener('change', (s) => s === 'active' && refreshDisk());
     return () => sub.remove();
@@ -196,23 +199,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, 1500);
   }, [refreshDisk]);
 
-  // Recently Deleted is emptied outside the app; notice it when free space has actually grown.
   useEffect(() => {
     if (pending && disk.free - pending.baselineFree >= pending.bytes * 0.5) settlePending();
   }, [disk.free, pending, settlePending]);
 
-  // Every time the user opens the app, push all reminders back so active users aren't nagged.
-  const reminderInfo = useRef({ used: 0, total: 0, reclaim: 0 });
+  // Cancel and reschedule the 3-day local reminder with fresh used/total on open and foreground.
+  const reminderInfo = useRef({ used: 0, total: 0 });
   useEffect(() => {
-    reminderInfo.current = { used: disk.used, total: disk.total, reclaim: lastReclaim };
-  }, [disk.used, disk.total, lastReclaim]);
+    reminderInfo.current = { used: disk.used, total: disk.total };
+  }, [disk.used, disk.total]);
   useEffect(() => {
     if (!ready) return;
-    const plan = () => scheduleReminders({ pendingBytes: pending?.bytes, usedBytes: reminderInfo.current.used, totalBytes: reminderInfo.current.total, reclaimBytes: reminderInfo.current.reclaim });
+    const plan = () => scheduleReminders({ usedBytes: reminderInfo.current.used, totalBytes: reminderInfo.current.total });
     plan();
     const sub = AppState.addEventListener('change', (st) => st === 'active' && plan());
     return () => sub.remove();
-  }, [ready, pending?.bytes, lastReclaim]);
+  }, [ready, disk.used, disk.total]);
 
   const setReminders = useCallback(async (on: boolean) => {
     if (!on) {
@@ -220,30 +222,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRemindersState(false);
       return 'off' as const;
     }
-    const ok = await enableReminders({ pendingBytes: pending?.bytes, usedBytes: disk.used, totalBytes: disk.total, reclaimBytes: lastReclaim });
+    const ok = await enableReminders({ usedBytes: disk.used, totalBytes: disk.total });
     setRemindersState(ok);
     return ok ? ('on' as const) : ('blocked' as const);
-  }, [pending?.bytes, disk.used, disk.total, lastReclaim]);
-
-  const dismissPending = useCallback(() => {
-    settlePending();
-    refreshDisk();
-  }, [settlePending, refreshDisk]);
-
-  const openPhotos = useCallback(async () => {
-    // Apple gives apps no way to empty Recently Deleted, so hand the user straight to that album in Photos.
-    if (Platform.OS !== 'ios') {
-      Linking.openURL('content://media/internal/images/media').catch(() => Linking.openSettings());
-      return;
-    }
-    for (const url of [RECENTLY_DELETED_URL, 'photos-redirect://']) {
-      try {
-        await Linking.openURL(url);
-        return;
-      } catch {}
-    }
-    Linking.openSettings();
-  }, []);
+  }, [disk.used, disk.total]);
 
   // Right after the first scan the user has just seen how much space is wasted, so that is the moment to offer reminders.
   const askAboutReminders = useCallback(
@@ -260,7 +242,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch {}
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [disk.used, disk.total, pending?.bytes, lastReclaim],
+    [disk.used, disk.total],
   );
 
   const scan = useCallback(async () => {
@@ -270,12 +252,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     signal.current = { cancelled: false };
     setScanning(true);
     setProgress({ phase: 'reading', done: 0, total: 0 });
+    setScanCats({
+      photos: { category: 'photos', status: 'running', done: 0, total: 0 },
+      screenshots: { category: 'screenshots', status: 'running', done: 0, total: 0 },
+      videos: { category: 'videos', status: 'running', done: 0, total: 0 },
+    });
     try {
-      const r = await scanLibrary(setProgress, signal.current);
+      const r = await scanLibrary(
+        {
+          onProgress: setProgress,
+          onCategory: (p) => setScanCats((c) => ({ ...c, [p.category]: p })),
+          onPartial: (partial) => setResult({ ...partial }),
+        },
+        signal.current,
+      );
       if (!signal.current.cancelled) {
         setResult(r);
         const reclaim = reclaimableBytes(r, tempBytes());
-        setLastReclaim(reclaim);
         AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
         askAboutReminders(reclaim);
       }
@@ -285,6 +278,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       refreshDisk();
     }
   }, [access, requestAccess, refreshDisk, askAboutReminders]);
+
+  const scanRef = useRef(scan);
+  useEffect(() => {
+    scanRef.current = scan;
+  }, [scan]);
+
+  // Tapping a reminder opens the app and starts a scan. Never request notification permission here.
+  useEffect(() => {
+    if (!ready || !onboarded) return;
+    const handle = (response: Notifications.NotificationResponse | null) => {
+      if (!response) return;
+      if (!isScanNotification(response.notification.request.content.data)) return;
+      const id = `${response.notification.request.identifier}:${String(response.notification.date)}`;
+      if (handledNotif.current === id) return;
+      handledNotif.current = id;
+      void Notifications.clearLastNotificationResponseAsync?.();
+      void scanRef.current();
+    };
+    Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener(handle);
+    return () => sub.remove();
+  }, [ready, onboarded]);
 
   const cancelScan = useCallback(() => {
     signal.current.cancelled = true;
@@ -337,7 +352,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const mediaBytes = all.reduce((n, i) => n + i.size, 0);
         freed += mediaBytes;
         freedNow += mediaBytes;
-        // Rows complete one after another so the user can see each subcategory finish.
         for (let i = 0; i < media.length; i++) {
           patch((r) => r.map((x) => (x.kind === media[i].kind ? { ...x, status: 'done', done: x.count, note: undefined } : x)));
           await new Promise((res) => setTimeout(res, 350));
@@ -351,7 +365,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               screenshots: r.screenshots.filter((i) => !gone.has(i.id)),
               largeVideos: r.largeVideos.filter((i) => !gone.has(i.id)),
               livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
+              blurry: r.blurry.filter((i) => !gone.has(i.id)),
               duplicates: r.duplicates
+                .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
+                .filter((g) => g.items.length > 1),
+              similar: r.similar
                 .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
                 .filter((g) => g.items.length > 1),
             },
@@ -415,9 +433,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
+      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
