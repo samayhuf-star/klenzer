@@ -1,0 +1,143 @@
+# Generic iOS Simulator QA for an Expo app.
+# Manual trigger only (workflow_dispatch). Pushing never starts it. Uses no secrets and no signing identity.
+# Runs on GitHub's free hosted macos-latest runner (no cost on a public repo).
+#
+# Steps:
+#   1. Check out `ref` (a branch, tag or commit), install JS deps, expo prebuild, pod install.
+#   2. Optional `prepare_script`: runs after pod install, before the build (for example to add a UI test
+#      target or wire a .storekit file into the scheme). Gets UDID, BUNDLE_ID, SCHEME, WORKSPACE, OUT.
+#   3. Builds a Release iphonesimulator app (build-for-testing when the scheme has test targets).
+#   4. Runs `flow_script` (required): seeds data, installs the app, drives the flow, writes screenshots to $OUT.
+#   5. Uploads everything in $OUT as the artifact "sim-qa-<repo>".
+name: iOS Simulator QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to test
+        required: true
+        default: main
+      flow_script:
+        description: Flow script in the checked-out ref (seeds data, drives the app, saves screenshots to $OUT)
+        required: true
+        default: qa/sim-qa/flow.sh
+      prepare_script:
+        description: Optional script run after pod install and before the build (blank = none)
+        required: false
+        default: qa/sim-qa/prepare.sh
+      bundle_id:
+        description: iOS bundle id (blank = read from the Expo config)
+        required: false
+        default: ''
+
+concurrency:
+  group: sim-qa-${{ inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sim-qa:
+    name: Simulator QA (${{ inputs.ref }})
+    runs-on: macos-latest
+    timeout-minutes: 100
+    env:
+      OUT: /tmp/sim-qa
+      DERIVED_DATA: ${{ github.workspace }}/ios/DerivedData
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Boot iPhone simulator
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT"
+          xcodebuild -version | tee "$OUT/xcode-version.txt"
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          ph=[(r,x["name"],x["udid"]) for r,v in d.items() if "iOS" in r for x in v if x["name"].startswith("iPhone")]
+          pref=["iPhone 16 Pro","iPhone 16","iPhone 15 Pro","iPhone 15","iPhone 17 Pro","iPhone 17"]
+          ph.sort(key=lambda p: (pref.index(p[1]) if p[1] in pref else 99, p[0]), reverse=False)
+          print(ph[0][2]); sys.stderr.write("simulator: %s %s\n" % (ph[0][1], ph[0][0]))')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Bundle id
+        run: |
+          set -euo pipefail
+          BID="${{ inputs.bundle_id }}"
+          if [ -z "$BID" ]; then
+            BID=$(npx expo config --json --type public | python3 -c 'import json,sys;print(json.load(sys.stdin)["ios"]["bundleIdentifier"])')
+          fi
+          echo "BUNDLE_ID=$BID" >> "$GITHUB_ENV"
+          echo "bundle id: $BID"
+
+      - name: Expo prebuild (iOS)
+        run: npx expo prebuild --platform ios --non-interactive --no-install
+
+      - uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}
+          restore-keys: ${{ runner.os }}-pods-
+
+      - name: Pods
+        working-directory: ios
+        run: pod install
+
+      - name: Workspace and scheme
+        run: |
+          set -euo pipefail
+          WS=$(ls -d ios/*.xcworkspace | head -n1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "WORKSPACE=$WS" >> "$GITHUB_ENV"
+          echo "SCHEME=$SCHEME" >> "$GITHUB_ENV"
+
+      - name: Prepare (app specific)
+        if: inputs.prepare_script != ''
+        run: |
+          set -euo pipefail
+          if [ -f "${{ inputs.prepare_script }}" ]; then bash "${{ inputs.prepare_script }}"; else echo "no prepare script at ${{ inputs.prepare_script }}"; fi
+
+      - name: Build Release simulator app
+        run: |
+          set -euo pipefail
+          SCH=$(ls ios/*.xcodeproj/xcshareddata/xcschemes/"$SCHEME".xcscheme)
+          ACTION=build
+          grep -q TestableReference "$SCH" && ACTION=build-for-testing
+          echo "xcodebuild $ACTION"
+          set -o pipefail
+          xcodebuild "$ACTION" -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            > "$OUT/xcodebuild.log" 2>&1 || { tail -n 120 "$OUT/xcodebuild.log"; exit 1; }
+          tail -n 20 "$OUT/xcodebuild.log"
+
+      - name: Run flow
+        run: |
+          set -euo pipefail
+          bash "${{ inputs.flow_script }}"
+
+      - name: Simulator log
+        if: always()
+        run: |
+          xcrun simctl spawn "$UDID" log show --last 15m --style compact --predicate "process CONTAINS \"$SCHEME\"" > "$OUT/app.log" 2>&1 || true
+          [ -f "$OUT/summary.md" ] && cat "$OUT/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-qa-${{ github.event.repository.name }}
+          if-no-files-found: warn
+          path: /tmp/sim-qa/**
