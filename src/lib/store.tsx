@@ -144,7 +144,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           AsyncStorage.getItem(KEYS.items),
           AsyncStorage.getItem(KEYS.hideRdSheet),
         ]);
-        setOnboarded(o === '1');
+        setOnboarded(o === '1' || DEMO);
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
         setHideRdSheetState(hide === '1');
