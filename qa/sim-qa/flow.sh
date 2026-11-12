@@ -11,7 +11,7 @@ PHOTO_DIR="${PHOTO_DIR:-$PWD/qa/fixtures/photos}"
 
 echo "==> Sample photos"
 python3 -m pip install --user --quiet pillow 2>/dev/null || python3 -m pip install --user --quiet --break-system-packages pillow
-python3 qa/scripts/generate-sim-photos.py --out "$PHOTO_DIR" --count "${PHOTO_COUNT:-600}"
+python3 qa/scripts/generate-sim-photos.py --out "$PHOTO_DIR" --count "${PHOTO_COUNT:-400}" --exact-pairs 5 --blurry 5 --near-pairs 20 --screenshots 20
 N=0; BATCH=()
 while IFS= read -r f; do
   BATCH+=("$f"); N=$((N + 1))

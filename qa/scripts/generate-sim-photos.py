@@ -88,6 +88,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="qa/fixtures/photos", help="output directory")
     parser.add_argument("--count", type=int, default=2000, help="minimum photo count")
+    parser.add_argument("--exact-pairs", type=int, default=40)
+    parser.add_argument("--near-pairs", type=int, default=60)
+    parser.add_argument("--blurry", type=int, default=80)
+    parser.add_argument("--screenshots", type=int, default=40)
     args = parser.parse_args()
 
     out = Path(args.out)
@@ -100,7 +104,7 @@ def main() -> int:
 
     n = 0
     # 40 exact-dup pairs (80 files, 40 unique names duplicated across a/ and b/)
-    exact_pairs = 40
+    exact_pairs = args.exact_pairs
     for i in range(exact_pairs):
         img = scene(i, 128, 96)
         name = f"IMG_{1000 + i:04d}.JPG"
@@ -109,7 +113,7 @@ def main() -> int:
         n += 2
 
     # 60 near-dup pairs: original + brightness or crop
-    near_pairs = 60
+    near_pairs = args.near_pairs
     for i in range(near_pairs):
         base = scene(200 + i, 128, 128)
         write_jpeg(base, out / "near" / f"NEAR_{i:04d}_A.jpg")
@@ -118,13 +122,13 @@ def main() -> int:
         n += 2
 
     # 80 blurry shots
-    blur_count = 80
+    blur_count = args.blurry
     for i in range(blur_count):
         write_jpeg(blurry(scene(400 + i, 160, 120)), out / "blurry" / f"BLUR_{i:04d}.jpg", quality=55)
         n += 1
 
     # 40 screenshot-sized PNGs (names start with Screenshot so the scanner groups them)
-    shot_count = 40
+    shot_count = args.screenshots
     for i in range(shot_count):
         name = f"Screenshot 2026-01-01 at 12.{i // 60:02d}.{i % 60:02d}.png"
         write_png(screenshot(i), out / "screenshots" / name)

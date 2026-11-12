@@ -65,12 +65,36 @@ final class SimQATests: XCTestCase {
         // 2. Home with scan results
         let smart = any("smart-clean")
         if smart.waitForExistence(timeout: 5) { tapEl(smart) }
+        sleep(2)
+        shot("02a-home-mid-scan")
+        let midNote = containing("Scanning ").exists
+        let noneYetMid = any("scan-bar").exists && containing("None yet").exists
+        record(21, "Mid-scan cards show progress, not None yet", !noneYetMid, "scanningNote=\(midNote) noneYetWhileScanning=\(noneYetMid)")
         let finished = waitForScan(timeout: 300)
         dismissAppAlert()
         sleep(1)
         let nonZero = firstNonZeroCategory()
         shot("02-home")
         record(2, "Home after scan", finished && nonZero != nil, "scanFinished=\(finished) firstNonZero=\(nonZero ?? "none")")
+
+        // 2b. Duplicate and Blurry counts (seeded: 5 exact pairs, 5 blurry)
+        for (label, minCount, name) in [("Duplicate, ", 5, "02b-duplicate"), ("Blurry, ", 5, "02c-blurry")] {
+            let tile = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", label)).firstMatch
+            var n = 0
+            if tile.waitForExistence(timeout: 5) {
+                let digits = tile.label.dropFirst(label.count).prefix { $0.isNumber || $0 == "," }.replacingOccurrences(of: ",", with: "")
+                n = Int(digits) ?? 0
+            }
+            var opened = false
+            if n > 0 {
+                tapEl(tile)
+                opened = hittable("Back") != nil && !(any("smart-clean").exists && any("smart-clean").isHittable)
+                sleep(1)
+            }
+            shot(name)
+            record(name == "02b-duplicate" ? 22 : 23, "\(label.dropLast(2)) card count and review", n >= minCount && opened, "tile=\(tile.exists ? tile.label : "missing") count=\(n) min=\(minCount) reviewOpened=\(opened)")
+            goHome()
+        }
 
         // 3. Similar
         let similarTile = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "Similar, ")).firstMatch
