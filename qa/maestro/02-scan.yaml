@@ -1,0 +1,12 @@
+appId: com.krosz.klenzer
+---
+- tapOn:
+    id: "smart-clean"
+- extendedWaitUntil:
+    visible: "Looking through"
+    timeout: 10000
+- takeScreenshot: 02-scan-first-results
+- extendedWaitUntil:
+    notVisible: "Looking through"
+    timeout: 240000
+- takeScreenshot: 02-scan-finished

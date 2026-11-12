@@ -74,7 +74,7 @@ export default function Paywall() {
   const headline = reclaim > 0 ? `Free ${formatBytes(reclaim)} now` : 'Unlock Klenzer';
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }} testID="paywall-screen">
       <LinearGradient colors={['#0B1020', '#12307A']} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
         <PressableScale onPress={close} accessibilityLabel="Close" style={styles.close}>
           <Ionicons name="close" size={22} color="#fff" />
@@ -116,6 +116,7 @@ export default function Paywall() {
               onPress={purchase}
               busy={busy}
               style={{ marginTop: 6 }}
+              testID="unlock"
             />
             <Text style={styles.fine}>
               {chosen?.kind === 'yearly'
@@ -155,6 +156,7 @@ function PlanCard({ plan, selected, onPress }: { plan: Plan; selected: boolean; 
       onPress={onPress}
       accessibilityLabel={`${plan.title} plan, ${plan.price}`}
       accessibilityState={{ checked: selected }}
+      testID={`plan-${plan.kind}`}
       style={[styles.plan, selected && styles.planOn]}>
       <View style={[styles.radio, selected && styles.radioOn]}>{selected && <Ionicons name="checkmark" size={15} color="#fff" />}</View>
       <View style={{ flex: 1 }}>

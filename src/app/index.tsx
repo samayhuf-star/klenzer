@@ -88,17 +88,17 @@ export default function Home() {
   const showLive = (result?.livePhotos.length ?? 0) > 0 || (photosSpin && (result?.livePhotos.length ?? 0) > 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }} testID="home-screen">
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingTop: insets.top + 4, paddingBottom: insets.bottom + 100, paddingHorizontal: 16 }}
         showsVerticalScrollIndicator={false}>
         <View style={styles.topbar}>
-          <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={styles.iconBtn}>
+          <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={styles.iconBtn} testID="open-settings">
             <Ionicons name="settings-outline" size={22} color={colors.ink} />
           </PressableScale>
           <Text style={styles.brand}>Klenzer</Text>
-          <PressableScale onPress={() => router.push('/paywall')} accessibilityLabel="Klenzer Pro" style={styles.pro}>
+          <PressableScale onPress={() => router.push('/paywall')} accessibilityLabel="Klenzer Pro" style={styles.pro} testID="open-paywall">
             <Ionicons name="diamond" size={13} color={colors.gold} />
             <Text style={styles.proText}>PRO</Text>
           </PressableScale>
@@ -145,7 +145,7 @@ export default function Home() {
                 style={{ width: `${Math.max(2, usedPct * 100)}%`, height: '100%', borderRadius: 8 }}
               />
             </View>
-            <PressableScale onPress={smartClean} accessibilityLabel="Smart Clean" style={styles.smart}>
+            <PressableScale onPress={smartClean} accessibilityLabel="Smart Clean" style={styles.smart} testID="smart-clean">
               <Text style={styles.smartText}>Smart Clean</Text>
               <Ionicons name="sparkles" size={18} color="#fff" />
             </PressableScale>

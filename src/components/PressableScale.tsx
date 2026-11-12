@@ -14,6 +14,7 @@ type Props = {
   accessibilityLabel?: string;
   accessibilityRole?: 'button' | 'link' | 'checkbox';
   accessibilityState?: { checked?: boolean; disabled?: boolean };
+  testID?: string;
 };
 
 export function PressableScale({ children, onPress, style, disabled, haptic = true, ...a11y }: Props) {

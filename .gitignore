@@ -44,3 +44,10 @@ scripts/node_modules/
 
 .claude/
 .expo/
+
+# Generated simulator photo fixtures (created in CI)
+qa/fixtures/
+artifacts/
+
+__pycache__/
+*.pyc
