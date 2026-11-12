@@ -1,12 +1,12 @@
 export const colors = {
-  bg: '#F6F8FC',
+  bg: '#F0EEF8',
   card: '#FFFFFF',
-  ink: '#0B1020',
+  ink: '#1A1B2E',
   ink2: '#4A5470',
   ink3: '#8A93AD',
-  line: '#E4E9F4',
+  line: '#E4E0F0',
   mint: '#19E3B1',
-  blue: '#2F6BFF',
+  blue: '#3D5AFE',
   blueSoft: '#E7EEFF',
   mintSoft: '#DDFBF2',
   danger: '#F2455C',
@@ -16,6 +16,9 @@ export const colors = {
   violet: '#7A5CFF',
   violetSoft: '#EEEAFF',
   navy: '#0B1020',
+  gold: '#C9A227',
+  goldSoft: '#F3E6B0',
+  track: '#E8E6F2',
 };
 
 export const fonts = {
@@ -26,7 +29,7 @@ export const fonts = {
   display: 'Fraunces_700Bold',
 };
 
-export const radius = { sm: 12, md: 18, lg: 26, pill: 999 };
+export const radius = { sm: 12, md: 18, lg: 26, xl: 32, pill: 999 };
 
 export const shadow = {
   shadowColor: '#1B2A59',

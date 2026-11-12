@@ -105,6 +105,13 @@
         }
       ],
       "expo-web-browser",
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
       "./plugins/withoutPushEntitlement"
     ],
     "experiments": {

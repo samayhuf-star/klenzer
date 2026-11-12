@@ -11,7 +11,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'What is stored on your device',
-    p: 'Klenzer stores a few small preferences locally: whether you have finished the intro, the running total of space you have cleared, whether you turned reminders on, and (on iPhone) how much space is still waiting in Recently Deleted. Klenzer also keeps temporary files such as image thumbnails, which you can clear from the home screen. Scan results are kept in memory and discarded when you close the app. Deleting the app removes this local data.',
+    p: 'Klenzer stores a few small preferences locally: whether you have finished the intro, the running total of space you have cleared, and whether you turned reminders on. It also keeps an on-device scan cache (file sizes and tiny perceptual hashes, keyed by photo id and modification date) so later scans can skip unchanged items, plus temporary thumbnails you can clear in the app. None of that cache is uploaded. Deleting the app removes this local data.',
   },
   {
     h: 'Purchases',
@@ -19,11 +19,11 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Deleting photos',
-    p: 'Klenzer only deletes items you select, and only after your phone’s own confirmation prompt. On iPhone, deleted items go to Recently Deleted, where you can restore them for up to 30 days; the space is freed once that album is emptied. iOS does not let apps empty it, so Klenzer offers a shortcut to Photos for you to do it. On Android, items you confirm are deleted by the system and Klenzer cannot restore them.',
+    p: 'Klenzer only deletes items you select, and only after your phone’s own confirmation prompt. On iPhone, deleted items go to Recently Deleted, where you can restore them for up to 30 days. On Android, items you confirm are deleted by the system and Klenzer cannot restore them.',
   },
   {
     h: 'Reminders',
-    p: 'If you choose to turn them on, Klenzer schedules a few occasional reminder notifications (at most five over about six weeks, restarted whenever you open the app). They are created and delivered by your phone itself: no server is involved, nothing is sent to us, and no push token is collected. Turn them off any time in Klenzer Settings or your device Settings.',
+    p: 'If you choose to turn them on (after your first scan), Klenzer schedules a local reminder every 3 days with your current used and total storage. The reminder is created and delivered by your phone itself: no server is involved, nothing is sent to us, and no push token is collected. Opening the app cancels and reschedules it with fresh numbers. Turn them off any time in Klenzer Settings, which cancels all scheduled reminders.',
   },
   {
     h: 'Permissions',
