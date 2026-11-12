@@ -1,0 +1,62 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Carter;Anna;;;
+FN:Anna Carter
+TEL;TYPE=CELL:+1 415 555 0101
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Carter;Anna;;;
+FN:Anna Carter
+TEL;TYPE=CELL:(415) 555-0101
+EMAIL;TYPE=HOME:anna.carter@example.com
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Lee;Ben;;;
+FN:Ben Lee
+EMAIL;TYPE=WORK:ben.lee@example.com
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Lee;Benjamin;;;
+FN:Benjamin Lee
+EMAIL;TYPE=WORK:ben.lee@example.com
+TEL;TYPE=CELL:+1 212 555 0144
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Park;Chris;;;
+FN:Chris Park
+TEL;TYPE=CELL:+1 646 555 0177
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Park;Chris;;;
+FN:Chris Park
+TEL;TYPE=WORK:+1 646 555 0178
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Park;Chris;;;
+FN:Chris Park
+EMAIL;TYPE=HOME:chris.park@example.com
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Rossi;Maria;;;
+FN:Maria Rossi
+TEL;TYPE=CELL:+1 305 555 0199
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Okafor;David;;;
+FN:David Okafor
+EMAIL;TYPE=HOME:david.okafor@example.com
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Nguyen;Linh;;;
+FN:Linh Nguyen
+TEL;TYPE=CELL:+1 408 555 0123
+END:VCARD

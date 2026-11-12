@@ -1,213 +1,143 @@
-# iOS Simulator QA for Klenzer.
-# Compiles a simulator .app on the runner (not an EAS artifact) so a StoreKit
-# Configuration file can be attached via `xcodebuild test -storeKitConfigurationPath`.
-# The .storekit file is referenced from the scheme / xcodebuild flag only after a
-# CI-only post-prebuild script; it is never added as an app-target resource, never
-# wired through an Expo config plugin, and does not affect EAS production builds
-# (EAS generates its own ios/ and does not run that script).
+# Generic iOS Simulator QA for an Expo app.
+# Manual trigger only (workflow_dispatch). Pushing never starts it. Uses no secrets and no signing identity.
+# Runs on GitHub's free hosted macos-latest runner (no cost on a public repo).
+#
+# Steps:
+#   1. Check out `ref` (a branch, tag or commit), install JS deps, expo prebuild, pod install.
+#   2. Optional `prepare_script`: runs after pod install, before the build (for example to add a UI test
+#      target or wire a .storekit file into the scheme). Gets UDID, BUNDLE_ID, SCHEME, WORKSPACE, OUT.
+#   3. Builds a Release iphonesimulator app (build-for-testing when the scheme has test targets).
+#   4. Runs `flow_script` (required): seeds data, installs the app, drives the flow, writes screenshots to $OUT.
+#   5. Uploads everything in $OUT as the artifact "sim-qa-<repo>".
 name: iOS Simulator QA
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - klenzer/v2
+    inputs:
+      ref:
+        description: Branch, tag or commit to test
+        required: true
+        default: main
+      flow_script:
+        description: Flow script in the checked-out ref (seeds data, drives the app, saves screenshots to $OUT)
+        required: true
+        default: qa/sim-qa/flow.sh
+      prepare_script:
+        description: Optional script run after pod install and before the build (blank = none)
+        required: false
+        default: qa/sim-qa/prepare.sh
+      bundle_id:
+        description: iOS bundle id (blank = read from the Expo config)
+        required: false
+        default: ''
 
 concurrency:
-  group: sim-qa-${{ github.ref }}
-  cancel-in-progress: true
+  group: sim-qa-${{ inputs.ref }}
+  cancel-in-progress: false
 
 jobs:
   sim-qa:
-    name: Simulator QA
+    name: Simulator QA (${{ inputs.ref }})
     runs-on: macos-latest
-    timeout-minutes: 90
+    timeout-minutes: 100
     env:
-      BUNDLE_ID: com.krosz.klenzer
-      PHOTO_DIR: ${{ github.workspace }}/qa/fixtures/photos
-      SIM_QA_OUT: /tmp/klenzer-sim-qa
+      OUT: /tmp/sim-qa
       DERIVED_DATA: ${{ github.workspace }}/ios/DerivedData
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Boot iPhone simulator
-        id: sim
         run: |
           set -euo pipefail
-          # Prefer a recent iPhone; fall back to whatever iPhone the runtime offers.
-          UDID="$(
-            python3 - <<'PY'
-          import json, subprocess
-          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-          phones = []
-          for runtime, devices in data.get("devices", {}).items():
-              if "iOS" not in runtime:
-                  continue
-              for d in devices:
-                  name = d.get("name") or ""
-                  if name.startswith("iPhone") and d.get("isAvailable", True):
-                      phones.append((runtime, name, d["udid"]))
-          prefer = ("iPhone 16", "iPhone 16 Plus", "iPhone 15", "iPhone 15 Pro", "iPhone 14")
-          def rank(item):
-              runtime, name, udid = item
-              try:
-                  return prefer.index(name)
-              except ValueError:
-                  return 50 + (0 if "Pro" not in name and "Plus" not in name and "Max" not in name else 10)
-          if not phones:
-              raise SystemExit("no available iPhone simulator")
-          phones.sort(key=rank)
-          runtime, name, udid = phones[0]
-          print(udid)
-          open("${{ github.workspace }}/_sim_meta.txt", "w").write(f"name={name}\nruntime={runtime}\nudid={udid}\n")
-          PY
-          )"
+          mkdir -p "$OUT"
+          xcodebuild -version | tee "$OUT/xcode-version.txt"
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          ph=[(r,x["name"],x["udid"]) for r,v in d.items() if "iOS" in r for x in v if x["name"].startswith("iPhone")]
+          pref=["iPhone 16 Pro","iPhone 16","iPhone 15 Pro","iPhone 15","iPhone 17 Pro","iPhone 17"]
+          ph.sort(key=lambda p: (pref.index(p[1]) if p[1] in pref else 99, p[0]), reverse=False)
+          print(ph[0][2]); sys.stderr.write("simulator: %s %s\n" % (ph[0][1], ph[0][0]))')
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          echo "UDID=$UDID" >> "$GITHUB_OUTPUT"
-          cat "${{ github.workspace }}/_sim_meta.txt"
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
-          xcrun simctl status_bar "$UDID" override --time "09:41" --batteryState charged --batteryLevel 100 || true
-          echo "simulator booted"
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install JS dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Generate fixture photos
-        run: |
-          python3 -m pip install --user pillow
-          python3 qa/scripts/generate-sim-photos.py --out "$PHOTO_DIR" --count 2000
-
-      - name: Seed Photos library (while we prebuild and compile)
+      - name: Bundle id
         run: |
           set -euo pipefail
-          COUNT=0
-          BATCH=()
-          while IFS= read -r f; do
-            BATCH+=("$f")
-            COUNT=$((COUNT + 1))
-            if [ "${#BATCH[@]}" -ge 80 ]; then
-              xcrun simctl addmedia "$UDID" "${BATCH[@]}"
-              BATCH=()
-            fi
-          done <<FIND
-          $(find "$PHOTO_DIR" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | sort)
-          FIND
-          if [ "${#BATCH[@]}" -gt 0 ]; then
-            xcrun simctl addmedia "$UDID" "${BATCH[@]}"
+          BID="${{ inputs.bundle_id }}"
+          if [ -z "$BID" ]; then
+            BID=$(npx expo config --json --type public | python3 -c 'import json,sys;print(json.load(sys.stdin)["ios"]["bundleIdentifier"])')
           fi
-          echo "seeded $COUNT photos"
-          if [ "$COUNT" -lt 2000 ]; then
-            echo "expected at least 2000 photos, found $COUNT" >&2
-            exit 1
-          fi
-
-      - name: Probe Live Photo seeding (does not fail the job)
-        # Early check for the Convert to still work: can simctl addmedia seed
-        # real paired HEIC+MOV Live Photos? A negative result is reported, not a PASS.
-        continue-on-error: true
-        run: |
-          export UDID SIM_QA_OUT
-          mkdir -p "$SIM_QA_OUT"
-          bash qa/scripts/probe-live-photo-seed.sh || true
+          echo "BUNDLE_ID=$BID" >> "$GITHUB_ENV"
+          echo "bundle id: $BID"
 
       - name: Expo prebuild (iOS)
         run: npx expo prebuild --platform ios --non-interactive --no-install
 
-      - name: Cache CocoaPods
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ios/Pods
           key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
+          restore-keys: ${{ runner.os }}-pods-
 
-      - name: Install CocoaPods
+      - name: Pods
         working-directory: ios
-        run: |
-          pod install --deployment || pod install
+        run: pod install
 
-      - name: Attach QA test target and StoreKit scheme (CI only, not EAS)
-        run: |
-          gem install xcodeproj --no-document
-          ruby qa/scripts/prepare-xcode-qa.rb
-          ls -la ios/*.xcodeproj/xcshareddata/xcschemes/ || true
-
-      - name: Build simulator app + UI tests (Release, iphonesimulator)
+      - name: Workspace and scheme
         run: |
           set -euo pipefail
-          WORKSPACE=$(ls -d ios/*.xcworkspace | head -n 1)
-          SCHEME="Klenzer"
-          mkdir -p "$SIM_QA_OUT"
-          xcodebuild build-for-testing \
-            -workspace "$WORKSPACE" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,id=$UDID" \
-            -derivedDataPath "$DERIVED_DATA" \
-            -storeKitConfigurationPath "${{ github.workspace }}/qa/Klenzer.storekit" \
-            | tee "$SIM_QA_OUT/xcodebuild-build.log"
-          # xcbeautify is not required; keep the raw log as an artifact.
+          WS=$(ls -d ios/*.xcworkspace | head -n1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "WORKSPACE=$WS" >> "$GITHUB_ENV"
+          echo "SCHEME=$SCHEME" >> "$GITHUB_ENV"
 
-      - name: Grant Photos permission
+      - name: Prepare (app specific)
+        if: inputs.prepare_script != ''
         run: |
-          # Install happens again in the test runner; grant now so the first
-          # launch of the test never sees a permission dialog.
-          APP="$(find "$DERIVED_DATA" -name 'Klenzer.app' -path '*iphonesimulator*' | head -n 1)"
-          echo "app=$APP"
-          xcrun simctl install "$UDID" "$APP"
-          xcrun simctl privacy "$UDID" grant photos-add "$BUNDLE_ID"
-          xcrun simctl privacy "$UDID" grant photos "$BUNDLE_ID"
-          xcrun simctl privacy "$UDID" grant all "$BUNDLE_ID" || true
+          set -euo pipefail
+          if [ -f "${{ inputs.prepare_script }}" ]; then bash "${{ inputs.prepare_script }}"; else echo "no prepare script at ${{ inputs.prepare_script }}"; fi
 
-      - name: Run QA gates (record video + XCUITest + StoreKit)
-        id: qa
+      - name: Build Release simulator app
         run: |
-          export UDID BUNDLE_ID PHOTO_DIR SIM_QA_OUT DERIVED_DATA
-          # Photos are already seeded; the runner will skip a second addmedia
-          # if PHOTO_DIR is empty? Keep the seed in the runner as a safety net
-          # but point it at an empty skip by using a marker.
-          # run-sim-qa.sh always re-adds; adding the same files twice is slow.
-          # Use a dummy already-seeded dir with a skip? Simpler: patch via env.
-          SKIP_ADDMEDIA=1 bash qa/scripts/run-sim-qa.sh
+          set -euo pipefail
+          SCH=$(ls ios/*.xcodeproj/xcshareddata/xcschemes/"$SCHEME".xcscheme)
+          ACTION=build
+          grep -q TestableReference "$SCH" && ACTION=build-for-testing
+          echo "xcodebuild $ACTION"
+          set -o pipefail
+          xcodebuild "$ACTION" -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            > "$OUT/xcodebuild.log" 2>&1 || { tail -n 120 "$OUT/xcodebuild.log"; exit 1; }
+          tail -n 20 "$OUT/xcodebuild.log"
 
-      - name: Write fallback step summary
+      - name: Run flow
+        run: |
+          set -euo pipefail
+          bash "${{ inputs.flow_script }}"
+
+      - name: Simulator log
         if: always()
         run: |
-          if [ ! -f "$SIM_QA_OUT/results.json" ]; then
-            {
-              echo "# Klenzer iOS Simulator QA"
-              echo
-              echo "The test runner did not write results.json. The job likely failed earlier (prebuild, compile, or simulator boot)."
-              echo
-              echo "See artifacts for xcodebuild logs if they exist."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          xcrun simctl spawn "$UDID" log show --last 15m --style compact --predicate "process CONTAINS \"$SCHEME\"" > "$OUT/app.log" 2>&1 || true
+          [ -f "$OUT/summary.md" ] && cat "$OUT/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
 
-      - name: Upload screenshots, video and logs
+      - name: Upload screenshots and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sim-qa-artifacts
+          name: sim-qa-${{ github.event.repository.name }}
           if-no-files-found: warn
-          path: |
-            /tmp/klenzer-sim-qa/**
-            ${{ github.workspace }}/_sim_meta.txt
-
-      - name: Check QA result
-        if: always() && steps.qa.outcome != 'skipped'
-        run: |
-          # Surface the gate result as the job conclusion when the runner
-          # already exited non-zero; this step is a no-op on success.
-          if [ "${{ steps.qa.outcome }}" != "success" ]; then
-            exit 1
-          fi
+          path: /tmp/sim-qa/**

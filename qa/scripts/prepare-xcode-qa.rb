@@ -102,46 +102,15 @@ scheme.save!
 
 xml = File.read(scheme_path)
 
-# Relative path from the .xcodeproj to qa/Klenzer.storekit: ios/Foo.xcodeproj -> ../../qa/Klenzer.storekit
-# From ios/KlenzerQATests/Klenzer.storekit (copied): KlenzerQATests/Klenzer.storekit
-storekit_ref = 'KlenzerQATests/Klenzer.storekit'
+# StoreKit configuration for Run (LaunchAction) and Test (TestAction).
+# The identifier is relative to the .xcodeproj: ios/Klenzer.xcodeproj -> ../../qa/Klenzer.storekit
+ref = %(<StoreKitConfigurationFileReference\n         identifier = "../../qa/Klenzer.storekit">\n      </StoreKitConfigurationFileReference>\n)
 unless xml.include?('StoreKitConfigurationFileReference')
-  xml.sub!(
-    %r{</TestAction>},
-    %(    <StoreKitConfigurationFileReference\n         identifier = "../../qa/Klenzer.storekit">\n      </StoreKitConfigurationFileReference>\n   </TestAction>)
-  )
-  # identifier is relative to the xcodeproj; ../../qa/Klenzer.storekit is the repo file
-end
-
-# Inject SIM_QA_OUT / STOREKIT_CONFIG into the TestAction environment variables.
-unless xml.include?('SIM_QA_OUT')
-  env = <<-XML
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "SIM_QA_OUT"
-            value = "/tmp/klenzer-sim-qa"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "STOREKIT_CONFIG"
-            value = "/tmp/klenzer-sim-qa-storekit/Klenzer.storekit"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
-  XML
-  if xml.include?('<EnvironmentVariables>')
-    xml.sub!(
-      %r{<EnvironmentVariables>},
-      "#{env.strip.sub('<EnvironmentVariables>', '<EnvironmentVariables>')}"
-    )
-  else
-    xml.sub!(
-      %r{</TestAction>},
-      "#{env}   </TestAction>"
-    )
+  %w[TestAction LaunchAction].each do |tag|
+    xml.sub!(%r{</#{tag}>}) { "   #{ref}   </#{tag}>" }
   end
 end
 
 File.write(scheme_path, xml)
 puts "updated scheme #{scheme_path}"
-puts "storekit reference: ../../qa/Klenzer.storekit (scheme) + test-target resource"
+puts "storekit reference: ../../qa/Klenzer.storekit in LaunchAction and TestAction, plus test-target resource"
