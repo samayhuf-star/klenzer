@@ -9,7 +9,7 @@ import { Button } from '../components/Button';
 import { FreeLeftNote } from '../components/FreeLeftNote';
 import { PressableScale } from '../components/PressableScale';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { DEMO } from '../lib/demo';
+import { DEMO, pic } from '../lib/demo';
 import { formatBytes, formatDate } from '../lib/format';
 import { useStore } from '../lib/store';
 import {
@@ -334,7 +334,7 @@ function AlbumGrid({ entries, thumbs, onOpen }: { entries: VaultEntry[]; thumbs:
         </View>
       }
       renderItem={({ item }) => {
-        const uri = DEMO ? `https://picsum.photos/seed/klenzer-vault-${item.id}/300/300` : thumbs[item.id];
+        const uri = DEMO ? pic(`vault-${item.id}`, 300, 300) : thumbs[item.id];
         return (
           <PressableScale onPress={() => onOpen(item)} accessibilityLabel={`Photo added ${formatDate(item.addedAt)}`} style={[styles.cell, { width: cell, height: cell }]}>
             {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <ActivityIndicator color={colors.blue} />}
@@ -371,7 +371,7 @@ function Viewer({ entry, onClose, onRemoved }: { entry: VaultEntry | null; onClo
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUri(null);
     if (!entry) return;
-    if (DEMO) return setUri(`https://picsum.photos/seed/klenzer-vault-${entry.id}/900/1200`);
+    if (DEMO) return setUri(pic(`vault-${entry.id}`, 900, 1200));
     openForViewing(entry)
       .then((u) => current.current === entry.id && setUri(u))
       .catch(() => {});

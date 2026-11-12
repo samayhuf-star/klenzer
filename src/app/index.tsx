@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { ScanBar } from '../components/ScanBar';
@@ -14,17 +12,16 @@ import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes, formatFreeAmount, formatMarketedTotal } from '../lib/format';
 import { KINDS, Kind } from '../lib/kinds';
-import { dupExtraCount, dupExtras, dupReclaimable, Item, sum } from '../lib/scanner';
+import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
-import { colors, fonts, radius, shadow } from '../theme';
+import { colors, fonts, radius } from '../theme';
 
-type Tab = 'clean' | 'compress';
 type Section = 'photos' | 'videos' | 'contacts';
 
-const SECTIONS: { value: Section; label: string }[] = [
-  { value: 'photos', label: 'Photos' },
-  { value: 'videos', label: 'Videos' },
-  { value: 'contacts', label: 'Contacts' },
+const SECTIONS: { value: Section; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: 'photos', label: 'Photos', icon: 'image-outline' },
+  { value: 'videos', label: 'Videos', icon: 'film-outline' },
+  { value: 'contacts', label: 'Contacts', icon: 'people-outline' },
 ];
 
 export default function Home() {
@@ -33,7 +30,6 @@ export default function Home() {
     disk, access, canAskAgain, requestAccess, openSettings, manageLimited,
     scanning, progress, scanCats, result, scan, startClean, refreshDisk, scanError,
   } = useStore();
-  const [tab, setTab] = useState<Tab>('clean');
   const [section, setSection] = useState<Section>('photos');
   const reduceMotion = useReducedMotion();
   const prevCats = useRef(scanCats);
@@ -88,8 +84,6 @@ export default function Home() {
     startClean(plan);
   };
 
-  const comingSoon = (label: string) => Alert.alert(label, 'Coming soon.');
-
   const photosSpin = scanning && scanCats.photos.status !== 'done';
   const shotsSpin = scanning && scanCats.screenshots.status !== 'done';
   const videoSpin = scanning && scanCats.videos.status !== 'done';
@@ -97,24 +91,32 @@ export default function Home() {
   const showLive = (result?.livePhotos.length ?? 0) > 0;
   const rm = !!reduceMotion;
 
+  const reviewBytes = result
+    ? dupReclaimable(result.similar) + dupReclaimable(result.duplicates) + sum(result.blurry) + sum(result.screenshots) + dupReclaimable(result.duplicateVideos)
+    : 0;
+  const enter = (i: number) => (rm ? undefined : FadeInDown.delay(60 * i).springify().damping(18));
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="home-screen">
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: insets.top + 4, paddingBottom: insets.bottom + 100, paddingHorizontal: 16 }}
+        contentContainerStyle={{ paddingTop: insets.top + 6, paddingBottom: insets.bottom + 40, paddingHorizontal: 18 }}
         showsVerticalScrollIndicator={false}>
         <View style={styles.topbar}>
-          <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={styles.iconBtn} testID="open-settings">
-            <Ionicons name="settings-outline" size={22} color={colors.ink} />
-          </PressableScale>
-          <Text style={styles.brand}>Klenzer</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.brand}>Klenzer</Text>
+            <Text style={styles.brandSub}>Your library, tidied on this iPhone</Text>
+          </View>
           <PressableScale onPress={() => router.push('/paywall')} accessibilityLabel="Klenzer Pro" style={styles.pro} testID="open-paywall">
-            <Ionicons name="diamond" size={13} color={colors.gold} />
-            <Text style={styles.proText}>PRO</Text>
+            <Ionicons name="star" size={12} color={colors.lime} />
+            <Text style={styles.proText}>Pro</Text>
+          </PressableScale>
+          <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={styles.iconBtn} testID="open-settings">
+            <Ionicons name="options-outline" size={20} color={colors.ink} />
           </PressableScale>
         </View>
 
-        {scanning && <ScanBar percent={pct} reduceMotion={!!reduceMotion} />}
+        {scanning && <ScanBar percent={pct} reduceMotion={rm} />}
 
         {!!scanError && !scanning && (
           <Notice title="Scan didn’t finish" body={scanError}>
@@ -133,279 +135,174 @@ export default function Home() {
           </Notice>
         )}
 
-        {tab !== 'compress' && (
-          <View style={[styles.card, styles.storage]}>
-            <Text style={styles.storageLabel}>Storage</Text>
-            <View style={styles.nums}>
-              <Text style={styles.storageBig}>{formatFreeAmount(disk.free)}</Text>
-              <Text style={styles.storageOf}>free of {formatMarketedTotal(disk.total)}</Text>
+        <Animated.View entering={enter(0)} style={styles.hero} testID="home-hero">
+          <View style={styles.heroTop}>
+            <Text style={styles.heroLabel}>STORAGE</Text>
+            <View style={styles.heroChip}>
+              <Ionicons name="lock-closed" size={11} color={colors.lime} />
+              <Text style={styles.heroChipText}>On-device</Text>
             </View>
-            <View style={styles.gbar}>
-              <LinearGradient
-                colors={['#F6D365', '#FDA085', colors.blue]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ width: `${Math.max(2, usedPct * 100)}%`, height: '100%', borderRadius: 8 }}
-              />
-            </View>
-            <PressableScale onPress={smartClean} accessibilityLabel="Smart Clean" style={styles.smart} testID="smart-clean">
-              <Text style={styles.smartText}>Smart Clean</Text>
-              <Ionicons name="sparkles" size={18} color="#fff" />
-            </PressableScale>
           </View>
-        )}
+          <View style={styles.nums}>
+            <Text style={styles.storageBig}>{formatFreeAmount(disk.free)}</Text>
+            <Text style={styles.storageOf}>free of {formatMarketedTotal(disk.total)}</Text>
+          </View>
+          <View style={styles.gbar}>
+            <View style={[styles.gfill, { width: `${Math.max(2, usedPct * 100)}%` }]} />
+          </View>
+          <View style={styles.heroStats}>
+            <Stat label="Used" value={`${Math.round(usedPct * 100)}%`} />
+            <View style={styles.heroDivider} />
+            <Stat label="Ready to review" value={reviewBytes > 0 ? formatBytes(reviewBytes) : result ? 'All clear' : 'Scan to see'} />
+          </View>
+          <PressableScale onPress={smartClean} accessibilityLabel="Smart Clean" style={styles.smart} testID="smart-clean">
+            <Ionicons name="flash" size={18} color={colors.navy} />
+            <Text style={styles.smartText}>Smart Clean</Text>
+          </PressableScale>
+        </Animated.View>
 
-        {tab === 'clean' && (
-          <View style={{ marginTop: 14, gap: 12 }} testID="home-sections">
-            <Segmented options={SECTIONS} value={section} onChange={setSection} reduceMotion={rm} testID="home-switch" />
+        <View style={{ marginTop: 22, gap: 14 }} testID="home-sections">
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>Clean up</Text>
+            <Text style={styles.sectionHint}>Tap a group to review</Text>
+          </View>
+          <Segmented options={SECTIONS} value={section} onChange={setSection} reduceMotion={rm} testID="home-switch" />
 
-            {section === 'photos' && (
-              <View style={styles.grid} testID="home-grid-photos">
-                <CatCard
-                  kind="similar"
-                  title="Similar"
-                  count={result ? dupExtraCount(result.similar) : 0}
-                  bytes={result ? dupReclaimable(result.similar) : 0}
-                  thumbs={result?.similar.flatMap((g) => g.items).slice(0, 3) ?? []}
-                  spinning={photosSpin}
-                  reduceMotion={rm}
-                />
-                <CatCard
-                  kind="duplicates"
-                  title="Duplicate"
-                  count={result ? dupExtraCount(result.duplicates) : 0}
-                  bytes={result ? dupReclaimable(result.duplicates) : 0}
-                  thumbs={result?.duplicates.flatMap((g) => g.items).slice(0, 3) ?? []}
-                  spinning={photosSpin}
-                  reduceMotion={rm}
-                />
-                <CatCard
-                  kind="blurry"
-                  title="Blurry"
-                  count={result?.blurry.length ?? 0}
-                  bytes={result ? sum(result.blurry) : 0}
-                  thumbs={result?.blurry.slice(0, 3) ?? []}
-                  spinning={photosSpin}
-                  reduceMotion={rm}
-                />
-                <CatCard
-                  kind="screenshots"
-                  title="Screenshots"
-                  count={result?.screenshots.length ?? 0}
-                  bytes={result ? sum(result.screenshots) : 0}
-                  thumbs={result?.screenshots.slice(0, 3) ?? []}
-                  spinning={shotsSpin}
-                  reduceMotion={rm}
-                />
-                {showLive && (
-                  <CatCard
-                    kind="live"
-                    title="Live Photos"
-                    count={result?.livePhotos.length ?? 0}
-                    bytes={result ? sum(result.livePhotos) : 0}
-                    thumbs={result?.livePhotos.slice(0, 3) ?? []}
-                    spinning={photosSpin}
-                    wide
-                    reduceMotion={rm}
-                  />
-                )}
+          {section === 'photos' && (
+            <View style={styles.grid} testID="home-grid-photos" key="photos">
+              <CatCard i={1} kind="similar" title="Similar" count={result ? dupExtraCount(result.similar) : 0} bytes={result ? dupReclaimable(result.similar) : 0} spinning={photosSpin} reduceMotion={rm} />
+              <CatCard i={2} kind="duplicates" title="Duplicate" count={result ? dupExtraCount(result.duplicates) : 0} bytes={result ? dupReclaimable(result.duplicates) : 0} spinning={photosSpin} reduceMotion={rm} />
+              <CatCard i={3} kind="blurry" title="Blurry" count={result?.blurry.length ?? 0} bytes={result ? sum(result.blurry) : 0} spinning={photosSpin} reduceMotion={rm} />
+              <CatCard i={4} kind="screenshots" title="Screenshots" count={result?.screenshots.length ?? 0} bytes={result ? sum(result.screenshots) : 0} spinning={shotsSpin} reduceMotion={rm} />
+              {showLive && (
+                <CatCard i={5} kind="live" title="Live Photos" count={result?.livePhotos.length ?? 0} bytes={result ? sum(result.livePhotos) : 0} spinning={photosSpin} reduceMotion={rm} />
+              )}
+            </View>
+          )}
+
+          {section === 'videos' && (
+            <View style={styles.grid} testID="home-grid-videos" key="videos">
+              <CatCard i={1} kind="videoDuplicates" title="Duplicate" count={result ? dupExtraCount(result.duplicateVideos) : 0} bytes={result ? dupReclaimable(result.duplicateVideos) : 0} spinning={videoSpin} reduceMotion={rm} />
+              <CatCard i={2} kind="shortVideos" title="Short Recordings" count={result?.shortVideos?.length ?? 0} bytes={result ? sum(result.shortVideos ?? []) : 0} spinning={videoSpin} reduceMotion={rm} />
+              <CatCard i={3} kind="screenRecordings" title="Screen Recordings" count={result?.screenRecordings?.length ?? 0} bytes={result ? sum(result.screenRecordings ?? []) : 0} spinning={videoSpin} reduceMotion={rm} />
+              {showLargeVideos && (
+                <CatCard i={4} kind="videos" title="Large videos" count={result?.largeVideos.length ?? 0} bytes={result ? sum(result.largeVideos) : 0} spinning={videoSpin} reduceMotion={rm} />
+              )}
+            </View>
+          )}
+
+          {section === 'contacts' && <ContactsCard reduceMotion={rm} onPress={() => router.push('/contacts')} />}
+
+          {section === 'photos' && (
+            <>
+              <View style={[styles.sectionHead, { marginTop: 8 }]}>
+                <Text style={styles.sectionTitle}>Tools</Text>
               </View>
-            )}
-
-            {section === 'videos' && (
-              <View style={styles.grid} testID="home-grid-videos">
-                <CatCard
-                  kind="videoDuplicates"
-                  title="Duplicate"
-                  count={result ? dupExtraCount(result.duplicateVideos) : 0}
-                  bytes={result ? dupReclaimable(result.duplicateVideos) : 0}
-                  thumbs={result?.duplicateVideos.flatMap((g) => g.items).slice(0, 3) ?? []}
-                  spinning={videoSpin}
-                  reduceMotion={rm}
-                />
-                <CatCard
-                  kind="shortVideos"
-                  title="Short Recordings"
-                  count={result?.shortVideos?.length ?? 0}
-                  bytes={result ? sum(result.shortVideos ?? []) : 0}
-                  thumbs={result?.shortVideos?.slice(0, 3) ?? []}
-                  spinning={videoSpin}
-                  reduceMotion={rm}
-                />
-                <CatCard
-                  kind="screenRecordings"
-                  title="Screen Recordings"
-                  count={result?.screenRecordings?.length ?? 0}
-                  bytes={result ? sum(result.screenRecordings ?? []) : 0}
-                  thumbs={result?.screenRecordings?.slice(0, 3) ?? []}
-                  spinning={videoSpin}
-                  wide
-                  reduceMotion={rm}
-                />
-                {showLargeVideos && (
-                  <CatCard
-                    kind="videos"
-                    title="Large videos"
-                    count={result?.largeVideos.length ?? 0}
-                    bytes={result ? sum(result.largeVideos) : 0}
-                    thumbs={result?.largeVideos.slice(0, 3) ?? []}
-                    spinning={videoSpin}
-                    wide
-                    reduceMotion={rm}
-                  />
-                )}
-              </View>
-            )}
-
-            {section === 'photos' && (
-              <View style={{ gap: 10 }}>
+              <View style={styles.tools}>
                 <FeatureRow
-                  icon="albums"
+                  icon="swap-horizontal"
                   tone={colors.blue}
                   soft={colors.blueSoft}
                   title="Swipe to Organize"
-                  hint="Go month by month. Swipe left to delete, right to keep."
+                  hint="Month by month. Left to delete, right to keep."
                   onPress={() => router.push('/swipe')}
                   testID="open-swipe"
-                  reduceMotion={rm}
                 />
+                <View style={styles.toolsDivider} />
                 <FeatureRow
-                  icon="lock-closed"
+                  icon="finger-print"
                   tone={colors.violet}
                   soft={colors.violetSoft}
                   title="Secret Album"
                   hint="Encrypted photos behind Face ID or a PIN."
                   onPress={() => router.push('/secret-album')}
                   testID="open-secret-album"
-                  reduceMotion={rm}
                 />
               </View>
-            )}
-
-            {section === 'contacts' && <ContactsCard reduceMotion={rm} onPress={() => router.push('/contacts')} />}
-
-            <PressableScale onPress={() => setTab('compress')} accessibilityLabel="Want to save up extra space? Compress" style={[styles.card, styles.compressRow]} testID="compress-row">
-              <View style={{ flex: 1 }}>
-                <View style={styles.compressTop}>
-                  <Text style={styles.compressHint}>Want to save up extra space?</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.ink3} />
-                </View>
-                <Text style={styles.compressTitle}>Compress</Text>
-              </View>
-              <View style={styles.compressIcon}>
-                <Ionicons name="contract" size={18} color="#E85D9C" />
-              </View>
-            </PressableScale>
-          </View>
-        )}
-
-        {tab === 'compress' && (
-          <PressableScale onPress={() => comingSoon('Compress')} style={[styles.card, styles.soonCard, { marginTop: 8 }]}>
-            <View style={styles.compressIcon}>
-              <Ionicons name="contract" size={18} color="#E85D9C" />
-            </View>
-            <Text style={styles.soonTitle}>Compress</Text>
-            <Text style={styles.soonBody}>Want to save up extra space? Video compression is coming soon.</Text>
-            <View style={styles.soonPill}><Text style={styles.soonPillText}>COMING SOON</Text></View>
-          </PressableScale>
-        )}
+            </>
+          )}
+        </View>
       </ScrollView>
-
-      <View style={[styles.tabs, { bottom: Math.max(insets.bottom, 12) + 6 }]}>
-        <PressableScale onPress={() => setTab('clean')} style={styles.tab} haptic={false}>
-          <Ionicons name="sparkles" size={22} color={tab === 'clean' ? colors.blue : colors.ink3} />
-          <Text style={[styles.tabLabel, tab === 'clean' && { color: colors.blue }]}>Clean</Text>
-        </PressableScale>
-        <PressableScale onPress={() => setTab('compress')} style={styles.tab} haptic={false}>
-          <Ionicons name="archive-outline" size={22} color={tab === 'compress' ? colors.blue : colors.ink3} />
-          <Text style={[styles.tabLabel, tab === 'compress' && { color: colors.blue }]}>Compress</Text>
-        </PressableScale>
-        <PressableScale onPress={() => router.push('/settings')} style={styles.tab} haptic={false}>
-          <Ionicons name="settings-outline" size={22} color={colors.ink3} />
-          <Text style={styles.tabLabel}>Settings</Text>
-        </PressableScale>
-      </View>
     </View>
   );
 }
 
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+    </View>
+  );
+}
 
 function CatCard({
-  kind, title, count, bytes, thumbs, spinning, wide, reduceMotion,
+  i, kind, title, count, bytes, spinning, reduceMotion,
 }: {
+  i: number;
   kind: Kind;
   title: string;
   count: number;
   bytes: number;
-  thumbs: Item[];
   spinning: boolean;
-  wide?: boolean;
   reduceMotion: boolean;
 }) {
   const open = () => {
     if (!count) return;
     router.push({ pathname: '/review/[kind]', params: { kind } });
   };
-  const realThumbs = thumbs.filter((item) => !!item?.uri).slice(0, 3);
   const meta = KINDS[kind];
   const icon = meta.icon as keyof typeof Ionicons.glyphMap;
-  const showSpin = spinning;
-  const body = (
-    <PressableScale onPress={open} accessibilityLabel={`${title}, ${count} items`} style={[styles.card, styles.tile]}>
-      <View style={styles.tileTop}>
-        <Text style={styles.tileTitle}>
-          {title} <Text style={styles.tileCount}>({count.toLocaleString()})</Text>
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
-      </View>
-      <CountUp value={bytes} format={(n) => (n > 0 ? formatBytes(n) : count ? `${count}` : '0 MB')} style={styles.tileBytes} duration={700} />
-      {showSpin ? <ActivityIndicator style={{ marginTop: 16, alignSelf: 'flex-start' }} color={colors.blue} /> : <View style={{ height: 22, marginTop: 16 }} />}
-      <View style={styles.stack}>
-        {realThumbs.length ? (
-          <>
-            {realThumbs.map((item, i) => (
-              <Image key={item.id} source={{ uri: item.uri }} recyclingKey={item.id} style={[styles.stackThumb, styles[`stack${i}` as 'stack0' | 'stack1' | 'stack2']]} contentFit="cover" />
-            ))}
-            <View style={[styles.badge, { backgroundColor: meta.soft }]}>
-              <Ionicons name={icon} size={12} color={meta.tone} />
-            </View>
-          </>
-        ) : (
-          <View style={[styles.placeholder, { backgroundColor: meta.soft }]}>
-            <Ionicons name={icon} size={22} color={meta.tone} />
-          </View>
-        )}
-      </View>
-    </PressableScale>
-  );
-  const wrapStyle = wide ? ({ width: '100%' } as const) : ({ width: '48.5%', flexGrow: 1 } as const);
-  if (reduceMotion) return <View style={wrapStyle}>{body}</View>;
   return (
-    <Animated.View entering={FadeIn.duration(280)} style={wrapStyle}>
-      {body}
+    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(50 * i).springify().damping(18)} style={styles.tileWrap}>
+      <PressableScale onPress={open} accessibilityLabel={`${title}, ${count} items`} style={styles.tile}>
+        <View style={styles.tileTop}>
+          <View style={[styles.tileIcon, { backgroundColor: meta.soft }]}>
+            <Ionicons name={icon} size={20} color={meta.tone} />
+          </View>
+          {spinning ? (
+            <ActivityIndicator size="small" color={colors.blue} />
+          ) : (
+            <View style={styles.tileGo}>
+              <Ionicons name="arrow-forward" size={13} color={colors.ink2} />
+            </View>
+          )}
+        </View>
+        <Text style={styles.tileTitle} numberOfLines={1}>{title}</Text>
+        <View style={styles.tileNums}>
+          <CountUp value={count} format={(n) => Math.round(n).toLocaleString()} style={styles.tileCount} duration={reduceMotion ? 0 : 700} />
+          <Text style={styles.tileBytes}>{bytes > 0 ? formatBytes(bytes) : count ? 'items' : 'None yet'}</Text>
+        </View>
+        <View style={[styles.tileAccent, { backgroundColor: meta.tone }]} />
+      </PressableScale>
     </Animated.View>
   );
 }
 
 function ContactsCard({ reduceMotion, onPress }: { reduceMotion: boolean; onPress: () => void }) {
-  const body = (
-    <PressableScale onPress={onPress} accessibilityLabel="Merge duplicate contacts" style={[styles.card, styles.soonCard]} testID="open-contacts">
-      <View style={[styles.compressIcon, { backgroundColor: colors.violetSoft }]}>
-        <Ionicons name="people" size={18} color={colors.violet} />
-      </View>
-      <Text style={styles.soonTitle}>Merge duplicate contacts</Text>
-      <Text style={styles.soonBody}>Find contacts with the same name, number or email, preview the result, then merge. Contacts never leave your phone.</Text>
-      <View style={[styles.soonPill, { backgroundColor: colors.violetSoft }]}>
-        <Text style={[styles.soonPillText, { color: colors.violet }]}>FIND DUPLICATES</Text>
-      </View>
-    </PressableScale>
+  return (
+    <Animated.View entering={reduceMotion ? undefined : FadeInDown.springify().damping(18)}>
+      <PressableScale onPress={onPress} accessibilityLabel="Merge duplicate contacts" style={styles.contactCard} testID="open-contacts">
+        <View style={styles.tileTop}>
+          <View style={[styles.tileIcon, { backgroundColor: colors.violetSoft }]}>
+            <Ionicons name="people" size={20} color={colors.violet} />
+          </View>
+          <View style={styles.tileGo}>
+            <Ionicons name="arrow-forward" size={13} color={colors.ink2} />
+          </View>
+        </View>
+        <Text style={styles.contactTitle}>Merge duplicate contacts</Text>
+        <Text style={styles.contactBody}>Find contacts with the same name, number or email, preview the result, then merge. Contacts never leave your phone.</Text>
+        <View style={styles.contactPill}>
+          <Text style={styles.contactPillText}>Find duplicates</Text>
+        </View>
+      </PressableScale>
+    </Animated.View>
   );
-  if (reduceMotion) return body;
-  return <Animated.View entering={FadeIn.duration(280)}>{body}</Animated.View>;
 }
 
 function FeatureRow({
-  icon, tone, soft, title, hint, onPress, testID, reduceMotion,
+  icon, tone, soft, title, hint, onPress, testID,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   tone: string;
@@ -414,22 +311,19 @@ function FeatureRow({
   hint: string;
   onPress: () => void;
   testID: string;
-  reduceMotion: boolean;
 }) {
-  const body = (
-    <PressableScale onPress={onPress} accessibilityLabel={title} style={[styles.card, styles.compressRow]} testID={testID}>
-      <View style={[styles.compressIcon, { backgroundColor: soft }]}>
-        <Ionicons name={icon} size={18} color={tone} />
+  return (
+    <PressableScale onPress={onPress} accessibilityLabel={title} style={styles.featureRow} testID={testID}>
+      <View style={[styles.featureIcon, { backgroundColor: soft }]}>
+        <Ionicons name={icon} size={19} color={tone} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.soonTitle}>{title}</Text>
-        <Text style={styles.compressHint}>{hint}</Text>
+        <Text style={styles.featureTitle}>{title}</Text>
+        <Text style={styles.featureHint}>{hint}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
     </PressableScale>
   );
-  if (reduceMotion) return body;
-  return <Animated.View entering={FadeIn.duration(280)}>{body}</Animated.View>;
 }
 
 function Notice({ title, body, children }: { title: string; body: string; children: ReactNode }) {
@@ -443,47 +337,54 @@ function Notice({ title, body, children }: { title: string; body: string; childr
 }
 
 const styles = StyleSheet.create({
-  topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', ...shadow },
-  brand: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, letterSpacing: -0.4 },
-  pro: { height: 32, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.goldSoft, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  proText: { fontFamily: fonts.bold, fontSize: 13, color: '#6B5310', letterSpacing: 0.4 },
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, ...shadow },
-  storage: { padding: 20, paddingBottom: 18 },
-  storageLabel: { fontFamily: fonts.semi, fontSize: 13, color: colors.ink2 },
-  nums: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6, flexWrap: 'wrap' },
-  storageBig: { fontFamily: fonts.display, fontSize: 34, color: colors.ink, letterSpacing: -1 },
-  storageOf: { fontFamily: fonts.medium, fontSize: 16, color: colors.ink3 },
-  gbar: { marginTop: 14, marginBottom: 18, height: 8, borderRadius: 8, backgroundColor: colors.track, overflow: 'hidden' },
-  smart: { height: 52, borderRadius: 999, backgroundColor: colors.blue, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: colors.blue, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  smartText: { fontFamily: fonts.bold, fontSize: 17, color: '#fff' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tile: { width: '100%', padding: 14, minHeight: 128, overflow: 'hidden' },
-  tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
-  tileTitle: { fontFamily: fonts.semi, fontSize: 14.5, color: colors.ink, flex: 1 },
-  tileCount: { fontFamily: fonts.semi, fontSize: 14.5, color: colors.ink3 },
-  tileBytes: { marginTop: 4, fontFamily: fonts.bold, fontSize: 16, color: colors.ink },
-  stack: { position: 'absolute', right: 10, bottom: 12, width: 64, height: 64 },
-  stackThumb: { position: 'absolute', width: 50, height: 58, borderRadius: 10, borderWidth: 2, borderColor: '#fff' },
-  stack0: { right: 10, top: 0, transform: [{ rotate: '-8deg' }] },
-  stack1: { right: 0, top: 4, transform: [{ rotate: '8deg' }] },
-  stack2: { right: 5, top: 2, zIndex: 2 },
-  badge: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', zIndex: 4 },
-  placeholder: { position: 'absolute', right: 4, bottom: 0, width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  compressRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
-  compressTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  compressHint: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.ink3 },
-  compressTitle: { fontFamily: fonts.bold, fontSize: 19, color: colors.ink, marginTop: 2 },
-  compressIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FDE8F2', alignItems: 'center', justifyContent: 'center' },
-  soonCard: { padding: 20, gap: 8 },
-  soonTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.ink },
-  soonBody: { fontFamily: fonts.body, fontSize: 14, color: colors.ink2, lineHeight: 20 },
-  soonPill: { alignSelf: 'flex-start', backgroundColor: '#FDE8F2', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
-  soonPillText: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 0.5, color: '#9A4D7A' },
+  topbar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  brand: { fontFamily: fonts.display, fontSize: 30, color: colors.ink, letterSpacing: -0.8 },
+  brandSub: { fontFamily: fonts.medium, fontSize: 13, color: colors.ink3, marginTop: 1 },
+  iconBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  pro: { height: 34, paddingHorizontal: 13, borderRadius: 999, backgroundColor: colors.navy, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  proText: { fontFamily: fonts.bold, fontSize: 13.5, color: '#FFFFFF' },
+  hero: { backgroundColor: colors.navy, borderRadius: radius.xl, borderTopRightRadius: 10, padding: 20, paddingBottom: 18 },
+  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heroLabel: { fontFamily: fonts.bold, fontSize: 11.5, letterSpacing: 1.6, color: 'rgba(255,255,255,0.6)' },
+  heroChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, height: 24, borderRadius: 8, backgroundColor: 'rgba(200,242,90,0.12)' },
+  heroChipText: { fontFamily: fonts.semi, fontSize: 11.5, color: colors.lime },
+  nums: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 8, flexWrap: 'wrap' },
+  storageBig: { fontFamily: fonts.display, fontSize: 42, color: '#FFFFFF', letterSpacing: -1.2 },
+  storageOf: { fontFamily: fonts.medium, fontSize: 15, color: 'rgba(255,255,255,0.6)' },
+  gbar: { marginTop: 14, height: 10, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
+  gfill: { height: '100%', borderRadius: 4, backgroundColor: colors.lime },
+  heroStats: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 18 },
+  heroDivider: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.14)', marginHorizontal: 14 },
+  statLabel: { fontFamily: fonts.medium, fontSize: 12, color: 'rgba(255,255,255,0.55)' },
+  statValue: { fontFamily: fonts.bold, fontSize: 16, color: '#FFFFFF', marginTop: 2 },
+  smart: { height: 52, borderRadius: 16, backgroundColor: colors.lime, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  smartText: { fontFamily: fonts.bold, fontSize: 16.5, color: colors.navy },
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  sectionTitle: { fontFamily: fonts.display, fontSize: 21, color: colors.ink, letterSpacing: -0.4 },
+  sectionHint: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.ink3 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
+  tileWrap: { width: '48.4%' },
+  tile: { backgroundColor: colors.card, borderRadius: 20, borderBottomLeftRadius: 6, padding: 14, minHeight: 142, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
+  tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tileIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  tileGo: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  tileTitle: { fontFamily: fonts.semi, fontSize: 14, color: colors.ink2, marginTop: 14 },
+  tileNums: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 },
+  tileCount: { fontFamily: fonts.display, fontSize: 28, color: colors.ink, letterSpacing: -0.6 },
+  tileBytes: { fontFamily: fonts.semi, fontSize: 12.5, color: colors.ink3 },
+  tileAccent: { position: 'absolute', left: 14, bottom: 0, width: 28, height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  contactCard: { backgroundColor: colors.card, borderRadius: 20, borderBottomLeftRadius: 6, padding: 18, gap: 8, borderWidth: 1, borderColor: colors.line },
+  contactTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.ink, marginTop: 6 },
+  contactBody: { fontFamily: fonts.body, fontSize: 14, color: colors.ink2, lineHeight: 20 },
+  contactPill: { alignSelf: 'flex-start', backgroundColor: colors.navy, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginTop: 4 },
+  contactPillText: { fontFamily: fonts.semi, fontSize: 12.5, color: '#FFFFFF' },
+  tools: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
+  toolsDivider: { height: 1, backgroundColor: colors.line, marginLeft: 66 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
+  featureIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  featureTitle: { fontFamily: fonts.semi, fontSize: 15.5, color: colors.ink },
+  featureHint: { fontFamily: fonts.body, fontSize: 13, color: colors.ink3, marginTop: 1 },
   notice: { backgroundColor: colors.amberSoft, borderRadius: radius.md, padding: 16, gap: 10, marginBottom: 12 },
   noticeTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.ink },
   noticeBody: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.ink2 },
-  tabs: { position: 'absolute', left: 16, right: 16, height: 62, backgroundColor: colors.card, borderRadius: 999, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, ...shadow },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  tabLabel: { fontFamily: fonts.semi, fontSize: 10.5, color: colors.ink3 },
 });

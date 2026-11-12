@@ -1,10 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { colors, fonts, shadow } from '../theme';
+import { colors, fonts } from '../theme';
 
-/** Segmented switcher with a sliding thumb. Reduce Motion: the thumb moves without a spring. */
+/** Pill switcher with a dark sliding pill. Reduce Motion: the pill moves without a spring. */
 export function Segmented<T extends string>({
   options,
   value,
@@ -12,7 +13,7 @@ export function Segmented<T extends string>({
   reduceMotion,
   testID,
 }: {
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; icon?: keyof typeof Ionicons.glyphMap }[];
   value: T;
   onChange: (value: T) => void;
   reduceMotion: boolean;
@@ -20,11 +21,11 @@ export function Segmented<T extends string>({
 }) {
   const [width, setWidth] = useState(0);
   const index = Math.max(0, options.findIndex((o) => o.value === value));
-  const segW = width ? (width - 8) / options.length : 0;
+  const segW = width ? (width - 10) / options.length : 0;
   const x = useSharedValue(0);
   useEffect(() => {
     const to = index * segW;
-    x.value = reduceMotion ? to : withSpring(to, { damping: 20, stiffness: 220 });
+    x.value = reduceMotion ? to : withSpring(to, { damping: 22, stiffness: 260 });
   }, [index, segW, reduceMotion, x]);
   const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
@@ -47,6 +48,7 @@ export function Segmented<T extends string>({
               Haptics.selectionAsync().catch(() => {});
               onChange(o.value);
             }}>
+            {o.icon && <Ionicons name={o.icon} size={15} color={on ? colors.lime : colors.ink2} />}
             <Text style={[styles.label, on && styles.labelOn]}>{o.label}</Text>
           </Pressable>
         );
@@ -56,9 +58,9 @@ export function Segmented<T extends string>({
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', backgroundColor: colors.track, borderRadius: 14, padding: 4, height: 46 },
-  thumb: { position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 11, backgroundColor: colors.card, ...shadow },
-  seg: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: fonts.semi, fontSize: 14.5, color: colors.ink2 },
-  labelOn: { color: colors.ink },
+  wrap: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 999, padding: 5, height: 50, borderWidth: 1, borderColor: colors.line },
+  thumb: { position: 'absolute', top: 5, bottom: 5, left: 5, borderRadius: 999, backgroundColor: colors.navy },
+  seg: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  label: { fontFamily: fonts.semi, fontSize: 14, color: colors.ink2 },
+  labelOn: { color: '#FFFFFF' },
 });

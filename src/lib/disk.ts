@@ -1,6 +1,7 @@
 import { Paths } from 'expo-file-system';
 import { getFreeDiskStorageAsync, getTotalDiskCapacityAsync } from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
+import { DEMO } from './demo';
 
 export type DiskInfo = { total: number; free: number; used: number };
 
@@ -8,6 +9,8 @@ const make = (total: number, free: number): DiskInfo => ({ total, free, used: Ma
 
 /** Instant first guess (raw free bytes) so the ring isn't empty on first paint. */
 export function getDiskInfoSync(): DiskInfo {
+  // Dev-only demo device for screenshots (never true in a production build).
+  if (DEMO) return make(256e9, 68.4e9);
   return make(Paths.totalDiskSpace ?? 0, Paths.availableDiskSpace ?? 0);
 }
 
@@ -18,6 +21,7 @@ export function getDiskInfoSync(): DiskInfo {
  * fills and empties its caches, and it never matches Settings.
  */
 export async function getDiskInfo(): Promise<DiskInfo> {
+  if (DEMO) return getDiskInfoSync();
   if (Platform.OS === 'ios') {
     try {
       const [total, free] = await Promise.all([getTotalDiskCapacityAsync(), getFreeDiskStorageAsync()]);

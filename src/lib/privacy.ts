@@ -23,7 +23,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Purchases',
-    p: 'Scanning and reviewing your library is free. Deleting items, merging contacts, adding photos to Secret Album, converting Live Photos to stills, and clearing temporary files require Klenzer Pro, sold as a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Without Pro, you get a few free items each day for deleting, merging and Secret Album, counted on the device only. Apple or Google processes the payment and the app checks those store entitlements on the device — it does not create an account or send a name or email. You can restore a previous purchase from Settings. Prices are shown in the app at the time of purchase and are not hard-coded.',
+    p: 'Scanning and reviewing your library is free. Without Klenzer Pro you get 10 free items each day, shared across deleting photos and videos, merging contacts and adding photos to Secret Album, counted on the device only. Klenzer Pro removes the limit and adds Convert Live Photo to still. It is sold as a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Apple or Google processes the payment and the app checks those store entitlements on the device. It does not create an account or send a name or email. You can restore a previous purchase from Settings or the Klenzer Pro screen. Prices are shown in the app at the time of purchase and are not hard-coded.',
   },
   {
     h: 'Deleting photos',

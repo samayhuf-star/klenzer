@@ -55,16 +55,16 @@ describe('home layout', () => {
     assert.doesNotMatch(home, /ScanProgress/);
     assert.match(home, /<ScanBar/);
   });
-  it('has the Photos, Videos and Contacts switcher and the Compress row', () => {
+  it('has the Photos, Videos and Contacts switcher and no Compress row', () => {
     assert.match(home, /<Segmented/);
     for (const kind of ['similar', 'duplicates', 'blurry', 'screenshots', 'videoDuplicates', 'shortVideos', 'screenRecordings']) {
       assert.match(home, new RegExp(`kind="${kind}"`));
     }
-    assert.match(home, /Want to save up extra space\?/);
+    assert.doesNotMatch(home, /Want to save up extra space\?/);
   });
   it('scan bar copy has no ellipsis character', () => {
     const bar = src('src/components/ScanBar.tsx');
-    assert.match(bar, /'Analyzing files on your device'/);
+    assert.match(bar, /'Scanning your library on this iPhone'/);
     assert.doesNotMatch(bar, /\u2026/);
   });
 });

@@ -12,7 +12,11 @@ export const DEMO: boolean = typeof __DEV__ !== 'undefined' && __DEV__ === true 
 const DAY = 86_400_000;
 const BASE = Date.UTC(2026, 9, 28, 10, 0, 0);
 
-const pic = (seed: string, w = 600, h = 800) => `https://picsum.photos/seed/klenzer-${seed}/${w}/${h}`;
+const IMG_BASE = process.env.EXPO_PUBLIC_DEMO_IMG_BASE;
+const seedNum = (seed: string) => Array.from(seed).reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+/** Demo photo URL. EXPO_PUBLIC_DEMO_IMG_BASE points at a local folder of 0.jpg to 23.jpg for screenshots; otherwise picsum. */
+export const pic = (seed: string, w = 600, h = 800) =>
+  IMG_BASE ? `${IMG_BASE}/${(/^\d+$/.test(seed) ? Number(seed) : seedNum(seed)) % 24}.jpg` : `https://picsum.photos/seed/klenzer-${seed}/${w}/${h}`;
 
 export function demoItem(n: number, extra: Partial<Item> = {}): Item {
   const isVideo = !!extra.isVideo;
@@ -38,8 +42,9 @@ export function demoScanResult(): ScanResult {
   const screenshots = Array.from({ length: 14 }, (_, i) => demoItem(200 + i, { filename: `Screenshot ${i + 1}.PNG`, isScreenshot: true, width: 1320, height: 2868, size: 900_000 + i * 40_000 }));
   const videos = Array.from({ length: 10 }, (_, i) => demoItem(300 + i, { isVideo: true, duration: i < 5 ? 3 + i : 40 + i * 30, size: 6_000_000 + i * 9_000_000 }));
   const screenRecordings = [0, 1, 2].map((i) => demoItem(400 + i, { isVideo: true, filename: `RPReplay_Final170000000${i}.MP4`, duration: 45 + i * 20, size: 38_000_000 + i * 12_000_000 }));
-  const sim = [0, 1, 2, 3].map((g) => group(`s${g}`, [0, 1, 2].map((k) => demoItem(500 + g * 3 + k))));
-  const dup = [0, 1, 2].map((g) => group(`d${g}`, [0, 1].map((k) => demoItem(600 + g * 2 + k))));
+  // Each group shows the same picture so the demo reads like real look-alike shots.
+  const sim = [0, 1, 2, 3].map((g) => group(`s${g}`, [0, 1, 2].map((k) => demoItem(500 + g * 3 + k, { uri: pic(String([3, 6, 21, 13][g])) }))));
+  const dup = [0, 1, 2].map((g) => group(`d${g}`, [0, 1].map((k) => demoItem(600 + g * 2 + k, { uri: pic(String([8, 19, 1][g])) }))));
   return {
     scannedAt: BASE,
     photoCount: 4182,

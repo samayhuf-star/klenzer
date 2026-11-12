@@ -1,3 +1,4 @@
+import { DEMO } from '../../lib/demo';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -206,7 +207,7 @@ export default function Review() {
               </Text>
             </PressableScale>
             <Text style={styles.barNote}>
-              {Platform.OS === 'ios'
+              {Platform.OS === 'ios' || DEMO
                 ? 'Your iPhone will ask you to confirm before anything is deleted. Items go to Recently Deleted.'
                 : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}
             </Text>
