@@ -1,4 +1,4 @@
-import Purchases, { CustomerInfo, LOG_LEVEL, PACKAGE_TYPE, PurchasesOffering, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
+import Purchases, { CustomerInfo, LOG_LEVEL, PACKAGE_TYPE, PurchasesOffering, PurchasesOfferings, PurchasesPackage, PurchasesStoreProduct } from 'react-native-purchases';
 import { Platform } from 'react-native';
 import { RC_ANDROID_KEY, RC_ENTITLEMENT, RC_IOS_KEY, RC_SECOND_CHANCE_OFFERING } from './config';
 
@@ -17,6 +17,16 @@ let configured = false;
 
 /** True once the SDK has a key; without one (e.g. a fresh clone) the paywall shows a friendly "unavailable" state. */
 export const purchasesAvailable = () => configured;
+
+/** Configure if needed, then wait until the SDK reports it is ready. */
+export async function whenConfigured(): Promise<boolean> {
+  if (!configurePurchases()) return false;
+  try {
+    return await Purchases.isConfigured();
+  } catch {
+    return configured;
+  }
+}
 
 export function configurePurchases(): boolean {
   if (configured) return true;
@@ -52,7 +62,12 @@ export function onCustomerInfo(cb: (info: CustomerInfo) => void): () => void {
   };
 }
 
-export type Plan = { pkg: PurchasesPackage; kind: 'lifetime' | 'monthly'; price: string };
+export type Plan = {
+  kind: 'lifetime' | 'monthly';
+  price: string;
+  pkg?: PurchasesPackage;
+  product?: PurchasesStoreProduct;
+};
 
 function productId(pkg: PurchasesPackage | null | undefined): string {
   return pkg?.product?.identifier ?? '';
@@ -178,32 +193,121 @@ export function logPaywallOfferingsDiagnostic(offerings: PurchasesOfferings | nu
   });
 }
 
-export async function loadOfferings(): Promise<{
+function errorDetails(e: unknown): { code?: unknown; readableErrorCode: string; underlyingErrorMessage: string; message: string } {
+  if (!e || typeof e !== 'object') return { readableErrorCode: '', underlyingErrorMessage: '', message: String(e) };
+  const x = e as Record<string, unknown>;
+  const userInfo = x.userInfo && typeof x.userInfo === 'object' ? (x.userInfo as Record<string, unknown>) : null;
+  return {
+    code: x.code,
+    readableErrorCode: String(x.readableErrorCode ?? userInfo?.readableErrorCode ?? ''),
+    underlyingErrorMessage: String(x.underlyingErrorMessage ?? ''),
+    message: String(x.message ?? ''),
+  };
+}
+
+export function shortPaywallReason(details: { readableErrorCode: string; underlyingErrorMessage: string; message: string }, emptyOfferings = false): string {
+  const code = details.readableErrorCode || '';
+  const blob = `${details.underlyingErrorMessage} ${details.message}`;
+  if (code.includes('CONFIGURATION') || /configuration/i.test(blob)) return 'Purchases isn’t configured correctly.';
+  if (code.includes('PRODUCT') || /product(s)? not found|could not find product/i.test(blob)) {
+    return 'The store did not return Klenzer’s products.';
+  }
+  if (/NETWORK|OFFLINE|INTERNET/i.test(code) || /network|offline|internet/i.test(blob)) {
+    return 'A network error stopped prices from loading.';
+  }
+  if (emptyOfferings) return 'No current offering, or the offering has no matching products.';
+  if (details.underlyingErrorMessage) return details.underlyingErrorMessage.slice(0, 160);
+  if (details.message) return details.message.slice(0, 160);
+  return '';
+}
+
+function logCaught(action: string, e: unknown) {
+  const d = errorDetails(e);
+  console.log(PAYWALL_LOG, `${action} failed`, {
+    code: d.code,
+    readableErrorCode: d.readableErrorCode,
+    underlyingErrorMessage: d.underlyingErrorMessage,
+    message: d.message,
+  });
+  return d;
+}
+
+async function plansFromStoreProducts(): Promise<Plan[]> {
+  const plans: Plan[] = [];
+  try {
+    const lifetime = await Purchases.getProducts([LIFETIME_PRODUCT_ID], Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION);
+    const product = lifetime.find((p) => p.identifier === LIFETIME_PRODUCT_ID) ?? lifetime[0];
+    if (product?.priceString) plans.push({ kind: 'lifetime', price: product.priceString, product });
+    else console.log(PAYWALL_LOG, 'getProducts lifetime returned', lifetime.map((p) => p.identifier));
+  } catch (e) {
+    logCaught('getProducts lifetime', e);
+  }
+  try {
+    const monthly = await Purchases.getProducts([MONTHLY_PRODUCT_ID], Purchases.PRODUCT_CATEGORY.SUBSCRIPTION);
+    const product = monthly.find((p) => p.identifier === MONTHLY_PRODUCT_ID) ?? monthly[0];
+    if (product?.priceString) plans.push({ kind: 'monthly', price: product.priceString, product });
+    else console.log(PAYWALL_LOG, 'getProducts monthly returned', monthly.map((p) => p.identifier));
+  } catch (e) {
+    logCaught('getProducts monthly', e);
+  }
+  return plans;
+}
+
+export type OfferingsLoad = {
   main: PurchasesOffering | null;
   secondChance: PurchasesOffering | null;
   raw: PurchasesOfferings | null;
-}> {
-  if (!configured) return { main: null, secondChance: null, raw: null };
-  try {
-    const o = await Purchases.getOfferings();
-    return {
-      main: selectMainOffering(o),
-      secondChance: o.all[RC_SECOND_CHANCE_OFFERING] ?? null,
-      raw: o,
-    };
-  } catch {
-    return { main: null, secondChance: null, raw: null };
+  plans: Plan[];
+  error: string | null;
+};
+
+export async function loadOfferings(): Promise<OfferingsLoad> {
+  const empty: OfferingsLoad = { main: null, secondChance: null, raw: null, plans: [], error: null };
+  if (!(await whenConfigured())) {
+    console.log(PAYWALL_LOG, 'SDK is not configured; skipping getOfferings');
+    return { ...empty, error: 'Purchases aren’t configured in this build.' };
   }
+  let raw: PurchasesOfferings | null = null;
+  let offeringsError: ReturnType<typeof errorDetails> | null = null;
+  try {
+    raw = await Purchases.getOfferings();
+    logPaywallOfferingsDiagnostic(raw);
+  } catch (e) {
+    offeringsError = logCaught('getOfferings', e);
+  }
+  const main = raw ? selectMainOffering(raw) : null;
+  const secondChance = raw?.all[RC_SECOND_CHANCE_OFFERING] ?? null;
+  let plans = plansFor(main);
+  if (plans.length === 0) {
+    console.log(PAYWALL_LOG, 'offerings empty or unmatched, trying getProducts fallback');
+    plans = await plansFromStoreProducts();
+  }
+  let error: string | null = null;
+  if (plans.length === 0) {
+    error = offeringsError
+      ? shortPaywallReason(offeringsError)
+      : shortPaywallReason({ readableErrorCode: '', underlyingErrorMessage: '', message: '' }, true);
+  }
+  return { main, secondChance, raw, plans, error };
 }
 
 export type BuyResult = 'purchased' | 'cancelled' | 'error';
 
-export async function buy(pkg: PurchasesPackage): Promise<BuyResult> {
+export async function buy(plan: Plan): Promise<BuyResult> {
   try {
-    const { customerInfo } = await Purchases.purchasePackage(pkg);
-    return hasPro(customerInfo) ? 'purchased' : 'error';
+    const result = plan.pkg
+      ? await Purchases.purchasePackage(plan.pkg)
+      : plan.product
+        ? await Purchases.purchaseStoreProduct(plan.product)
+        : null;
+    if (!result) return 'error';
+    return hasPro(result.customerInfo) ? 'purchased' : 'error';
   } catch (e) {
-    return (e as { userCancelled?: boolean })?.userCancelled ? 'cancelled' : 'error';
+    const d = errorDetails(e);
+    if ((e as { userCancelled?: boolean })?.userCancelled) return 'cancelled';
+    logCaught('purchase', e);
+    void d;
+    return 'error';
   }
 }
 

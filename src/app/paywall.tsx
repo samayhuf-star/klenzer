@@ -7,25 +7,22 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { PurchasesOffering } from 'react-native-purchases';
 import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
-import { buy, loadOfferings, logPaywallOfferingsDiagnostic, Plan, plansFor, purchasesAvailable, restore } from '../lib/purchases';
-import { reclaimableBytes } from '../lib/reclaim';
+import { buy, loadOfferings, Plan, plansFor, purchasesAvailable, restore, type OfferingsLoad } from '../lib/purchases';
+import { scanReclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
-
-type Offers = { main: PurchasesOffering | null; secondChance: PurchasesOffering | null };
 
 const PERKS = ['Clear duplicates, screenshots and big videos in one tap', 'Scanning always stays free', 'Your photos never leave your phone'];
 
 export default function Paywall() {
   const insets = useSafeAreaInsets();
-  const { result, tempSize, completeUnlock } = useStore();
-  const reclaim = reclaimableBytes(result, tempSize);
-  const [offers, setOffers] = useState<Offers | null>(null);
+  const { result, completeUnlock } = useStore();
+  const reclaim = scanReclaimableBytes(result);
+  const [offers, setOffers] = useState<OfferingsLoad | null>(null);
   const [second, setSecond] = useState(false);
   const [sel, setSel] = useState<Plan['kind']>('lifetime');
   const [busy, setBusy] = useState(false);
@@ -36,15 +33,13 @@ export default function Paywall() {
     loadOfferings().then((o) => {
       if (!alive) return;
       setOffers(o);
-      if (plansFor(o.main).length === 0) logPaywallOfferingsDiagnostic(o.raw);
     });
     return () => {
       alive = false;
     };
   }, [attempt]);
 
-  const offering = second && offers?.secondChance ? offers.secondChance : (offers?.main ?? null);
-  const plans = plansFor(offering);
+  const plans = second && offers?.secondChance ? plansFor(offers.secondChance) : (offers?.plans ?? []);
   const chosen = plans.find((p) => p.kind === sel) ?? plans[0];
   const loading = offers === null;
 
@@ -61,7 +56,7 @@ export default function Paywall() {
   const purchase = async () => {
     if (!chosen || busy) return;
     setBusy(true);
-    const r = await buy(chosen.pkg);
+    const r = await buy(chosen);
     setBusy(false);
     if (r === 'purchased') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -115,7 +110,9 @@ export default function Paywall() {
           <View style={styles.unavailable}>
             <Text style={styles.unavailableTitle}>{purchasesAvailable() ? 'Couldn’t load prices' : 'Purchases aren’t available yet'}</Text>
             <Text style={styles.unavailableBody}>
-              {purchasesAvailable() ? 'Check your connection and try again.' : 'This build has no store connection. Install a release or development build to buy.'}
+              {purchasesAvailable()
+                ? (offers?.error ? `${offers.error} Check your connection and try again.` : 'Check your connection and try again.')
+                : 'This build has no store connection. Install a release or development build to buy.'}
             </Text>
             <Button variant="light" label="Try again" onPress={() => setAttempt((n) => n + 1)} />
           </View>

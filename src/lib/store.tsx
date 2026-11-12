@@ -10,7 +10,7 @@ import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
 import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders } from './reminders';
-import { configurePurchases, currentCustomer, hasPro, onCustomerInfo } from './purchases';
+import { currentCustomer, hasPro, onCustomerInfo, whenConfigured } from './purchases';
 import { reclaimableBytes } from './reclaim';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
@@ -111,7 +111,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
       } catch {}
-      if (configurePurchases()) setIsPro(hasPro(await currentCustomer()));
+      if (await whenConfigured()) setIsPro(hasPro(await currentCustomer()));
       try {
         setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
       } catch {}
