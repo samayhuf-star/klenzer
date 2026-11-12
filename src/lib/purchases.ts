@@ -23,6 +23,8 @@ export function configurePurchases(): boolean {
   if (!key) return false;
   try {
     if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.WARN);
+    // Anonymous RevenueCat app user ID only. Do not collect device identifiers
+    // or Apple Search Ads (AdServices) attribution, and do not set utm/campaign attributes.
     Purchases.configure({ apiKey: key });
     configured = true;
   } catch {

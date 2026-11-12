@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
+import * as WebBrowser from 'expo-web-browser';
 import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
-import { SUPPORT_EMAIL } from '../lib/config';
+import { SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { restore } from '../lib/purchases';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
@@ -27,6 +28,9 @@ export default function Settings() {
     Alert.alert(ok ? 'Restored' : 'Nothing to restore', ok ? 'Klenzer is unlocked on this device.' : 'We couldn’t find a previous purchase on this account.');
   };
   const accessLabel = access === 'granted' ? 'Full access' : access === 'limited' ? 'Limited' : access === 'denied' ? 'Off' : 'Not asked yet';
+  const openUrl = (url: string) => {
+    WebBrowser.openBrowserAsync(url).catch(() => Linking.openURL(url));
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -56,8 +60,9 @@ export default function Settings() {
         </View>
         <View style={styles.card}>
           <Row icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => router.push('/privacy')} chevron />
+          <Row icon="document-text-outline" label="Terms of Use" onPress={() => openUrl(TERMS_URL)} chevron />
+          <Row icon="help-circle-outline" label="Contact support" onPress={() => openUrl(SUPPORT_URL)} chevron />
           <Row icon="star-outline" label="Rate Klenzer" onPress={async () => (await StoreReview.hasAction()) && StoreReview.requestReview()} chevron />
-          <Row icon="mail-outline" label="Contact support" onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Klenzer%20support`)} chevron />
         </View>
         <View style={styles.card}>
           <Row icon="lock-closed-outline" label="Your photos stay on this device" />

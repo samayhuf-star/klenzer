@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
+import { PRIVACY_URL } from '../lib/config';
 import { PRIVACY_SECTIONS, PRIVACY_UPDATED } from '../lib/privacy';
 import { colors, fonts } from '../theme';
 
@@ -25,6 +27,13 @@ export default function Privacy() {
             <Text style={styles.p}>{s.p}</Text>
           </View>
         ))}
+        <Text
+          style={styles.link}
+          onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
+          accessibilityRole="link"
+        >
+          View the hosted privacy policy
+        </Text>
       </ScrollView>
     </View>
   );
@@ -37,4 +46,5 @@ const styles = StyleSheet.create({
   updated: { fontFamily: fonts.medium, fontSize: 13, color: colors.ink3 },
   h: { fontFamily: fonts.bold, fontSize: 17, color: colors.ink },
   p: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.ink2 },
+  link: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 22, color: colors.blue, marginTop: 8 },
 });

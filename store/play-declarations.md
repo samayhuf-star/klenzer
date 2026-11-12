@@ -15,11 +15,10 @@ Klenzer's single purpose is to find duplicate photos, screenshots, Live Photos a
 **Video demo (required):** record ~30-60 s on a real device or emulator showing: (1) permission prompt, (2) tap "Scan my library", (3) the three result categories, (4) open Duplicates, select items, (5) tap Delete, (6) the Android system confirmation, (7) the success screen. Upload as an unlisted YouTube link.
 
 ## Data safety
-- Collects or shares user data: **No** (all processing on device; local notifications are scheduled on the device and send nothing).
-- Data encrypted in transit / deletion request: not applicable.
-- Privacy policy URL: https://klenzer-privacy-krosz.vercel.app
+- Collects or shares user data: **Yes**, limited to purchase history and an anonymous RevenueCat app user ID so Klenzer Pro can be unlocked and restored. Photos and videos are processed on-device only and are not collected or shared. Local notifications send nothing. No device identifiers and no tracking.
+- Privacy policy URL: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
 
 ## Other App content forms
 - Ads: **No**. Target audience: **18+**, not designed for children. News app / government / financial / health: **No**.
-- Content rating (IARC): Utility; no UGC, no violence, no purchases → expect **Everyone**.
+- Content rating (IARC): Utility; no UGC, no violence. There are in-app purchases (lifetime and monthly). Complete the questionnaire accordingly.
 - Permissions notice: `POST_NOTIFICATIONS` is optional and only requested if the user turns on reminders.

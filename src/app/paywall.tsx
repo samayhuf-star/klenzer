@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PurchasesOffering } from 'react-native-purchases';
 import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
-import { PRIVACY_URL, TERMS_URL } from '../lib/config';
+import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
 import { buy, loadOfferings, Plan, plansFor, purchasesAvailable, restore, storefrontCountry } from '../lib/purchases';
 import { reclaimableBytes } from '../lib/reclaim';
@@ -152,6 +152,10 @@ export default function Paywall() {
           <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} accessibilityRole="link">
             Privacy
           </Text>
+          <Text style={styles.dot}>·</Text>
+          <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} accessibilityRole="link">
+            Support
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -203,7 +207,7 @@ const styles = StyleSheet.create({
   best: { backgroundColor: colors.mintSoft, borderRadius: radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
   bestText: { fontFamily: fonts.bold, fontSize: 10.5, letterSpacing: 0.8, color: '#0A8F6C' },
   fine: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: colors.ink3, textAlign: 'center' },
-  links: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 6 },
+  links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 6 },
   link: { fontFamily: fonts.semi, fontSize: 13.5, color: colors.blue, paddingVertical: 6 },
   dot: { color: colors.ink3 },
   unavailable: { backgroundColor: colors.card, borderRadius: radius.md, padding: 18, gap: 10, ...shadow },

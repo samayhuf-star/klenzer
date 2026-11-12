@@ -10,7 +10,7 @@ Every claim below is something the app actually does. Do not add "boost", "speed
 | Subtitle | Duplicate & Screenshot Cleaner | 30/30 |
 | Category | Primary: Utilities · Secondary: Photo & Video | |
 | Age rating | 4+ | |
-| Price | Free, no in-app purchases (v1) | |
+| Price | Free to download. In-app purchases: lifetime unlock (`com.krosz.klenzer.lifetime`) and auto-renewing monthly (`com.krosz.klenzer.monthly`). Prices are shown in the app. | |
 
 **Keywords (100 max):**
 `duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,large files,organizer,tidy`
@@ -34,7 +34,7 @@ Your camera roll is full of things you never meant to keep: the same photo taken
 Nothing is ever deleted automatically. You review every item, choose what goes, and your iPhone asks you to confirm. Deleted items land in Recently Deleted, so you can change your mind.
 
 **PRIVATE BY DESIGN**
-Klenzer works entirely on your device. Your photos are never uploaded, shared or analysed in the cloud. No account, no tracking, no ads.
+Your photos are never uploaded, shared or analysed in the cloud. There is no account, no tracking and no ads. Purchase status for Klenzer Pro is handled by the store and RevenueCat using an anonymous ID.
 
 **GOOD TO KNOW**
 Klenzer cleans photos and videos, which are usually the biggest users of space. It does not and cannot clear other apps' data or system files. Photos stored only in iCloud are not measured. To free space after deleting, empty Recently Deleted in the Photos app: iOS doesn't allow apps to do this, so Klenzer shows how much is waiting there and opens Photos for you.
@@ -51,7 +51,7 @@ Questions? Contact us from Settings › Contact support.
 Klenzer is a native app (Expo/React Native) that uses PhotoKit via expo-media-library to scan the user's library on-device. No login required; no demo account needed. To test, allow Photos access and tap "Scan my library". Deletion uses the system confirmation dialog (PHPhotoLibrary performChanges). No data is transmitted off device. Photo access purpose is stated in NSPhotoLibraryUsageDescription. The app can optionally schedule local (on-device) reminder notifications if the user enables them in Settings or on the success screen; no push server or remote notifications are used.
 
 ### App Privacy ("nutrition label") answers
-**Data Not Collected.** The app transmits nothing off device and has no third-party SDKs that collect data.
+**Purchases — Purchase History** and **Identifiers — User ID** (RevenueCat anonymous app user ID) are collected and linked to the user, for App Functionality, not used for tracking. Photos stay on the device and are not collected. No Device ID and no advertising attribution.
 
 ## Google Play
 
@@ -79,7 +79,7 @@ Your gallery is full of things you never meant to keep: the same photo three tim
 Nothing is deleted automatically. You review every item and choose what goes. Android asks you to confirm before anything is deleted. Deleted items can't be restored by Klenzer, so check your selection.
 
 ★ PRIVATE BY DESIGN
-Klenzer works entirely on your device. Photos are never uploaded or shared. No account, no tracking, no ads.
+Photos are never uploaded or shared. There is no account, no tracking and no ads. Purchase status for Klenzer Pro is handled by the store and RevenueCat using an anonymous ID.
 
 ★ GOOD TO KNOW
 Klenzer cleans photos and videos, typically the biggest users of space. It does not clear other apps' data or system files.
@@ -89,9 +89,11 @@ Optional reminders: if you turn them on, Klenzer sends a few occasional notifica
 Klenzer needs permission to read your photos and videos to find clutter. You can change this any time in Settings.
 
 ### Data safety answers
-- Data collected: **None**. Data shared: **None**.
-- Data encrypted in transit: n/a (no transmission). Deletion request: n/a (no data collected).
-- Privacy policy URL: required (hosted at https://klenzer-privacy-krosz.vercel.app, source in `store/privacy-policy.html`).
+- Data collected: purchase history and an anonymous RevenueCat app user ID (for Klenzer Pro). Photos are not uploaded. No device identifiers or tracking.
+- Data shared: RevenueCat (purchase/entitlement status only).
+- Privacy policy URL: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
+- Terms URL: https://samayhuf-star.github.io/app-legal/klenzer/terms.html
+- Support URL: https://samayhuf-star.github.io/app-legal/klenzer/support.html
 
 ### Photo & Video permissions declaration (REQUIRED, high rejection risk)
 Play restricts `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`. In Play Console › App content › Photo and video permissions, declare:
@@ -102,14 +104,13 @@ Play restricts `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`. In Play Console › App
 ## Pre-submission compliance checklist
 - [x] No fake/hardcoded device data; all numbers from the OS or computed from the user's library
 - [x] No misleading optimizer claims
-- [x] No ads, trackers, analytics or third-party data SDKs
+- [x] No ads or tracking SDKs. RevenueCat is used only for purchases and entitlements (anonymous app user ID). Device-identifier and AdServices collection are not enabled.
 - [x] Permission strings explain exactly why (iOS) and permissions minimised (Android: audio/location/overlay blocked)
 - [x] Deletion needs user selection + OS confirmation; never automatic
-- [x] Privacy manifest included (iOS); Data Safety = none
+- [x] Privacy manifest included (iOS). Data Safety / App Privacy must list purchase history and the RevenueCat user ID; photos are not collected.
 - [x] Not a thin web wrapper: native photo-library integration (Apple 4.2)
 - [x] Reminders are opt-in, local-only (no push/APNs), capped at 5 over ~6 weeks, and reset on each open
-- [ ] Re-deploy the updated `store/privacy-policy.html` to the hosted URL (policy now covers reminders and temp files), then confirm `PRIVACY_URL` loads
-- [ ] Host privacy policy and set `PRIVACY_URL`/`SUPPORT_EMAIL` in `src/lib/config.ts` (the in-app Settings screen has a Privacy Policy page; stores need a public URL)
+- [x] Hosted privacy, terms and support at https://samayhuf-star.github.io/app-legal/klenzer/ (set in `src/lib/config.ts`)
 - [ ] Capture screenshots on a real device/simulator (6.9" iPhone, 6.5" iPhone, iPad not required: supportsTablet=false; Android phone)
 - [ ] Android Photo/Video declaration + video (above)
 - [ ] Register bundle id `com.krosz.klenzer` (change in app.json if you prefer another)
