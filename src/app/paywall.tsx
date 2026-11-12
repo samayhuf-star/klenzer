@@ -11,7 +11,7 @@ import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
-import { buy, defaultPlanKind, loadPlans, Plan, PLANS_UNAVAILABLE_MESSAGE, restore, type PlansLoad } from '../lib/purchases';
+import { buy, defaultPlanKind, getStoreDebug, loadPlans, onStoreDebugChange, Plan, PLANS_UNAVAILABLE_MESSAGE, restore, storeDebugLine, type PlansLoad } from '../lib/purchases';
 import { scanReclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
@@ -33,6 +33,10 @@ export default function Paywall() {
   const [sel, setSel] = useState<Plan['kind']>('yearly');
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [debug, setDebug] = useState(() => storeDebugLine(getStoreDebug()));
+
+  // Store diagnostics stay visible at the bottom so a tester can screenshot why plans did or did not load.
+  useEffect(() => onStoreDebugChange((d) => setDebug(storeDebugLine(d))), []);
 
   useEffect(() => {
     let alive = true;
@@ -162,6 +166,10 @@ export default function Paywall() {
             Support
           </Text>
         </View>
+
+        <Text selectable style={styles.debug} testID="paywall-debug">
+          {debug}
+        </Text>
       </ScrollView>
     </View>
   );
@@ -212,6 +220,7 @@ const styles = StyleSheet.create({
   best: { backgroundColor: colors.mintSoft, borderRadius: radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
   bestText: { fontFamily: fonts.bold, fontSize: 10.5, letterSpacing: 0.8, color: '#0A8F6C' },
   fine: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: colors.ink3, textAlign: 'center' },
+  debug: { fontSize: 10, lineHeight: 13, color: '#8E8E93', textAlign: 'center', marginTop: 10 },
   links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 6 },
   link: { fontFamily: fonts.semi, fontSize: 13.5, color: colors.blue, paddingVertical: 6 },
   dot: { color: colors.ink3 },

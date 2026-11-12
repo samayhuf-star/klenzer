@@ -43,9 +43,75 @@ const emitPro = (isPro: boolean) => {
   entitlementListeners.forEach((cb) => cb(isPro));
 };
 
+/** Store diagnostics for the small debug line at the bottom of the paywall. Never contains secrets. */
+export type FetchDebug = { ok: true; count: number; ids: string[] } | { ok: false; code: string; message: string } | null;
+export type StoreDebug = {
+  platform: string;
+  connected: boolean;
+  inApp: FetchDebug;
+  subs: FetchDebug;
+  all: FetchDebug;
+  catalogSize: number;
+  lastError: { where: string; code: string; message: string } | null;
+};
+
+const storeDebug: StoreDebug = {
+  platform: `${Platform.OS} ${String(Platform.Version ?? '')}`.trim(),
+  connected: false,
+  inApp: null,
+  subs: null,
+  all: null,
+  catalogSize: 0,
+  lastError: null,
+};
+const debugListeners = new Set<(d: StoreDebug) => void>();
+const emitDebug = () => {
+  const snap = getStoreDebug();
+  debugListeners.forEach((cb) => cb(snap));
+};
+
+export function getStoreDebug(): StoreDebug {
+  return { ...storeDebug, lastError: storeDebug.lastError ? { ...storeDebug.lastError } : null };
+}
+
+export function onStoreDebugChange(cb: (d: StoreDebug) => void): () => void {
+  debugListeners.add(cb);
+  return () => {
+    debugListeners.delete(cb);
+  };
+}
+
+const errParts = (e: unknown) => {
+  const err = e as { code?: unknown; message?: string; debugMessage?: string } | null;
+  const code = String(err?.code ?? 'unknown');
+  const message = String(err?.message ?? err?.debugMessage ?? e ?? '').replace(/\s+/g, ' ').slice(0, 160);
+  return { code, message };
+};
+
+const fetchDebugText = (label: string, f: FetchDebug) => {
+  if (!f) return `${label}: not fetched`;
+  if (f.ok) return `${label}: ${f.count} [${f.ids.join(', ') || 'none'}]`;
+  return `${label}: error ${f.code} ${f.message}`;
+};
+
+/** One plain line, for example: "ios 18.2 | store yes | subs: 2 [a, b] | in-app: 1 [c] | catalog 3/3 | last error none". */
+export function storeDebugLine(d: StoreDebug = getStoreDebug()): string {
+  return [
+    d.platform,
+    `store ${d.connected ? 'yes' : 'no'}`,
+    fetchDebugText('subs', d.subs),
+    fetchDebugText('in-app', d.inApp),
+    ...(d.all ? [fetchDebugText('all', d.all)] : []),
+    `catalog ${d.catalogSize}/${PRODUCT_CATALOG.length}`,
+    d.lastError ? `last error ${d.lastError.where} ${d.lastError.code} ${d.lastError.message}` : 'last error none',
+  ].join(' | ');
+}
+
 const logErr = (action: string, e: unknown) => {
   const err = e as { code?: unknown; message?: string; debugMessage?: string };
   console.log(LOG, `${action} failed`, { code: err?.code, message: err?.message, debugMessage: err?.debugMessage });
+  storeDebug.lastError = { where: action, ...errParts(e) };
+  emitDebug();
 };
 
 /** Also catches a cancel that arrives as an unparsed OPENIAP_ERROR_JSON envelope or a StoreKit cancel message. */
@@ -60,10 +126,15 @@ async function ensureConnected(): Promise<boolean> {
   if (connected) return true;
   try {
     connected = !!(await initConnection());
+    if (!connected) {
+      storeDebug.lastError = { where: 'initConnection', code: 'not-connected', message: 'initConnection returned false' };
+    }
   } catch (e) {
     logErr('initConnection', e);
     connected = false;
   }
+  storeDebug.connected = connected;
+  emitDebug();
   return connected;
 }
 
@@ -159,24 +230,45 @@ async function fetchCatalog(): Promise<Map<string, ProductOrSubscription>> {
       if (product?.id && product.displayPrice && isKnownProduct(product.id)) byId.set(product.id, product);
     }
   };
+  const returned = (items: ProductOrSubscription[] | null | undefined): FetchDebug => {
+    const ids = (items ?? []).map((p) => p?.id).filter((id): id is string => !!id);
+    return { ok: true, count: ids.length, ids };
+  };
+  // Subs and in-app are fetched in separate try blocks so one failing never hides the other.
+  storeDebug.all = null;
   try {
-    if (subIds.length) keep((await fetchProducts({ skus: subIds, type: 'subs' })) as ProductOrSubscription[]);
+    if (subIds.length) {
+      const items = (await fetchProducts({ skus: subIds, type: 'subs' })) as ProductOrSubscription[];
+      storeDebug.subs = returned(items);
+      keep(items);
+    }
   } catch (e) {
+    storeDebug.subs = { ok: false, ...errParts(e) };
     logErr('fetchProducts subs', e);
   }
   try {
-    if (inAppIds.length) keep((await fetchProducts({ skus: inAppIds, type: 'in-app' })) as ProductOrSubscription[]);
+    if (inAppIds.length) {
+      const items = (await fetchProducts({ skus: inAppIds, type: 'in-app' })) as ProductOrSubscription[];
+      storeDebug.inApp = returned(items);
+      keep(items);
+    }
   } catch (e) {
+    storeDebug.inApp = { ok: false, ...errParts(e) };
     logErr('fetchProducts in-app', e);
   }
   if (byId.size < PRODUCT_CATALOG.length) {
     // Some StoreKit versions only return a product under the mixed query.
     try {
-      keep((await fetchProducts({ skus: productIds(), type: 'all' })) as ProductOrSubscription[]);
+      const items = (await fetchProducts({ skus: productIds(), type: 'all' })) as ProductOrSubscription[];
+      storeDebug.all = returned(items);
+      keep(items);
     } catch (e) {
+      storeDebug.all = { ok: false, ...errParts(e) };
       logErr('fetchProducts all', e);
     }
   }
+  storeDebug.catalogSize = byId.size;
+  emitDebug();
   return byId;
 }
 
@@ -191,6 +283,9 @@ export async function loadPlans(): Promise<PlansLoad> {
     if (byId.size) break;
     // Drop the connection so the next attempt starts clean.
     connected = false;
+    storeDebug.connected = false;
+    storeDebug.lastError = storeDebug.lastError ?? { where: 'reconnect', code: 'empty-catalog', message: 'no products returned, reconnecting' };
+    emitDebug();
   }
   // Keep catalog order; skip IDs the store did not return.
   const plans: Plan[] = [];
