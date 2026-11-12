@@ -100,6 +100,8 @@ export const DEFAULT_WORKERS = 8;
 export const DEFAULT_SIZE_BATCH = 250;
 export const DEFAULT_HASH_BATCH = 80;
 export const DEFAULT_BLUR_BATCH = 40;
+/** Blur runs beside sizing. Four workers keep it moving on libraries with thousands of Live Photos. */
+export const BLUR_WORKERS = 4;
 export const PROGRESS_MAX_GAP_MS = 2000;
 export const MAX_ASSETS = 60_000;
 
@@ -218,7 +220,7 @@ export async function scanLibraryWithIO(
       screenshots,
       livePhotos,
       videos,
-      hashes: hashesOf(photos),
+      hashes: hashesOf([...photos, ...livePhotos]),
     });
     Object.assign(result, next);
     onPartial({ ...result });
@@ -317,7 +319,9 @@ export async function scanLibraryWithIO(
     };
 
     // Size exact-dup candidates first (newest first). Do not wait behind a full screenshot/video sizing pass.
-    const photoCandidates = exactCandidateItems(photos);
+    // Camera stills: regular photos plus Live Photos. Duplicate, Similar and Blurry all work on these.
+    const stills = newestFirst([...photos, ...livePhotos]);
+    const photoCandidates = exactCandidateItems(stills);
     const videoCandidates = exactCandidateItems(videos);
     const candidateQueue = newestFirst([...photoCandidates, ...videoCandidates]);
     const candidateIds = new Set(candidateQueue.map((i) => i.id));
@@ -359,7 +363,7 @@ export async function scanLibraryWithIO(
     };
 
     // Blurry starts immediately on the newest photos, in parallel, at low priority.
-    const blurTargets = newestFirst(photos);
+    const blurTargets = stills;
     stages.blur.reached = true;
     stages.blur.total = blurTargets.length;
     stages.blur.done = 0;
@@ -373,7 +377,7 @@ export async function scanLibraryWithIO(
       reportBlur(true);
       for (let start = 0; start < blurTargets.length && !cancelled(signal); start += blurBatch) {
         const batch = blurTargets.slice(start, start + blurBatch);
-        await mapPool(batch, 2, async (item) => {
+        await mapPool(batch, BLUR_WORKERS, async (item) => {
           if (cancelled(signal) || item.blur != null) return;
           await enrichOne(item, 'blur');
         }, () => {
@@ -414,7 +418,7 @@ export async function scanLibraryWithIO(
       return result;
     }
 
-    const hashTargets = newestFirst(similarHashCandidates(photos));
+    const hashTargets = newestFirst(similarHashCandidates(stills));
     stages.hashing.reached = true;
     stages.hashing.total = hashTargets.length;
     stages.hashing.done = 0;

@@ -10,7 +10,7 @@ import { ScanBar } from '../components/ScanBar';
 import { Segmented } from '../components/Segmented';
 import { CountUp } from '../components/CountUp';
 import { PressableScale } from '../components/PressableScale';
-import { formatBytes, formatFreeAmount, formatMarketedTotal } from '../lib/format';
+import { formatBytes, formatFreeAmount, formatMarketedTotal, tileNote } from '../lib/format';
 import { KINDS, Kind } from '../lib/kinds';
 import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
 import { useStore } from '../lib/store';
@@ -170,23 +170,23 @@ export default function Home() {
 
           {section === 'photos' && (
             <View style={styles.grid} testID="home-grid-photos" key="photos">
-              <CatCard i={1} kind="similar" title="Similar" count={result ? dupExtraCount(result.similar) : 0} bytes={result ? dupReclaimable(result.similar) : 0} spinning={photosSpin} reduceMotion={rm} />
-              <CatCard i={2} kind="duplicates" title="Duplicate" count={result ? dupExtraCount(result.duplicates) : 0} bytes={result ? dupReclaimable(result.duplicates) : 0} spinning={photosSpin} reduceMotion={rm} />
-              <CatCard i={3} kind="blurry" title="Blurry" count={result?.blurry.length ?? 0} bytes={result ? sum(result.blurry) : 0} spinning={photosSpin} reduceMotion={rm} />
-              <CatCard i={4} kind="screenshots" title="Screenshots" count={result?.screenshots.length ?? 0} bytes={result ? sum(result.screenshots) : 0} spinning={shotsSpin} reduceMotion={rm} />
+              <CatCard i={1} kind="similar" title="Similar" count={result ? dupExtraCount(result.similar) : 0} bytes={result ? dupReclaimable(result.similar) : 0} spinning={photosSpin} reduceMotion={rm} pct={pct} />
+              <CatCard i={2} kind="duplicates" title="Duplicate" count={result ? dupExtraCount(result.duplicates) : 0} bytes={result ? dupReclaimable(result.duplicates) : 0} spinning={photosSpin} reduceMotion={rm} pct={pct} />
+              <CatCard i={3} kind="blurry" title="Blurry" count={result?.blurry.length ?? 0} bytes={result ? sum(result.blurry) : 0} spinning={photosSpin} reduceMotion={rm} pct={pct} />
+              <CatCard i={4} kind="screenshots" title="Screenshots" count={result?.screenshots.length ?? 0} bytes={result ? sum(result.screenshots) : 0} spinning={shotsSpin} reduceMotion={rm} pct={pct} />
               {showLive && (
-                <CatCard i={5} kind="live" title="Live Photos" count={result?.livePhotos.length ?? 0} bytes={result ? sum(result.livePhotos) : 0} spinning={photosSpin} reduceMotion={rm} />
+                <CatCard i={5} kind="live" title="Live Photos" count={result?.livePhotos.length ?? 0} bytes={result ? sum(result.livePhotos) : 0} spinning={photosSpin} reduceMotion={rm} pct={pct} />
               )}
             </View>
           )}
 
           {section === 'videos' && (
             <View style={styles.grid} testID="home-grid-videos" key="videos">
-              <CatCard i={1} kind="videoDuplicates" title="Duplicate" count={result ? dupExtraCount(result.duplicateVideos) : 0} bytes={result ? dupReclaimable(result.duplicateVideos) : 0} spinning={videoSpin} reduceMotion={rm} />
-              <CatCard i={2} kind="shortVideos" title="Short Recordings" count={result?.shortVideos?.length ?? 0} bytes={result ? sum(result.shortVideos ?? []) : 0} spinning={videoSpin} reduceMotion={rm} />
-              <CatCard i={3} kind="screenRecordings" title="Screen Recordings" count={result?.screenRecordings?.length ?? 0} bytes={result ? sum(result.screenRecordings ?? []) : 0} spinning={videoSpin} reduceMotion={rm} />
+              <CatCard i={1} kind="videoDuplicates" title="Duplicate" count={result ? dupExtraCount(result.duplicateVideos) : 0} bytes={result ? dupReclaimable(result.duplicateVideos) : 0} spinning={videoSpin} reduceMotion={rm} pct={pct} />
+              <CatCard i={2} kind="shortVideos" title="Short Recordings" count={result?.shortVideos?.length ?? 0} bytes={result ? sum(result.shortVideos ?? []) : 0} spinning={videoSpin} reduceMotion={rm} pct={pct} />
+              <CatCard i={3} kind="screenRecordings" title="Screen Recordings" count={result?.screenRecordings?.length ?? 0} bytes={result ? sum(result.screenRecordings ?? []) : 0} spinning={videoSpin} reduceMotion={rm} pct={pct} />
               {showLargeVideos && (
-                <CatCard i={4} kind="videos" title="Large videos" count={result?.largeVideos.length ?? 0} bytes={result ? sum(result.largeVideos) : 0} spinning={videoSpin} reduceMotion={rm} />
+                <CatCard i={4} kind="videos" title="Large videos" count={result?.largeVideos.length ?? 0} bytes={result ? sum(result.largeVideos) : 0} spinning={videoSpin} reduceMotion={rm} pct={pct} />
               )}
             </View>
           )}
@@ -237,8 +237,9 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function CatCard({
-  i, kind, title, count, bytes, spinning, reduceMotion,
+  i, kind, title, count, bytes, spinning, reduceMotion, pct = 0,
 }: {
+  pct?: number;
   i: number;
   kind: Kind;
   title: string;
@@ -271,7 +272,7 @@ function CatCard({
         <Text style={styles.tileTitle} numberOfLines={1}>{title}</Text>
         <View style={styles.tileNums}>
           <CountUp value={count} format={(n) => Math.round(n).toLocaleString()} style={styles.tileCount} duration={reduceMotion ? 0 : 700} />
-          <Text style={styles.tileBytes}>{bytes > 0 ? formatBytes(bytes) : count ? 'items' : 'None yet'}</Text>
+          <Text style={styles.tileBytes}>{tileNote(bytes, count, spinning, pct)}</Text>
         </View>
         <View style={[styles.tileAccent, { backgroundColor: meta.tone }]} />
       </PressableScale>
