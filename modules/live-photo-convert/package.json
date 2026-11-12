@@ -1,0 +1,15 @@
+{
+  "name": "live-photo-convert",
+  "version": "1.0.0",
+  "description": "Convert Live Photos to still photos with PhotoKit, used only on iOS.",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "MIT",
+  "author": "Klenzer",
+  "homepage": "https://github.com/samayhuf-star/klenzer",
+  "keywords": ["react-native", "expo", "live-photo-convert"],
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  }
+}

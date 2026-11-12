@@ -152,8 +152,26 @@ export default function Home() {
           </View>
         )}
 
-        {tab === 'clean' && (
-          <View style={[styles.grid, { marginTop: 14 }]}>
+                {tab === 'clean' && (
+          <View style={[styles.grid, { marginTop: 14 }]} testID="home-grid">
+            <CatCard
+              kind="photos"
+              title="Photos"
+              count={result?.photos?.length ?? 0}
+              bytes={result ? sum(result.photos ?? []) : 0}
+              thumbs={result?.photos?.slice(0, 3) ?? []}
+              spinning={photosSpin}
+              reduceMotion={!!reduceMotion}
+            />
+            <CatCard
+              kind="videoDuplicates"
+              title="Videos"
+              count={result ? dupExtraCount(result.duplicateVideos) : 0}
+              bytes={result ? dupReclaimable(result.duplicateVideos) : 0}
+              thumbs={result?.duplicateVideos.flatMap((g) => g.items).slice(0, 3) ?? []}
+              spinning={videoSpin}
+              reduceMotion={!!reduceMotion}
+            />
             <CatCard
               kind="similar"
               title="Similar"
@@ -188,15 +206,6 @@ export default function Home() {
               bytes={result ? sum(result.screenshots) : 0}
               thumbs={result?.screenshots.slice(0, 3) ?? []}
               spinning={shotsSpin}
-              reduceMotion={!!reduceMotion}
-            />
-            <CatCard
-              kind="videoDuplicates"
-              title="Videos"
-              count={result ? dupExtraCount(result.duplicateVideos) : 0}
-              bytes={result ? dupReclaimable(result.duplicateVideos) : 0}
-              thumbs={result?.duplicateVideos.flatMap((g) => g.items).slice(0, 3) ?? []}
-              spinning={videoSpin}
               reduceMotion={!!reduceMotion}
             />
             {showLargeVideos && (

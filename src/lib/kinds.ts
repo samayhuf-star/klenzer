@@ -1,8 +1,9 @@
 import { colors } from '../theme';
 
-export type Kind = 'duplicates' | 'similar' | 'blurry' | 'screenshots' | 'videos' | 'videoDuplicates' | 'live' | 'temp';
+export type Kind = 'photos' | 'duplicates' | 'similar' | 'blurry' | 'screenshots' | 'videos' | 'videoDuplicates' | 'live' | 'temp';
 
 export const KINDS: Record<Kind, { title: string; icon: string; tone: string; soft: string }> = {
+  photos: { title: 'Photos', icon: 'image', tone: '#1483C8', soft: '#E4F3FB' },
   similar: { title: 'Similar', icon: 'images', tone: colors.blue, soft: colors.blueSoft },
   duplicates: { title: 'Duplicate', icon: 'copy', tone: colors.violet, soft: colors.violetSoft },
   blurry: { title: 'Blurry', icon: 'eye-off', tone: colors.amber, soft: colors.amberSoft },

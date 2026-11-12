@@ -7,19 +7,19 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'What Klenzer accesses',
-    p: 'With your permission, Klenzer reads your photo and video library on-device to detect duplicate or near-identical photos, screenshots, Live Photos and large videos, and to measure their file sizes. It also reads your device’s total and free storage to show it on the home screen. That media is processed on the device only and is never uploaded.',
+    p: 'With your permission, Klenzer reads your photo and video library on-device to detect duplicate or near-identical photos, screenshots, Live Photos and large videos, and to measure their file sizes. When you convert a Live Photo to a still, it also reads the still image, its date, location, favourite state and album membership so those can be copied onto the new still. It also reads your device’s total and free storage to show it on the home screen. That media is processed on the device only and is never uploaded.',
   },
   {
     h: 'What is stored on your device',
-    p: 'Klenzer stores a few small preferences locally: whether you have finished the intro, the running total of space you have cleared, and whether you turned reminders on. It also keeps an on-device scan cache (file sizes and tiny perceptual hashes, keyed by photo id and modification date) so later scans can skip unchanged items, plus temporary thumbnails you can clear in the app. None of that cache is uploaded. Deleting the app removes this local data.',
+    p: 'Klenzer stores a few small preferences locally: whether you have finished the intro, the running total of space you have cleared, whether you turned reminders on, and whether you chose not to see the Recently Deleted reminder again. It also keeps an on-device scan cache (file sizes and tiny perceptual hashes, keyed by photo id and modification date) so later scans can skip unchanged items, plus temporary thumbnails you can clear in the app. None of that cache is uploaded. Deleting the app removes this local data.',
   },
   {
     h: 'Purchases',
-    p: 'Scanning and reviewing your library is free. Deleting items and clearing temporary files requires Klenzer Pro, sold as a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Apple or Google processes the payment and the app checks those store entitlements on the device — it does not create an account or send a name or email. You can restore a previous purchase from Settings. Prices are shown in the app at the time of purchase and are not hard-coded.',
+    p: 'Scanning and reviewing your library is free. Deleting items, converting Live Photos to stills, and clearing temporary files requires Klenzer Pro, sold as a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Apple or Google processes the payment and the app checks those store entitlements on the device — it does not create an account or send a name or email. You can restore a previous purchase from Settings. Prices are shown in the app at the time of purchase and are not hard-coded.',
   },
   {
     h: 'Deleting photos',
-    p: 'Klenzer only deletes items you select, and only after your phone’s own confirmation prompt. On iPhone, deleted items go to Recently Deleted, where you can restore them for up to 30 days. On Android, items you confirm are deleted by the system and Klenzer cannot restore them.',
+    p: 'Klenzer only deletes or converts items you select, and only after your phone’s own confirmation prompt. Converting a Live Photo keeps the still (with its date, location, favourite state and albums) and removes the original Live Photo. On iPhone, originals go to Recently Deleted, where you can restore them for up to 30 days. Space is freed after you empty Recently Deleted, or after those 30 days. On Android, items you confirm are deleted by the system and Klenzer cannot restore them. Convert to still is available on iPhone.',
   },
   {
     h: 'Reminders',

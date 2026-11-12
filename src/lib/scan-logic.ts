@@ -33,6 +33,8 @@ export type ScanResult = {
   duplicateVideos: DuplicateGroup[];
   livePhotos: Item[];
   blurry: Item[];
+  /** Every still (regular, screenshot and Live Photo), largest first. Shown on the Photos card. */
+  photos: Item[];
 };
 
 export const LARGE_VIDEO_BYTES = 100 * 1e6;
@@ -49,6 +51,7 @@ export const emptyScanResult = (): ScanResult => ({
   duplicateVideos: [],
   livePhotos: [],
   blurry: [],
+  photos: [],
 });
 
 export const isScreenshotName = (filename: string, subtypes?: string[] | null) =>
@@ -273,6 +276,7 @@ export function buildScanResult(input: {
     duplicateVideos: groupExact(input.videos),
     livePhotos: [...input.livePhotos].sort((a, b) => b.size - a.size),
     blurry: [...(input.blurry ?? input.photos.filter((p) => p.blur != null && isBlurryVariance(p.blur)))].sort((a, b) => a.creationTime - b.creationTime),
+    photos: [...input.photos, ...input.screenshots, ...input.livePhotos].sort((a, b) => b.size - a.size),
   };
 }
 

@@ -3,18 +3,22 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { CountUp } from '../components/CountUp';
 import { formatBytes } from '../lib/format';
 import { useStore } from '../lib/store';
+import { RecentlyDeletedSheet } from '../components/RecentlyDeletedSheet';
 import { colors, fonts, shadow } from '../theme';
 
 export default function Done() {
-  const { lastFreed, lifetimeFreed } = useStore();
+  const { lastFreed, lifetimeFreed, hideRdSheet, setHideRdSheet } = useStore();
+  const [sheetOpen, setSheetOpen] = useState(
+    () => Platform.OS === 'ios' && !!lastFreed?.toRecentlyDeleted && (lastFreed.bytes ?? 0) > 0 && !hideRdSheet,
+  );
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const pop = useSharedValue(reduceMotion ? 1 : 0);
@@ -46,18 +50,27 @@ export default function Done() {
         </Animated.View>
         <Animated.View entering={reduceMotion ? undefined : FadeInUp.delay(450)} style={{ alignItems: 'center', marginTop: 32 }}>
           <Text style={styles.kicker}>ALL DONE</Text>
-          {bytes > 0 ? <CountUp value={bytes} format={(n) => `${formatBytes(n)} cleared`} style={styles.big} /> : <Text style={styles.big}>{count} items cleared</Text>}
+          {bytes > 0 ? <CountUp value={bytes} format={(n) => lastFreed?.action === 'convert' ? `${formatBytes(n)} ready to free` : `${formatBytes(n)} cleared`} style={styles.big} /> : <Text style={styles.big}>{count} items cleared</Text>}
           <Text style={styles.sub}>
-            {count > 0
-              ? `${count.toLocaleString()} ${count === 1 ? 'item was' : 'items were'} removed from your library.`
-              : 'Temporary files removed.'}
+            {lastFreed?.action === 'convert'
+              ? (count === 1 ? '1 Live Photo was converted to a still.' : `${count.toLocaleString()} Live Photos were converted to stills.`)
+              : count > 0
+                ? `${count.toLocaleString()} ${count === 1 ? 'item was' : 'items were'} removed from your library.`
+                : 'Temporary files removed.'}
           </Text>
           {lifetimeFreed > 0 && <CountUp value={lifetimeFreed} format={(n) => `${formatBytes(n)} freed with Klenzer so far`} style={styles.total} />}
         </Animated.View>
       </View>
-      <PressableScale onPress={() => router.replace('/')} accessibilityLabel="Done" style={styles.doneBtn}>
+      <PressableScale onPress={() => router.replace('/')} accessibilityLabel="Done" style={styles.doneBtn} testID="done-button">
         <Text style={styles.doneText}>Done</Text>
       </PressableScale>
+      <RecentlyDeletedSheet
+        visible={sheetOpen}
+        bytes={bytes}
+        onClose={() => setSheetOpen(false)}
+        hidePref={hideRdSheet}
+        onHidePrefChange={setHideRdSheet}
+      />
     </View>
   );
 }

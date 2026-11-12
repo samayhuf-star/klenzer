@@ -16,6 +16,7 @@ import { colors, fonts } from '../theme';
 
 export default function Cleaning() {
   const { cleaning } = useStore();
+  const converting = cleaning?.mode === 'convert';
   const insets = useSafeAreaInsets();
   const phase = cleaning?.phase ?? 'finished';
 
@@ -30,13 +31,15 @@ export default function Cleaning() {
   const rows = cleaning?.rows ?? [];
   const finishedRows = rows.filter((r) => r.status === 'done').length;
   const headline =
-    phase === 'cancelled' ? 'Nothing was deleted' : phase === 'error' ? 'Something went wrong' : phase === 'finished' ? 'Cleaned!' : 'Cleaning your device';
+    converting
+      ? (phase === 'cancelled' ? 'Nothing was converted' : phase === 'error' ? 'Something went wrong' : phase === 'finished' ? 'Converted!' : 'Converting to stills')
+      : phase === 'cancelled' ? 'Nothing was deleted' : phase === 'error' ? 'Something went wrong' : phase === 'finished' ? 'Cleaned!' : 'Cleaning your device';
 
   return (
     <LinearGradient colors={['#0B1020', '#12307A']} style={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 20 }]}>
       <View style={{ alignItems: 'center', gap: 14 }}>
         {phase === 'working' ? (
-          <ScanPulse size={150} icon="trash" color={colors.mint} />
+          <ScanPulse size={150} icon={converting ? "aperture" : "trash"} color={colors.mint} />
         ) : (
           <Animated.View entering={FadeInUp} style={{ height: 150, justifyContent: 'center' }}>
             <Ionicons name={phase === 'finished' ? 'checkmark-circle' : 'alert-circle'} size={96} color={phase === 'finished' ? colors.mint : colors.amber} />
@@ -44,7 +47,7 @@ export default function Cleaning() {
         )}
         <Text style={styles.title}>{headline}</Text>
         {(cleaning?.freed ?? 0) > 0 || phase === 'working' ? (
-          <CountUp value={rows.reduce((n, r) => n + (r.status === 'done' ? r.bytes : 0), 0)} format={(n) => `${formatBytes(n)} cleared`} duration={500} style={styles.sub} />
+          <CountUp value={rows.reduce((n, r) => n + (r.status === 'done' ? r.bytes : 0), 0)} format={(n) => converting ? `${formatBytes(n)} to Recently Deleted` : `${formatBytes(n)} cleared`} duration={500} style={styles.sub} />
         ) : null}
         <Text style={styles.hint}>
           {phase === 'working' ? `${finishedRows} of ${rows.length} finished` : phase === 'cancelled' ? 'You cancelled the confirmation.' : phase === 'error' ? 'Nothing was removed.' : ''}

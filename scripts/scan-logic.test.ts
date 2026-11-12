@@ -122,6 +122,24 @@ describe('buildScanResult', () => {
     assert.equal(dupExtraCount(result.similar), 1);
     assert.equal(sum(result.screenshots), 3_000_000);
     assert.ok(dupReclaimable(result.duplicates) > 0);
+    // Photos card: every still, largest first (regular + screenshots + live).
+    assert.deepEqual(result.photos.map((i) => i.id), ['p1', 'p2', 'shot', 'p3']);
+    assert.equal(sum(result.photos), 5_000_000 + 5_000_000 + 3_000_000 + 1_000_000);
+  });
+
+  it('includes Live Photos on the Photos card, still sorted largest first', () => {
+    const live = item({ id: 'live1', size: 8_000_000, isLive: true });
+    const photo = item({ id: 'p1', size: 2_000_000 });
+    const shot = item({ id: 'shot', filename: 'Screenshot.png', size: 4_000_000, isScreenshot: true });
+    const result = buildScanResult({
+      photoCount: 3,
+      videoCount: 0,
+      photos: [photo],
+      screenshots: [shot],
+      livePhotos: [live],
+      videos: [],
+    });
+    assert.deepEqual(result.photos.map((i) => i.id), ['live1', 'shot', 'p1']);
   });
 });
 

@@ -2,13 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../../components/PressableScale';
 import { formatBytes, formatDate, formatDuration } from '../../lib/format';
 import { dupExtras, DuplicateGroup, Item } from '../../lib/scanner';
 import { useStore } from '../../lib/store';
+import { isConvertSupported, pairedVideoSizes } from 'live-photo-convert';
 import { colors, fonts, radius, shadow } from '../../theme';
 
 const COPY = {
@@ -17,7 +18,8 @@ const COPY = {
   blurry: { title: 'Blurry', help: 'Photos that look out of focus. Nothing is selected by default. Tap the ones you want to clear.' },
   screenshots: { title: 'Screenshots', help: 'Nothing is selected by default. Tap the ones you want to clear.' },
   videos: { title: 'Large videos', help: 'Videos over 100 MB, biggest first. Nothing is selected by default.' },
-  live: { title: 'Live Photos', help: 'Deleting a Live Photo removes the photo and its motion clip. Sizes shown are the still photo only, so you will free more than shown. Nothing is selected by default.' },
+  live: { title: 'Live Photos', help: 'Convert to still keeps the full-size photo and removes the motion clip. The original goes to Recently Deleted; space is freed after you empty it, or after 30 days. Nothing is selected by default.' },
+  photos: { title: 'Photos', help: 'Every photo in your library, largest first. Nothing is selected by default. Tap the ones you want to clear.' },
   videoDuplicates: { title: 'Duplicate videos', help: 'Videos with the same size, dimensions and capture time. We keep the largest file in each set; tap any video to change what’s selected.' },
 } as const;
 type Kind = keyof typeof COPY;
@@ -26,7 +28,7 @@ const GROUPED: Kind[] = ['duplicates', 'similar', 'videoDuplicates'];
 export default function Review() {
   const { kind: raw } = useLocalSearchParams<{ kind: string }>();
   const kind = (raw && raw in COPY ? raw : 'screenshots') as Kind;
-  const { result, startClean } = useStore();
+  const { result, startClean, startConvert, access } = useStore();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
@@ -40,6 +42,7 @@ export default function Review() {
     if (kind === 'screenshots') return result?.screenshots ?? [];
     if (kind === 'blurry') return result?.blurry ?? [];
     if (kind === 'live') return result?.livePhotos ?? [];
+    if (kind === 'photos') return result?.photos ?? [];
     return result?.largeVideos ?? [];
   }, [kind, groups, result]);
 
@@ -48,6 +51,20 @@ export default function Review() {
   );
   const chosen = useMemo(() => flat.filter((i) => sel.has(i.id)), [flat, sel]);
   const bytes = chosen.reduce((n, i) => n + i.size, 0);
+
+  const [videoBytesById, setVideoBytesById] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (kind !== 'live' || !isConvertSupported || !flat.length) return;
+    let cancelled = false;
+    pairedVideoSizes(flat.map((i) => i.id)).then((rows) => {
+      if (cancelled) return;
+      const map: Record<string, number> = {};
+      for (const row of rows) map[row.id] = row.videoBytes;
+      setVideoBytesById(map);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [kind, flat]);
+  const chosenVideoBytes = chosen.reduce((n, i) => n + (videoBytesById[i.id] ?? 0), 0);
 
   const toggle = useCallback((id: string) => {
     Haptics.selectionAsync().catch(() => {});
@@ -61,6 +78,10 @@ export default function Review() {
 
   const allSelected = flat.length > 0 && chosen.length === flat.length;
   const selectAll = () => setSel(allSelected ? new Set() : new Set(flat.map((i) => i.id)));
+
+  const doConvert = () => {
+    startConvert(chosen, chosenVideoBytes);
+  };
 
   const doDelete = async () => {
     const wipesGroup = GROUPED.includes(kind) && groups.some((g) => g.items.every((i) => sel.has(i.id)));
@@ -138,20 +159,54 @@ export default function Review() {
       )}
 
       <View style={[styles.bar, { paddingBottom: insets.bottom + 12 }]}>
-        <PressableScale
-          onPress={doDelete}
-          disabled={chosen.length === 0}
-          accessibilityLabel={chosen.length ? `Delete ${chosen.length}` : 'Select items to delete'}
-          style={[styles.deleteBtn, chosen.length === 0 && { opacity: 0.45 }]}>
-          <Text style={styles.deleteText}>
-            {chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Select items to delete'}
-          </Text>
-        </PressableScale>
-        <Text style={styles.barNote}>
-          {Platform.OS === 'ios'
-            ? 'Your iPhone will ask you to confirm before anything is deleted.'
-            : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}
-        </Text>
+        {kind === 'live' && Platform.OS === 'ios' ? (
+          <>
+            <PressableScale
+              onPress={doConvert}
+              disabled={chosen.length === 0}
+              accessibilityLabel={chosen.length ? 'Convert to still' : 'Select items to convert'}
+              testID="convert-to-still"
+              style={[styles.deleteBtn, chosen.length === 0 && { opacity: 0.45 }]}>
+              <Text style={styles.deleteText}>
+                {chosen.length
+                  ? `Convert to still${chosenVideoBytes ? ` · ${formatBytes(chosenVideoBytes)}` : ` · ${chosen.length.toLocaleString()}`}`
+                  : 'Select items to convert'}
+              </Text>
+            </PressableScale>
+            <PressableScale
+              onPress={doDelete}
+              disabled={chosen.length === 0}
+              accessibilityLabel={chosen.length ? `Delete ${chosen.length}` : 'Select items to delete'}
+              testID="delete-live"
+              style={[styles.secondaryBtn, chosen.length === 0 && { opacity: 0.45 }]}>
+              <Text style={styles.secondaryText}>
+                {chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Delete'}
+              </Text>
+            </PressableScale>
+            <Text style={styles.barNote}>
+              {access === 'limited'
+                ? 'Full photo access is needed to keep albums, date, location and favourites on the still.'
+                : 'Your iPhone will ask you to confirm once per batch. Originals go to Recently Deleted.'}
+            </Text>
+          </>
+        ) : (
+          <>
+            <PressableScale
+              onPress={doDelete}
+              disabled={chosen.length === 0}
+              accessibilityLabel={chosen.length ? `Delete ${chosen.length}` : 'Select items to delete'}
+              style={[styles.deleteBtn, chosen.length === 0 && { opacity: 0.45 }]}>
+              <Text style={styles.deleteText}>
+                {chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Select items to delete'}
+              </Text>
+            </PressableScale>
+            <Text style={styles.barNote}>
+              {Platform.OS === 'ios'
+                ? 'Your iPhone will ask you to confirm before anything is deleted. Items go to Recently Deleted.'
+                : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}
+            </Text>
+          </>
+        )}
       </View>
     </View>
   );
@@ -209,5 +264,7 @@ const styles = StyleSheet.create({
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, backgroundColor: colors.bg, gap: 8 },
   deleteBtn: { height: 52, borderRadius: 999, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center', shadowColor: colors.blue, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
   deleteText: { fontFamily: fonts.bold, fontSize: 16.5, color: '#fff' },
+  secondaryBtn: { height: 52, borderRadius: 999, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { fontFamily: fonts.bold, fontSize: 16.5, color: colors.ink },
   barNote: { fontFamily: fonts.body, fontSize: 12, color: colors.ink3, textAlign: 'center' },
 });

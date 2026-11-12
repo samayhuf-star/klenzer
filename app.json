@@ -12,7 +12,11 @@
       "bundleIdentifier": "com.krosz.klenzer",
       "supportsTablet": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "photos-redirect"
+        ],
+        "NSLocationWhenInUseUsageDescription": "Klenzer copies a Live Photo\u2019s existing location onto the still photo when you convert it. The location stays on your device."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -86,13 +90,13 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Klenzer reads your photo library on-device to find duplicates, screenshots and large videos. Nothing is uploaded, and nothing is deleted until you confirm.",
-          "savePhotosPermission": false,
+          "photosPermission": "Klenzer reads your photo library on-device to find duplicates, screenshots, Live Photos and large videos, and to convert a Live Photo to a still when you ask. Nothing is uploaded, and nothing is deleted until you confirm.",
+          "savePhotosPermission": "Klenzer saves a still photo in your library when you convert a Live Photo to a still. Nothing is uploaded.",
           "granularPermissions": [
             "photo",
             "video"
           ],
-          "isAccessMediaLocationEnabled": false
+          "isAccessMediaLocationEnabled": true
         }
       ],
       [

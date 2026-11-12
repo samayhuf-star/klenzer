@@ -3,7 +3,7 @@ import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Notifications from 'expo-notifications';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
-import { Alert, AppState, Linking } from 'react-native';
+import { Alert, AppState, Linking, Platform } from 'react-native';
 import { formatBytes } from './format';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
@@ -24,7 +24,8 @@ export type CleanRow = {
   status: 'pending' | 'active' | 'done' | 'cancelled';
   note?: string;
 };
-export type Cleaning = { rows: CleanRow[]; phase: 'working' | 'finished' | 'cancelled' | 'error'; freed: number };
+export type Cleaning = { rows: CleanRow[]; phase: 'working' | 'finished' | 'cancelled' | 'error'; freed: number; mode?: 'delete' | 'convert' };
+export type LastFreed = { bytes: number; count: number; toRecentlyDeleted?: boolean; action?: 'delete' | 'convert' };
 export type CleanPlan = { kind: Kind; items: Item[] }[];
 
 export type CategoryScanMap = Record<ScanCategory, CategoryProgress>;
@@ -67,10 +68,13 @@ type Ctx = {
   scanError: string | null;
   /** Every photo, video and temp file Klenzer has removed, so the total moves even when sizes are unknown. */
   lifetimeItems: number;
-  lastFreed: { bytes: number; count: number } | null;
+  lastFreed: LastFreed | null;
+  hideRdSheet: boolean;
+  setHideRdSheet: (hide: boolean) => void;
+  startConvert: (items: Item[], videoBytes?: number) => void;
 };
 
-const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1' };
+const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1', hideRdSheet: 'klenzer.rdSheet.hide.v1', convertPending: 'klenzer.convert.pending.v1' };
 
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
@@ -90,13 +94,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [lifetimeFreed, setLifetimeFreed] = useState(0);
   const [lifetimeItems, setLifetimeItems] = useState(0);
-  const [lastFreed, setLastFreed] = useState<{ bytes: number; count: number } | null>(null);
+  const [lastFreed, setLastFreed] = useState<LastFreed | null>(null);
+  const [hideRdSheet, setHideRdSheetState] = useState(false);
   const [cleaning, setCleaning] = useState<Cleaning | null>(null);
   const [tempSize, setTempSize] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
   const [reminders, setRemindersState] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const afterUnlock = useRef<CleanPlan | null>(null);
+  const afterUnlockConvert = useRef<{ items: Item[]; videoBytes: number } | null>(null);
   const signal = useRef({ cancelled: false });
   const handledNotif = useRef<string | null>(null);
   const scanningRef = useRef(false);
@@ -106,14 +112,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [o, f, it] = await Promise.all([
+        const [o, f, it, hide] = await Promise.all([
           AsyncStorage.getItem(KEYS.onboarded),
           AsyncStorage.getItem(KEYS.freed),
           AsyncStorage.getItem(KEYS.items),
+          AsyncStorage.getItem(KEYS.hideRdSheet),
         ]);
         setOnboarded(o === '1');
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
+        setHideRdSheetState(hide === '1');
         scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';
       } catch {}
       setReady(true);
@@ -399,6 +407,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               largeVideos: r.largeVideos.filter((i) => !gone.has(i.id)),
               livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
               blurry: r.blurry.filter((i) => !gone.has(i.id)),
+              photos: (r.photos ?? []).filter((i) => !gone.has(i.id)),
               duplicates: r.duplicates
                 .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
                 .filter((g) => g.items.length > 1),
@@ -413,7 +422,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       const count = plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0);
-      setLastFreed({ bytes: freed, count });
+      setLastFreed({ bytes: freed, count, toRecentlyDeleted: Platform.OS === 'ios' && all.length > 0, action: 'delete' });
       addFreed(freedNow);
       addItems(count);
       patch((r) => r, { phase: 'finished', freed });
@@ -424,6 +433,71 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       refreshDisk();
     }
   }, [refreshDisk, pollDisk, addFreed, addItems]);
+
+
+  const setHideRdSheet = useCallback((hide: boolean) => {
+    setHideRdSheetState(hide);
+    AsyncStorage.setItem(KEYS.hideRdSheet, hide ? '1' : '0').catch(() => {});
+  }, []);
+
+  const convertLive = useCallback(async (items: Item[], videoBytes = 0) => {
+    const { convertToStills } = await import('live-photo-convert');
+    const count = items.length;
+    const estimate = videoBytes > 0 ? videoBytes : items.reduce((n, i) => n + i.size, 0);
+    setCleaning({
+      rows: [{ kind: 'live', count, bytes: estimate, done: 0, status: 'active', note: 'Originals go to Recently Deleted. Space is freed after you empty it, or after 30 days.' }],
+      phase: 'working',
+      freed: 0,
+      mode: 'convert',
+    });
+    try {
+      const outcome = await convertToStills(items.map((i) => i.id));
+      const doneIds = new Set(outcome.convertedIds);
+      if (outcome.pendingIds.length) {
+        await AsyncStorage.setItem(KEYS.convertPending, JSON.stringify(outcome.pendingIds));
+      } else {
+        await AsyncStorage.removeItem(KEYS.convertPending);
+      }
+      if (doneIds.size === 0) {
+        const cancelled = outcome.pendingIds.length > 0;
+        setCleaning({
+          rows: [{ kind: 'live', count, bytes: estimate, done: 0, status: cancelled ? 'cancelled' : 'done', note: cancelled ? 'You cancelled the confirmation.' : 'Nothing was converted.' }],
+          phase: cancelled ? 'cancelled' : 'error',
+          freed: 0,
+          mode: 'convert',
+        });
+        return;
+      }
+      const gone = doneIds;
+      const saved = outcome.videoBytesSaved || items.filter((i) => gone.has(i.id)).reduce((n, i) => n + i.size, 0);
+      setResult(
+        (r) =>
+          r && {
+            ...r,
+            livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
+            photos: (r.photos ?? []).map((i) => (gone.has(i.id) ? { ...i, isLive: false } : i)).sort((a, b) => b.size - a.size),
+            duplicates: r.duplicates.map((g) => ({ ...g, items: g.items.map((i) => (gone.has(i.id) ? { ...i, isLive: false } : i)) })),
+            similar: r.similar.map((g) => ({ ...g, items: g.items.map((i) => (gone.has(i.id) ? { ...i, isLive: false } : i)) })),
+          },
+      );
+      setLastFreed({ bytes: saved, count: doneIds.size, toRecentlyDeleted: Platform.OS === 'ios', action: 'convert' });
+      setCleaning({
+        rows: [{ kind: 'live', count: doneIds.size, bytes: saved, done: doneIds.size, status: 'done' }],
+        phase: 'finished',
+        freed: saved,
+        mode: 'convert',
+      });
+      refreshDisk();
+      pollDisk();
+    } catch {
+      setCleaning({
+        rows: [{ kind: 'live', count, bytes: estimate, done: 0, status: 'cancelled', note: 'Nothing was converted.' }],
+        phase: 'error',
+        freed: 0,
+        mode: 'convert',
+      });
+    }
+  }, [refreshDisk, pollDisk]);
 
   // Klenzer scans for free; clearing is the paid part. Every Fix / Clear button comes through here.
   const isProRef = useRef(false);
@@ -442,14 +516,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     [clean],
   );
+
+  const startConvert = useCallback(
+    (items: Item[], videoBytes = 0) => {
+      if (!items.length) return;
+      if (Platform.OS !== 'ios') {
+        Alert.alert('Available on iPhone', 'Convert to still uses Apple’s Live Photos and is available on iPhone.');
+        return;
+      }
+      if (access === 'limited' || access === 'denied' || access === 'unknown') {
+        Alert.alert('Full photo access needed', 'Converting a Live Photo to a still needs access to your whole library so the still can keep its album and details.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Allow access', onPress: () => void requestAccess() },
+        ]);
+        return;
+      }
+      if (isProRef.current) {
+        router.push('/cleaning');
+        void convertLive(items, videoBytes);
+        return;
+      }
+      afterUnlockConvert.current = { items, videoBytes };
+      afterUnlock.current = null;
+      router.push('/paywall');
+    },
+    [access, requestAccess, convertLive],
+  );
   const completeUnlock = useCallback(() => {
     const plan = afterUnlock.current;
     afterUnlock.current = null;
-    if (plan) {
+    const convert = afterUnlockConvert.current;
+    afterUnlockConvert.current = null;
+    if (convert) {
+      router.replace('/cleaning');
+      void convertLive(convert.items, convert.videoBytes);
+    } else if (plan) {
       router.replace('/cleaning');
       void clean(plan);
     } else if (router.canGoBack()) router.back();
-  }, [clean]);
+  }, [clean, convertLive]);
 
   const manageLimited = useCallback(async () => {
     try {
@@ -461,9 +566,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError,
+      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
