@@ -345,7 +345,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     markScanIncomplete(true);
     // Ask only when a scan starts, never on launch. A denial must not stop the scan.
-    void askNotificationPermissionOnScanStart();
+    // The completion notification waits for this answer, so a scan that ends while the prompt is up still notifies.
+    const notifAsk = askNotificationPermissionOnScanStart().catch(() => false);
     beginShortBackgroundTask();
     const finishCats = () =>
       setScanCats((c) => ({
@@ -372,7 +373,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         markScanIncomplete(false);
         const reclaim = reclaimableBytes(r, tempBytes());
         AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
-        void notifyScanComplete(reclaim);
+        // Fires on completion (processed + skipped == total), in the foreground or within the background task window.
+        void notifAsk.then(() => notifyScanComplete(reclaim));
         if (!opts.resume) askAboutReminders(reclaim);
       }
     } catch (e) {
