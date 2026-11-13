@@ -176,7 +176,8 @@ function PlanCard({ plan, selected, onPress }: { plan: Plan; selected: boolean; 
   return (
     <PressableScale
       onPress={onPress}
-      accessibilityLabel={`${plan.title} plan, ${trialHint({ price: plan.price, kind: plan.kind, trialDays: plan.trialDays, fallback: plan.price })}`}
+      /* One stable label per row (testID plan-<kind>): title, price and the visible hint, e.g. lifetime's "Pay once, clean forever." */
+      accessibilityLabel={`${plan.title} plan, ${plan.price}, ${trialHint({ price: plan.price, kind: plan.kind, trialDays: plan.trialDays, fallback: plan.hint })}`}
       accessibilityState={{ checked: selected }}
       testID={`plan-${plan.kind}`}
       style={[styles.plan, selected && styles.planOn]}>

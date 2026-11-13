@@ -8,6 +8,7 @@ import {
   similarHashCandidates,
   type Item,
   type ScanResult,
+  withTimeout,
 } from './scan-logic';
 
 export type ScanCategory = 'photos' | 'screenshots' | 'videos';
@@ -94,6 +95,10 @@ export type ScanIO = {
   blurBatch?: number;
   now?: () => number;
   initialPercent?: number;
+  /** Hard cap per asset and stage. A stuck read, hash or iCloud fetch is skipped so the scan always finishes. */
+  enrichTimeoutMs?: number;
+  /** Hard cap per library page. A page that never answers ends enumeration with what was read. */
+  pageTimeoutMs?: number;
 };
 
 export const DEFAULT_WORKERS = 8;
@@ -104,6 +109,8 @@ export const DEFAULT_BLUR_BATCH = 40;
 export const BLUR_WORKERS = 4;
 export const PROGRESS_MAX_GAP_MS = 2000;
 export const MAX_ASSETS = 60_000;
+export const ENRICH_TIMEOUT_MS = 20_000;
+export const PAGE_TIMEOUT_MS = 30_000;
 
 function cancelled(signal?: ScanSignal) {
   return !!signal?.cancelled;
@@ -167,6 +174,8 @@ export async function scanLibraryWithIO(
     blurBatch = DEFAULT_BLUR_BATCH,
     now = () => Date.now(),
     initialPercent = 0,
+    enrichTimeoutMs = ENRICH_TIMEOUT_MS,
+    pageTimeoutMs = PAGE_TIMEOUT_MS,
   } = io;
 
   const result = emptyScanResult();
@@ -243,7 +252,12 @@ export async function scanLibraryWithIO(
     let total = 0;
 
     while (!cancelled(signal)) {
-      const page = await getPage(after);
+      let page: AssetPage | null = null;
+      try {
+        page = await withTimeout(getPage(after), pageTimeoutMs, null);
+      } catch {
+        page = null;
+      }
       if (!page) break;
       if (!total) total = Math.min(page.totalCount || page.assets.length, MAX_ASSETS);
       for (const asset of page.assets) {
@@ -309,7 +323,9 @@ export async function scanLibraryWithIO(
       }
       const work = (async () => {
         try {
-          apply(item, await enrich(item, mode));
+          // Skip-on-error and skip-on-timeout: one bad asset never holds the scan.
+          const e = await withTimeout(enrich(item, mode), enrichTimeoutMs, null);
+          if (e) apply(item, e);
         } catch {}
       })().finally(() => {
         if (inflight.get(item.id) === work) inflight.delete(item.id);
