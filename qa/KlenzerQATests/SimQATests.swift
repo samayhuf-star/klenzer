@@ -2,7 +2,7 @@ import XCTest
 import StoreKitTest
 
 /// Klenzer iOS simulator flow: launch, home, Similar, Swipe, Merge Contacts preview,
-/// Secret Album, paywall, StoreKit test purchase, restore.
+/// Secret Album, paywall (prices and 7-day trial copy on monthly/yearly), StoreKit test purchase that starts a trial, restore.
 /// Screenshots and results.json go to $SIM_QA_OUT (pass TEST_RUNNER_SIM_QA_OUT to xcodebuild).
 final class SimQATests: XCTestCase {
     private var session: SKTestSession?
@@ -223,14 +223,18 @@ final class SimQATests: XCTestCase {
                 let y = hasText(["$19.99"])
                 let m = hasText(["$3.99"])
                 let l = hasText(["$29.99"])
-                payOK = y && m && l
-                payDetail = "yearly $19.99=\(y) monthly $3.99=\(m) lifetime $29.99=\(l) unavailable=\(any("plans-unavailable").exists)"
+                let monthTrial = hasText(["7 days free, then $3.99/month, cancel anytime"])
+                let yearTrial = hasText(["7 days free, then $19.99/year, cancel anytime"])
+                let lifeOnce = hasText(["Pay once, clean forever"])
+                let lifeTrial = textVisible("7 days free, then $29.99")
+                payOK = y && m && l && monthTrial && yearTrial && lifeOnce && !lifeTrial
+                payDetail = "yearly $19.99=\(y) monthly $3.99=\(m) lifetime $29.99=\(l) monthTrial=\(monthTrial) yearTrial=\(yearTrial) lifetimeOnce=\(lifeOnce) lifetimeTrialText=\(lifeTrial) unavailable=\(any("plans-unavailable").exists)"
             } else {
                 payDetail = "paywall did not open"
             }
         }
         shot("07-paywall")
-        record(7, "Paywall prices", payOK, payDetail)
+        record(7, "Paywall prices and trial copy", payOK, payDetail)
 
         // 8. StoreKit test purchase (monthly)
         var buyOK = false
@@ -253,11 +257,15 @@ final class SimQATests: XCTestCase {
                 buyOK = containing("Plan: Pro").waitForExistence(timeout: 10)
                 buyDetail += buyOK ? "; Settings shows Plan: Pro" : "; Settings does not show Plan: Pro"
             }
+            let trialInfo = monthlyTrialStarted()
+            let trialOK = (trialInfo ?? "").hasPrefix("trial")
+            buyDetail += "; \(trialInfo ?? "no SKTestSession transactions")"
+            buyOK = buyOK && trialOK
         } else {
             buyDetail += "; skipped, paywall prices missing"
         }
         shot("08-purchase-settings")
-        record(8, "StoreKit test purchase (monthly)", buyOK, buyDetail)
+        record(8, "StoreKit test purchase (monthly) starts a trial", buyOK, buyDetail)
 
         // 9. Restore purchases (Settings)
         var restoreOK = false
@@ -429,6 +437,35 @@ final class SimQATests: XCTestCase {
         let pred = NSPredicate(format: "label MATCHES %@", "^(Similar|Duplicate|Blurry|Screenshots|Live Photos), [1-9][0-9,]* items$")
         let m = app.descendants(matching: .any).matching(pred).firstMatch
         return m.exists ? m.label : nil
+    }
+
+
+    private func textVisible(_ text: String) -> Bool {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch.exists
+    }
+
+    /// A monthly subscription that started the 1-week intro should expire in about 7 days, not a full month.
+    private func monthlyTrialStarted() -> String? {
+        guard let session else { return "no SKTestSession" }
+        let deadline = Date().addingTimeInterval(8)
+        var txs: [SKTestTransaction] = []
+        while Date() < deadline {
+            txs = session.allTransactions()
+            if txs.contains(where: { $0.productIdentifier.contains("monthly") }) { break }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        let monthly = txs.filter { $0.productIdentifier.contains("monthly") }
+        guard let tx = monthly.sorted(by: { $0.purchaseDate > $1.purchaseDate }).first else {
+            return "no monthly transaction (txs=\(txs.count))"
+        }
+        guard let exp = tx.expirationDate else {
+            return "monthly tx has no expirationDate"
+        }
+        let days = exp.timeIntervalSince(tx.purchaseDate) / 86_400
+        if days > 5 && days < 10 {
+            return "trial \(String(format: "%.1f", days))d"
+        }
+        return "expiration is \(String(format: "%.1f", days))d, expected ~7"
     }
 
     private func hasText(_ candidates: [String]) -> Bool {
