@@ -71,7 +71,17 @@ final class SimQATests: XCTestCase {
         let midNote = containing("Scanning ").exists
         let noneYetMid = any("scan-bar").exists && containing("None yet").exists
         record(21, "Mid-scan cards show progress, not None yet", !noneYetMid, "scanningNote=\(midNote) noneYetWhileScanning=\(noneYetMid)")
-        let finished = waitForScan(timeout: 300)
+        // Background during the scan so the local scan-complete notification can appear.
+        XCUIDevice.shared.press(.home)
+        sleep(2)
+        let notif = waitForScanNotification(timeout: 300)
+        shot("10-scan-notification")
+        record(10, "Scan-complete notification", notif != nil, "banner=\(notif ?? "none")")
+        app.activate()
+        sleep(2)
+        if allowPhotosIfAsked() { sleep(2) }
+        dismissAppAlert()
+        let finished = waitForScan(timeout: 120)
         dismissAppAlert()
         sleep(1)
         let nonZero = firstNonZeroCategory()
@@ -352,6 +362,35 @@ final class SimQATests: XCTestCase {
                 if b.exists && b.isHittable { shot("08-store-sheet"); b.tap(); Thread.sleep(forTimeInterval: 2); return }
             }
         }
+    }
+
+
+    /// Look for the scan-complete banner or an entry in Notification Center.
+    private func waitForScanNotification(timeout: TimeInterval) -> String? {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let pred = NSPredicate(format: "label CONTAINS[c] %@", "Scan complete")
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let banner = springboard.descendants(matching: .any).matching(pred).firstMatch
+            if banner.exists {
+                return banner.label
+            }
+            Thread.sleep(forTimeInterval: 1)
+        }
+        // Banner may have already dismissed; open Notification Center and look again.
+        openNotificationCenter(springboard)
+        Thread.sleep(forTimeInterval: 1)
+        let row = springboard.descendants(matching: .any).matching(pred).firstMatch
+        if row.exists { return row.label }
+        return nil
+    }
+
+    private func openNotificationCenter(_ springboard: XCUIApplication) {
+        let frame = springboard.frame
+        guard frame.height > 0 else { return }
+        let start = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.01))
+        let end = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+        start.press(forDuration: 0.05, thenDragTo: end)
     }
 
     /// The Photos access sheet belongs to SpringBoard, so the interruption monitor does not see it while

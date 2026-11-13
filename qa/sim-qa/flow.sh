@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Klenzer flow for .github/workflows/sim-qa.yml.
 # Env from the workflow: UDID, BUNDLE_ID, SCHEME, WORKSPACE, DERIVED_DATA, OUT.
-# Seeds sample photos and contacts, pre-grants Photos and Contacts, then runs the
-# KlenzerQATests XCUITest (launch, home, Similar, Swipe, Merge Contacts preview,
-# Secret Album, paywall, StoreKit test purchase, restore). Screenshots land in $OUT.
+# Seeds sample photos and contacts, pre-grants Photos, Contacts and notifications, then runs the
+# KlenzerQATests XCUITest (launch, home, scan-complete notification, Similar, Swipe, Merge Contacts
+# preview, Secret Album, paywall, StoreKit test purchase, restore). Screenshots land in $OUT.
 set -euo pipefail
 : "${UDID:?}" "${BUNDLE_ID:?}" "${SCHEME:?}" "${WORKSPACE:?}" "${DERIVED_DATA:?}" "${OUT:?}"
 mkdir -p "$OUT"
@@ -32,7 +32,7 @@ APP=$(find "$DERIVED_DATA/Build/Products" -maxdepth 2 -name "$SCHEME.app" -path 
 echo "app: $APP"
 xcrun simctl install "$UDID" "$APP"
 # Full Photos access last: granting photos-add after photos leaves the app on add-only access.
-for s in photos-add contacts photos; do xcrun simctl privacy "$UDID" grant "$s" "$BUNDLE_ID" || true; done
+for s in photos-add contacts photos notifications notification; do xcrun simctl privacy "$UDID" grant "$s" "$BUNDLE_ID" || true; done
 
 echo "==> XCUITest flow"
 mkdir -p /tmp/klenzer-sk && cp qa/Klenzer.storekit /tmp/klenzer-sk/Klenzer.storekit
