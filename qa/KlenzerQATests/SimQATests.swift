@@ -62,31 +62,51 @@ final class SimQATests: XCTestCase {
         record(1, "Launch", homeUp, onboardingSeen ? "onboarding shown, then home" : "home shown directly")
         guard homeUp else { shot("01-launch-fail"); XCTFail("home never appeared"); return }
 
-        // 2. Home with scan results
+        // 2. Home with scan results. The scan runs in the foreground; the scan-complete banner is
+        // polled for during the scan (foreground banners are SpringBoard UI).
         let smart = any("smart-clean")
         if smart.waitForExistence(timeout: 5) { tapEl(smart) }
-        sleep(2)
-        if allowPhotosIfAsked() { sleep(2) }
+        let bar = any("scan-bar")
+        var sawBar = false
+        let startDeadline = Date().addingTimeInterval(20)
+        while Date() < startDeadline {
+            handleSystemSheets()
+            if bar.exists { sawBar = true; break }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        sleep(3)
+        handleSystemSheets()
         shot("02a-home-mid-scan")
-        let midNote = containing("Scanning ").exists
-        let noneYetMid = any("scan-bar").exists && containing("None yet").exists
-        record(21, "Mid-scan cards show progress, not None yet", !noneYetMid, "scanningNote=\(midNote) noneYetWhileScanning=\(noneYetMid)")
-        // Background during the scan so the local scan-complete notification can appear.
-        XCUIDevice.shared.press(.home)
-        sleep(2)
-        let notif = waitForScanNotification(timeout: 300)
-        shot("10-scan-notification")
-        record(10, "Scan-complete notification", notif != nil, "banner=\(notif ?? "none")")
-        app.activate()
-        sleep(2)
-        if allowPhotosIfAsked() { sleep(2) }
-        dismissAppAlert()
-        let finished = waitForScan(timeout: 120)
+        let midNote = bar.exists
+        let noneYetMid = bar.exists && containing("None yet").exists
+        record(21, "Mid-scan cards show progress, not None yet", sawBar && !noneYetMid, "scanBarSeen=\(sawBar) scanningNote=\(midNote) noneYetWhileScanning=\(noneYetMid)")
+
+        var notif: String? = nil
+        let finished = waitForScan(timeout: 600) { label in
+            if notif == nil { notif = label; self.shot("10-scan-notification") }
+        }
+        if notif == nil { notif = scanBannerNow(timeout: 15) }
+        if notif == nil {
+            // Banner may already be gone: look in Notification Center.
+            let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+            XCUIDevice.shared.press(.home)
+            sleep(1)
+            openNotificationCenter(springboard)
+            sleep(1)
+            let row = springboard.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", "Scan complete")).firstMatch
+            if row.exists { notif = row.label; shot("10-scan-notification") }
+            XCUIDevice.shared.press(.home)
+            app.activate()
+            sleep(2)
+        }
+        let realNumber = (notif ?? "").range(of: #"Scan complete: [0-9.,]+ ?[KMGT]?B can be freed"#, options: .regularExpression) != nil
+        record(10, "Scan-complete notification", notif != nil && realNumber, "banner=\(notif ?? "none") realNumber=\(realNumber)")
         dismissAppAlert()
         sleep(1)
         let nonZero = firstNonZeroCategory()
+        scrollTop()
         shot("02-home")
-        record(2, "Home after scan", finished && nonZero != nil, "scanFinished=\(finished) firstNonZero=\(nonZero ?? "none")")
+        record(2, "Home after scan", finished && nonZero != nil, "scanFinished=\(finished) firstNonZero=\(nonZero ?? "none") counts=\(categoryLabels())")
 
         // 2b. Duplicate and Blurry counts (seeded: 5 exact pairs, 5 blurry)
         for (label, minCount, name) in [("Duplicate, ", 5, "02b-duplicate"), ("Blurry, ", 5, "02c-blurry")] {
@@ -225,10 +245,14 @@ final class SimQATests: XCTestCase {
                 let l = hasText(["$29.99"])
                 let monthTrial = hasText(["7 days free, then $3.99/month, cancel anytime"])
                 let yearTrial = hasText(["7 days free, then $19.99/year, cancel anytime"])
-                let lifeOnce = hasText(["Pay once, clean forever"])
-                let lifeTrial = textVisible("7 days free, then $29.99")
+                let lifeRow = any("plan-lifetime")
+                _ = scrollTo(lifeRow)
+                let lifeLabel = lifeRow.waitForExistence(timeout: 8) ? lifeRow.label : ""
+                let lifeOnce = lifeLabel.contains("Pay once, clean forever") && lifeLabel.contains("$29.99")
+                let lifeTrial = lifeLabel.contains("days free") || textVisible("7 days free, then $29.99")
+                scrollTop()
                 payOK = y && m && l && monthTrial && yearTrial && lifeOnce && !lifeTrial
-                payDetail = "yearly $19.99=\(y) monthly $3.99=\(m) lifetime $29.99=\(l) monthTrial=\(monthTrial) yearTrial=\(yearTrial) lifetimeOnce=\(lifeOnce) lifetimeTrialText=\(lifeTrial) unavailable=\(any("plans-unavailable").exists)"
+                payDetail = "yearly $19.99=\(y) monthly $3.99=\(m) lifetime $29.99=\(l) monthTrial=\(monthTrial) yearTrial=\(yearTrial) lifetimeOnce=\(lifeOnce) lifetimeTrialText=\(lifeTrial) lifetimeLabel=\(lifeLabel) unavailable=\(any("plans-unavailable").exists)"
             } else {
                 payDetail = "paywall did not open"
             }
@@ -373,32 +397,26 @@ final class SimQATests: XCTestCase {
     }
 
 
-    /// Look for the scan-complete banner or an entry in Notification Center.
-    private func waitForScanNotification(timeout: TimeInterval) -> String? {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let pred = NSPredicate(format: "label CONTAINS[c] %@", "Scan complete")
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            let banner = springboard.descendants(matching: .any).matching(pred).firstMatch
-            if banner.exists {
-                return banner.label
-            }
-            Thread.sleep(forTimeInterval: 1)
-        }
-        // Banner may have already dismissed; open Notification Center and look again.
-        openNotificationCenter(springboard)
-        Thread.sleep(forTimeInterval: 1)
-        let row = springboard.descendants(matching: .any).matching(pred).firstMatch
-        if row.exists { return row.label }
-        return nil
-    }
-
     private func openNotificationCenter(_ springboard: XCUIApplication) {
         let frame = springboard.frame
         guard frame.height > 0 else { return }
         let start = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.01))
         let end = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
         start.press(forDuration: 0.05, thenDragTo: end)
+    }
+
+    /// Any Photos sheet (first prompt or the "additional access" sheet with Keep Add Only) gets
+    /// Allow Full Access; the notification prompt at scan start gets Allow.
+    @discardableResult
+    private func handleSystemSheets() -> Bool {
+        if allowPhotosIfAsked() { return true }
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let alert = springboard.alerts.firstMatch
+        if alert.exists, alert.label.localizedCaseInsensitiveContains("notification") {
+            let b = alert.buttons["Allow"]
+            if b.exists { NSLog("[klenzer-qa] tapped notifications Allow"); b.tap(); Thread.sleep(forTimeInterval: 1); return true }
+        }
+        return false
     }
 
     /// The Photos access sheet belongs to SpringBoard, so the interruption monitor does not see it while
@@ -418,19 +436,38 @@ final class SimQATests: XCTestCase {
         return false
     }
 
-    private func waitForScan(timeout: TimeInterval) -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
+    /// Waits until the scan bar has come and gone (or the post-scan reminder prompt shows). Handles any
+    /// Photos or notification sheet on the way, and reports the scan-complete banner as soon as it shows.
+    private func waitForScan(timeout: TimeInterval, onBanner: (String) -> Void) -> Bool {
+        let started = Date()
+        let deadline = started.addingTimeInterval(timeout)
         let bar = any("scan-bar")
         var sawBar = false
+        var done = false
         while Date() < deadline {
-            allowPhotosIfAsked()
-            if app.alerts.firstMatch.exists { return true } // reminder prompt appears when a scan finishes
+            handleSystemSheets()
+            if let b = scanBannerNow(timeout: 0) { onBanner(b) }
+            if app.alerts.firstMatch.exists { done = true; break } // reminder prompt appears when a scan finishes
             if bar.exists { sawBar = true }
-            if sawBar && !bar.exists { return true }
-            if !sawBar && firstNonZeroCategory() != nil && Date() > deadline.addingTimeInterval(-timeout + 20) { return true }
+            if sawBar && !bar.exists { done = true; break }
+            // A very fast scan can finish before the bar is ever seen.
+            if !sawBar && Date() > started.addingTimeInterval(20) && firstNonZeroCategory() != nil { done = true; break }
             Thread.sleep(forTimeInterval: 1)
         }
-        return false
+        if done, let b = scanBannerNow(timeout: 8) { onBanner(b) }
+        return done
+    }
+
+    private func scanBannerNow(timeout: TimeInterval) -> String? {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let el = springboard.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", "Scan complete")).firstMatch
+        if timeout > 0 { _ = el.waitForExistence(timeout: timeout) }
+        return el.exists ? el.label : nil
+    }
+
+    private func categoryLabels() -> String {
+        let pred = NSPredicate(format: "label MATCHES %@", "^(Similar|Duplicate|Blurry|Screenshots|Live Photos|Videos|Large videos), [0-9,]+ items$")
+        return app.descendants(matching: .any).matching(pred).allElementsBoundByIndex.map { $0.label }.joined(separator: "; ")
     }
 
     private func firstNonZeroCategory() -> String? {

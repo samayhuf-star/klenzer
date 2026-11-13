@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Klenzer flow for .github/workflows/sim-qa.yml.
 # Env from the workflow: UDID, BUNDLE_ID, SCHEME, WORKSPACE, DERIVED_DATA, OUT.
-# Seeds sample photos and contacts, pre-grants Photos, Contacts and notifications, then runs the
-# KlenzerQATests XCUITest (launch, home, scan-complete notification, Similar, Swipe, Merge Contacts
-# preview, Secret Album, paywall, StoreKit test purchase, restore). Screenshots land in $OUT.
+# Seeds sample photos and contacts, pre-grants full Photos and Contacts, then runs the KlenzerQATests
+# XCUITest (launch, scan with partial counts, scan-complete notification, Home with counts, Duplicate,
+# Blurry and Similar review, Swipe, Merge Contacts preview, Secret Album, paywall, StoreKit test
+# purchase, restore). The UI test taps Allow Full Access on any Photos sheet (first prompt or the
+# "additional access" sheet) and Allow on the notification prompt. Screenshots land in $OUT.
 set -euo pipefail
 : "${UDID:?}" "${BUNDLE_ID:?}" "${SCHEME:?}" "${WORKSPACE:?}" "${DERIVED_DATA:?}" "${OUT:?}"
 mkdir -p "$OUT"
@@ -31,8 +33,13 @@ echo "==> Install and grant"
 APP=$(find "$DERIVED_DATA/Build/Products" -maxdepth 2 -name "$SCHEME.app" -path '*Release-iphonesimulator*' | head -n1)
 echo "app: $APP"
 xcrun simctl install "$UDID" "$APP"
-# Full Photos access last: granting photos-add after photos leaves the app on add-only access.
-for s in photos-add contacts photos notifications notification; do xcrun simctl privacy "$UDID" grant "$s" "$BUNDLE_ID" || true; done
+# Full Photos access only (never photos-add: add-only makes iOS show the "additional access" sheet
+# and the scan cannot read the library). prepare.sh already granted it; grant again after install.
+# Notifications are not a simctl privacy service: the app asks at the first scan and the UI test taps Allow.
+: > "$OUT/grants.txt"
+for s in photos contacts; do
+  if xcrun simctl privacy "$UDID" grant "$s" "$BUNDLE_ID" 2>>"$OUT/grants.txt"; then echo "grant $s: ok" | tee -a "$OUT/grants.txt"; else echo "grant $s: FAILED (the UI test taps Allow Full Access on any Photos sheet)" | tee -a "$OUT/grants.txt"; fi
+done
 
 echo "==> XCUITest flow"
 mkdir -p /tmp/klenzer-sk && cp qa/Klenzer.storekit /tmp/klenzer-sk/Klenzer.storekit
@@ -56,7 +63,12 @@ import json, os, sys
 out, rc = sys.argv[1], int(sys.argv[2])
 p = os.path.join(out, "results.json")
 steps = json.load(open(p)).get("steps", []) if os.path.exists(p) else []
-lines = ["# Klenzer iOS Simulator QA", "", f"xcodebuild test exit: {rc}", "", "| Step | Result | Detail |", "| --- | --- | --- |"]
+extra = []
+for name in ("permission-assert.txt", "grants.txt"):
+    fp = os.path.join(out, name)
+    if os.path.exists(fp):
+        extra += [f"{name}:", "```", open(fp).read().strip(), "```", ""]
+lines = ["# Klenzer iOS Simulator QA", "", f"xcodebuild test exit: {rc}", ""] + extra + ["| Step | Result | Detail |", "| --- | --- | --- |"]
 for s in steps:
     lines.append(f"| {s['step']}. {s['name']} | {'PASS' if s['pass'] else 'FAIL'} | {str(s['detail']).replace('|', '/')} |")
 if not steps:
