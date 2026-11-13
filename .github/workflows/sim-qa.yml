@@ -38,7 +38,6 @@ on:
         options:
           - macos-latest
           - macos-15
-          - macos-14
 
 concurrency:
   group: sim-qa-${{ inputs.ref }}
