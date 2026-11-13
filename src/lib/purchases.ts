@@ -9,6 +9,7 @@ import {
   getAvailablePurchases,
   hasActiveSubscriptions,
   initConnection,
+  isEligibleForIntroOfferIOS,
   isTransactionVerifiedIOS,
   isUserCancelledError,
   purchaseErrorListener,
@@ -22,13 +23,14 @@ import {
   type Purchase,
 } from 'expo-iap';
 import { defaultPlanKind, defForId, isKnownProduct, PRODUCT_CATALOG, productIds, type PlanKind, type ProductDef } from './products';
+import { freeTrialDays, type ProductLike } from './introOffer';
 
 const LOG = '[klenzer-paywall]';
 
 export type { PlanKind };
 export { defaultPlanKind, PRODUCT_CATALOG };
 
-export type Plan = ProductDef & { price: string; product: ProductOrSubscription };
+export type Plan = ProductDef & { price: string; product: ProductOrSubscription; /** Set only when the store reports a trial AND this user is eligible. Lifetime is always null. */ trialDays: number | null };
 
 export type BuyResult = 'purchased' | 'cancelled' | 'pending' | 'error';
 
@@ -272,6 +274,19 @@ async function fetchCatalog(): Promise<Map<string, ProductOrSubscription>> {
   return byId;
 }
 
+/** iOS: StoreKit says whether this Apple ID may still use the group's intro offer. Android: Play only returns offers the user can use. Errors count as not eligible. */
+async function introEligible(product: ProductOrSubscription): Promise<boolean> {
+  if (Platform.OS !== 'ios') return true;
+  const group = (product as { subscriptionGroupIdIOS?: string | null }).subscriptionGroupIdIOS;
+  if (!group) return false;
+  try {
+    return !!(await isEligibleForIntroOfferIOS(group));
+  } catch (e) {
+    logErr('isEligibleForIntroOfferIOS', e);
+    return false;
+  }
+}
+
 /** Connect first, then fetch subs and the lifetime product with a short retry, using the store's displayPrice. */
 export async function loadPlans(): Promise<PlansLoad> {
   const delays = [0, 1200, 2500];
@@ -292,7 +307,9 @@ export async function loadPlans(): Promise<PlansLoad> {
   for (const def of PRODUCT_CATALOG) {
     const product = byId.get(def.id);
     if (!product) continue;
-    plans.push({ ...def, price: product.displayPrice, product });
+    const days = def.type === 'subs' ? freeTrialDays(product as unknown as ProductLike) : null;
+    const trialDays = days && (await introEligible(product)) ? days : null;
+    plans.push({ ...def, price: product.displayPrice, product, trialDays });
   }
   if (!plans.length) {
     console.log(LOG, 'no store products loaded', { requested: productIds() });

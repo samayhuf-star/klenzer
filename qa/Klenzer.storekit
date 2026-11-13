@@ -38,7 +38,11 @@
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "A11C0FEE-11FE-4B11-8E11-000000000002",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "A11C0FEE-11FE-4B11-8E11-000000000012",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             {
               "description" : "Yearly access to Klenzer Pro.",
@@ -60,7 +64,11 @@
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "A11C0FEE-11FE-4B11-8E11-000000000003",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "A11C0FEE-11FE-4B11-8E11-000000000013",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             {
               "description" : "Monthly access to Klenzer Pro.",

@@ -42,7 +42,7 @@ Reminders are local only: no server, no push token, and no remote push entitleme
 - iOS bundle ID / Android package: `com.krosz.klenzer`
 - App version on this branch: 1.1.0
 - `supportsTablet`: false
-- Store product IDs (loaded by ID from Apple or Google; prices come from the store’s localized displayPrice, never hard-coded): `com.krosz.klenzer.yearly` (auto-renew, default-selected, Best value), `com.krosz.klenzer.monthly` (auto-renew), `com.krosz.klenzer.lifetime` (non-consumable). Yearly and monthly are in the “Klenzer Pro” subscription group. If a product is missing from the store, the paywall shows the ones that load.
+- Store product IDs (loaded by ID from Apple or Google; prices come from the store’s localized displayPrice, never hard-coded): `com.krosz.klenzer.yearly` (auto-renew, default-selected, Best value), `com.krosz.klenzer.monthly` (auto-renew), `com.krosz.klenzer.lifetime` (non-consumable). Yearly and monthly are in the “Klenzer Pro” subscription group. If a product is missing from the store, the paywall shows the ones that load. Yearly and monthly each show a 7-day free trial when the store reports an eligible introductory offer (“7 days free, then <store price>/month” or “/year”, “cancel anytime”). Lifetime has no trial.
 - Pro is a verified lifetime purchase or an active yearly or monthly subscription, checked from StoreKit / Play entitlements on launch and when transactions update.
 
 ## Run locally
