@@ -88,7 +88,7 @@ function toFileUri(uri: string): string {
   return uri;
 }
 
-/** Resize a local image to 32×32, then compute dHash and Laplacian variance. Never downloads from iCloud. */
+/** Resize a local image file to 32×32, then compute dHash and Laplacian variance. */
 export async function analyzeThumb(localUri: string): Promise<{ dhash: string; blur: number } | null> {
   try {
     const result = await ImageManipulator.manipulateAsync(
