@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Klenzer flow for .github/workflows/sim-qa.yml.
 # Env from the workflow: UDID, BUNDLE_ID, SCHEME, WORKSPACE, DERIVED_DATA, OUT.
-# Seeds sample photos and contacts, pre-grants full Photos and Contacts, then runs the KlenzerQATests
+# Seeds sample photos (exact pairs, near pairs, Similar bursts, blurry, screenshots; Live Photos come from
+# prepare.sh) and contacts, pre-grants full Photos and Contacts, then runs the KlenzerQATests
 # XCUITest (launch, scan with partial counts, scan-complete notification, Home with counts, Duplicate,
 # Blurry and Similar review, Swipe, Merge Contacts preview, Secret Album, paywall, StoreKit test
 # purchase, restore). The UI test taps Allow Full Access on any Photos sheet (first prompt or the
@@ -13,14 +14,16 @@ PHOTO_DIR="${PHOTO_DIR:-$PWD/qa/fixtures/photos}"
 
 echo "==> Sample photos"
 python3 -m pip install --user --quiet pillow 2>/dev/null || python3 -m pip install --user --quiet --break-system-packages pillow
-python3 qa/scripts/generate-sim-photos.py --out "$PHOTO_DIR" --count "${PHOTO_COUNT:-400}" --exact-pairs 5 --blurry 5 --near-pairs 20 --screenshots 20
+python3 qa/scripts/generate-sim-photos.py --out "$PHOTO_DIR" --count "${PHOTO_COUNT:-400}" --exact-pairs 5 --blurry 8 --near-pairs 20 --similar-bursts 6 --screenshots 20
 N=0; BATCH=()
 while IFS= read -r f; do
   BATCH+=("$f"); N=$((N + 1))
   if [ "${#BATCH[@]}" -ge 80 ]; then xcrun simctl addmedia "$UDID" "${BATCH[@]}"; BATCH=(); fi
 done < <(find "$PHOTO_DIR" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | sort)
 [ "${#BATCH[@]}" -gt 0 ] && xcrun simctl addmedia "$UDID" "${BATCH[@]}"
-echo "photos seeded: $N" | tee "$OUT/seed.txt"
+echo "photos seeded: $N (5 exact pairs, 8 blurry, 20 near pairs, 6 similar bursts x3, 20 screenshots)" | tee "$OUT/seed.txt"
+# Live Photos are seeded by prepare.sh (generate-live-photos.swift + paired addmedia); carry its result.
+if [ -f "$OUT/live-photo-seed.env" ]; then echo "live photos: $(tr '\n' ' ' < "$OUT/live-photo-seed.env")" | tee -a "$OUT/seed.txt"; else echo "live photos: not seeded (prepare.sh did not run the probe)" | tee -a "$OUT/seed.txt"; fi
 
 echo "==> Sample contacts"
 if xcrun simctl addmedia "$UDID" qa/sim-qa/contacts.vcf; then
@@ -64,7 +67,7 @@ out, rc = sys.argv[1], int(sys.argv[2])
 p = os.path.join(out, "results.json")
 steps = json.load(open(p)).get("steps", []) if os.path.exists(p) else []
 extra = []
-for name in ("permission-assert.txt", "grants.txt"):
+for name in ("seed.txt", "permission-assert.txt", "grants.txt"):
     fp = os.path.join(out, name)
     if os.path.exists(fp):
         extra += [f"{name}:", "```", open(fp).read().strip(), "```", ""]

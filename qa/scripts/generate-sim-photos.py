@@ -13,6 +13,7 @@ Requires Pillow:  pip install pillow
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import sys
 from pathlib import Path
@@ -40,6 +41,29 @@ def scene(seed: int, w: int = 96, h: int = 96) -> Image.Image:
         draw.text((4, h - 14), f"{seed:04d}", fill=(0, 0, 0), font=font)
     except Exception:
         pass
+    return img
+
+
+def burst_scene(seed: int, w: int = 240, h: int = 180) -> Image.Image:
+    """Smooth gradient plus hard-edged marks: sharp (not Blurry) and with stable dHash bits, so tiny
+    edits of the same shot stay within a few bits of each other (a Similar group)."""
+    img = Image.new("RGB", (w, h))
+    px = img.load()
+    fx = 1.5 + (seed % 5) * 0.7
+    fy = 1.0 + (seed % 3) * 0.9
+    ph = seed * 0.37
+    for y in range(h):
+        for x in range(w):
+            v = 128 + 60 * math.sin(fx * x / w * 6.283 + ph) + 50 * math.cos(fy * y / h * 6.283 + ph * 0.5)
+            px[x, y] = (int(max(0, min(255, v))), int(max(0, min(255, v * 0.8 + 30))), int(max(0, min(255, 255 - v))))
+    draw = ImageDraw.Draw(img)
+    for k in range(6):
+        x0 = (seed * 13 + k * 37) % (w - 40)
+        y0 = (seed * 7 + k * 29) % (h - 30)
+        fill = (15, 15, 20) if k % 2 == 0 else (245, 245, 240)
+        draw.rectangle((x0, y0, x0 + 30 + (k * 5) % 20, y0 + 20 + (k * 3) % 15), fill=fill)
+    for k in range(4):
+        draw.line((0, (seed * 5 + k * 45) % h, w, (seed * 11 + k * 45 + 30) % h), fill=(255, 255, 255) if k % 2 else (0, 0, 0), width=4)
     return img
 
 
@@ -92,6 +116,7 @@ def main() -> int:
     parser.add_argument("--near-pairs", type=int, default=60)
     parser.add_argument("--blurry", type=int, default=80)
     parser.add_argument("--screenshots", type=int, default=40)
+    parser.add_argument("--similar-bursts", type=int, default=0, help="bursts of 3 near-identical shots (Similar)")
     args = parser.parse_args()
 
     out = Path(args.out)
@@ -126,6 +151,14 @@ def main() -> int:
     for i in range(blur_count):
         write_jpeg(blurry(scene(400 + i, 160, 120)), out / "blurry" / f"BLUR_{i:04d}.jpg", quality=55)
         n += 1
+
+    # Similar bursts: 3 shots of the same scene (re-encoded, +4% brightness, +4% contrast)
+    for i in range(args.similar_bursts):
+        base = burst_scene(700 + i * 11)
+        write_jpeg(base, out / "similar" / f"SIM_{i:03d}_A.jpg", quality=85)
+        write_jpeg(ImageEnhance.Brightness(base).enhance(1.04), out / "similar" / f"SIM_{i:03d}_B.jpg", quality=80)
+        write_jpeg(ImageEnhance.Contrast(base).enhance(1.04), out / "similar" / f"SIM_{i:03d}_C.jpg", quality=75)
+        n += 3
 
     # 40 screenshot-sized PNGs (names start with Screenshot so the scanner groups them)
     shot_count = args.screenshots

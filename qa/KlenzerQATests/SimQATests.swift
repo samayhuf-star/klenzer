@@ -106,6 +106,7 @@ final class SimQATests: XCTestCase {
         let nonZero = firstNonZeroCategory()
         scrollTop()
         shot("02-home")
+        if finished { shot("02-home-finished") }
         record(2, "Home after scan", finished && nonZero != nil, "scanFinished=\(finished) firstNonZero=\(nonZero ?? "none") counts=\(categoryLabels())")
 
         // 2b. Duplicate and Blurry counts (seeded: 5 exact pairs, 5 blurry)
@@ -145,6 +146,19 @@ final class SimQATests: XCTestCase {
         shot("03-similar")
         record(3, "Similar review", similarOK, similarDetail)
         goHome()
+
+        // 3b. Live Photos (seeded by prepare.sh as paired HEIC+MOV). They are counted on their own card
+        // and are also analyzed as stills for Duplicate, Similar and Blurry.
+        scrollTop()
+        let liveTile = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "Live Photos, ")).firstMatch
+        var liveN = 0
+        if !liveTile.waitForExistence(timeout: 3) { _ = scrollTo(liveTile) }
+        if liveTile.exists {
+            let digits = liveTile.label.dropFirst("Live Photos, ".count).prefix { $0.isNumber || $0 == "," }.replacingOccurrences(of: ",", with: "")
+            liveN = Int(digits) ?? 0
+        }
+        record(24, "Live Photos counted", liveN >= 1, "tile=\(liveTile.exists ? liveTile.label : "missing") count=\(liveN)")
+        scrollTop()
 
         // 4. Swipe to Organize
         var swipeOK = false

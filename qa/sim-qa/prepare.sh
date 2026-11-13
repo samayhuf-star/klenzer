@@ -19,3 +19,12 @@ if [ -n "${UDID:-}" ] && [ -n "${BUNDLE_ID:-}" ]; then
     && echo "grant photos (prepare): ok" | tee -a "$OUT/prepare.log" \
     || echo "grant photos (prepare): FAILED, flow.sh grants again after install" | tee -a "$OUT/prepare.log"
 fi
+
+# Live Photos: generate a few paired HEIC+MOV fixtures with generate-live-photos.swift and add each
+# pair in one simctl addmedia call so Photos imports it as a single Live Photo. The probe records
+# the outcome in $OUT/live-photo-seed.md / .env and never fails the run.
+echo "==> Seed Live Photos on ${UDID:-?}" | tee -a "$OUT/prepare.log"
+if [ -n "${UDID:-}" ]; then
+  UDID="$UDID" SIM_QA_OUT="$OUT" LIVE_DIR="$PWD/qa/fixtures/live" \
+    bash qa/scripts/probe-live-photo-seed.sh 2>&1 | tee -a "$OUT/prepare.log" || echo "live photo seed: probe error (non-fatal)" | tee -a "$OUT/prepare.log"
+fi
