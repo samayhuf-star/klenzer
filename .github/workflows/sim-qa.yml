@@ -30,6 +30,15 @@ on:
         description: iOS bundle id (blank = read from the Expo config)
         required: false
         default: ''
+      runner:
+        description: Hosted macOS runner image (free on a public repo)
+        required: false
+        default: macos-latest
+        type: choice
+        options:
+          - macos-latest
+          - macos-15
+          - macos-14
 
 concurrency:
   group: sim-qa-${{ inputs.ref }}
@@ -38,7 +47,7 @@ concurrency:
 jobs:
   sim-qa:
     name: Simulator QA (${{ inputs.ref }})
-    runs-on: macos-latest
+    runs-on: ${{ inputs.runner || 'macos-latest' }}
     timeout-minutes: 100
     env:
       OUT: /tmp/sim-qa
