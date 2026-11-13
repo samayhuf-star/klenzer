@@ -66,6 +66,7 @@ final class SimQATests: XCTestCase {
         let smart = any("smart-clean")
         if smart.waitForExistence(timeout: 5) { tapEl(smart) }
         sleep(2)
+        if allowPhotosIfAsked() { sleep(2) }
         shot("02a-home-mid-scan")
         let midNote = containing("Scanning ").exists
         let noneYetMid = any("scan-bar").exists && containing("None yet").exists
@@ -353,11 +354,29 @@ final class SimQATests: XCTestCase {
         }
     }
 
+    /// The Photos access sheet belongs to SpringBoard, so the interruption monitor does not see it while
+    /// the test only polls. Tap Allow Full Access directly when it shows.
+    @discardableResult
+    private func allowPhotosIfAsked() -> Bool {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for label in ["Allow Full Access", "Allow Access to All Photos"] {
+            let b = springboard.buttons[label]
+            if b.exists && b.isHittable {
+                NSLog("[klenzer-qa] tapped Photos access: \(label)")
+                b.tap()
+                Thread.sleep(forTimeInterval: 1)
+                return true
+            }
+        }
+        return false
+    }
+
     private func waitForScan(timeout: TimeInterval) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         let bar = any("scan-bar")
         var sawBar = false
         while Date() < deadline {
+            allowPhotosIfAsked()
             if app.alerts.firstMatch.exists { return true } // reminder prompt appears when a scan finishes
             if bar.exists { sawBar = true }
             if sawBar && !bar.exists { return true }

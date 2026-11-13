@@ -31,7 +31,8 @@ echo "==> Install and grant"
 APP=$(find "$DERIVED_DATA/Build/Products" -maxdepth 2 -name "$SCHEME.app" -path '*Release-iphonesimulator*' | head -n1)
 echo "app: $APP"
 xcrun simctl install "$UDID" "$APP"
-for s in photos photos-add contacts; do xcrun simctl privacy "$UDID" grant "$s" "$BUNDLE_ID" || true; done
+# Full Photos access last: granting photos-add after photos leaves the app on add-only access.
+for s in photos-add contacts photos; do xcrun simctl privacy "$UDID" grant "$s" "$BUNDLE_ID" || true; done
 
 echo "==> XCUITest flow"
 mkdir -p /tmp/klenzer-sk && cp qa/Klenzer.storekit /tmp/klenzer-sk/Klenzer.storekit
