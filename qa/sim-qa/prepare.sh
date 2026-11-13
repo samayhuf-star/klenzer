@@ -4,5 +4,5 @@
 # (Run and Test actions). Only touches the generated ios/ folder on the CI runner. EAS never runs this.
 set -euo pipefail
 gem list -i xcodeproj >/dev/null 2>&1 || gem install xcodeproj --no-document
-ruby qa/scripts/prepare-xcode-qa.rb
+ruby qa/scripts/prepare-xcode-qa.rb | tee -a "$OUT/prepare.log"
 grep -n "StoreKitConfigurationFileReference" -A1 ios/*.xcodeproj/xcshareddata/xcschemes/*.xcscheme | tee -a "$OUT/prepare.log"

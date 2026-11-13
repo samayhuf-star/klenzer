@@ -45,6 +45,9 @@ else
   test_target.add_resources([storekit_ref])
 
   test_target.build_configurations.each do |cfg|
+    # Explicit, so the runner app and .xctest never get an empty name ("-Runner.app/PlugIns/.xctest").
+    cfg.build_settings['PRODUCT_NAME'] = test_name
+    cfg.build_settings['PRODUCT_MODULE_NAME'] = test_name
     cfg.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.krosz.klenzer.qatests'
     cfg.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
     cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
@@ -64,6 +67,9 @@ else
 
   project.save
   puts "added UI test target #{test_name} to #{proj_path}"
+  test_target.build_configurations.each do |cfg|
+    puts "#{test_name} #{cfg.name}: PRODUCT_NAME=#{cfg.build_settings['PRODUCT_NAME']} TEST_TARGET_NAME=#{cfg.build_settings['TEST_TARGET_NAME']}"
+  end
 end
 
 # Shared scheme: include the test target and a StoreKitConfigurationFileReference.
