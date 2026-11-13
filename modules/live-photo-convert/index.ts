@@ -14,6 +14,7 @@ type NativeAPI = {
   pairedVideoSizes: (ids: string[]) => Promise<PairedVideoSize[]>;
   convertToStills: (ids: string[]) => Promise<ConvertResult>;
   scanThumb?: (id: string, targetPx: number, timeoutMs: number) => Promise<string | null>;
+  scanAnalyze?: (id: string, targetPx: number, timeoutMs: number) => Promise<{ ok: boolean; dhash?: string; blur?: number } | null>;
   beginShortBackgroundTask?: () => void;
   endShortBackgroundTask?: () => void;
 };
@@ -53,6 +54,24 @@ export async function scanThumb(id: string, targetPx: number, timeoutMs: number)
   if (!Native?.scanThumb) return null;
   try {
     return (await Native.scanThumb(id, targetPx, timeoutMs)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** True when this build can hash and blur-check photos natively from a small Photos thumbnail. */
+export const isScanAnalyzeSupported = Platform.OS === 'ios' && typeof Native?.scanAnalyze === 'function';
+
+/**
+ * dHash and blur for one photo, computed natively from a small Photos thumbnail (iCloud allowed,
+ * never the full-size original). Null on failure or timeout so the scan skips the photo.
+ */
+export async function scanAnalyze(id: string, targetPx: number, timeoutMs: number): Promise<{ dhash: string; blur: number } | null> {
+  if (!Native?.scanAnalyze) return null;
+  try {
+    const r = await Native.scanAnalyze(id, targetPx, timeoutMs);
+    if (!r || !r.ok || typeof r.dhash !== 'string' || r.dhash.length !== 16 || typeof r.blur !== 'number' || !Number.isFinite(r.blur)) return null;
+    return { dhash: r.dhash, blur: r.blur };
   } catch {
     return null;
   }

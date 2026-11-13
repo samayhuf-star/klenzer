@@ -139,3 +139,37 @@ describe('iCloud scan thumbnails', () => {
     assert.equal(progress[progress.length - 1]?.percent, 100);
   });
 });
+
+describe('native thumbnail analysis (iOS)', () => {
+  it('uses the native analyzer for every photo and never the file + image-manipulator path', async () => {
+    let fileAnalyzed = 0;
+    const asked: [string, number][] = [];
+    const t = io({
+      analyze: async () => { fileAnalyzed++; return GOOD; },
+      analyzeNative: async (id, px) => { asked.push([id, px]); return { dhash: '0123456789abcdef', blur: 12 }; },
+    });
+    assert.deepEqual(await analyzeForScan('local', 'file:///local/a.jpg', t), { dhash: '0123456789abcdef', blur: 12 });
+    assert.deepEqual(await analyzeForScan('cloud', null, t), { dhash: '0123456789abcdef', blur: 12 });
+    assert.equal(fileAnalyzed, 0, 'the old manipulator path is not touched');
+    assert.deepEqual(t.fetched, [], 'no temp thumbnail file is written');
+    for (const [, px] of asked) assert.ok(px <= ICLOUD_THUMB_MAX_PX, 'small thumbnail only');
+  });
+
+  it('skips a photo whose native analysis stalls, errors or fails, within the timeout', async () => {
+    const started = Date.now();
+    assert.equal(await analyzeForScan('x', 'file:///a.jpg', io({ analyzeNative: () => never() })), null);
+    assert.equal(await analyzeForScan('x', null, io({ analyzeNative: async () => { throw new Error('bridge'); } })), null);
+    assert.equal(await analyzeForScan('x', null, io({ analyzeNative: async () => null })), null);
+    assert.ok(Date.now() - started < 3000, 'a stalled native call is abandoned');
+  });
+
+  it('is registered natively, asks Photos for a small thumbnail, and computes dHash and blur in Swift', () => {
+    assert.match(moduleSwift, /AsyncFunction\("scanAnalyze"\)[\s\S]*requestScanAnalyze\(/);
+    assert.match(swift, /func requestScanAnalyze\(/);
+    assert.match(swift, /min\(max\(targetPx, 32\), scanThumbMaxPx\)/);
+    assert.match(swift, /cancelImageRequest/);
+    assert.match(swift, /private func dHash\(/);
+    assert.match(swift, /private func laplacianVariance\(/);
+    assert.match(scanner, /analyzeNative: isScanAnalyzeSupported \? scanAnalyze : undefined/);
+  });
+});

@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library/legacy';
-import { scanThumb } from 'live-photo-convert';
+import { isScanAnalyzeSupported, scanAnalyze, scanThumb } from 'live-photo-convert';
 import { analyzeForScan } from './icloud-thumb';
 import { analyzeThumb } from './image-hash';
 import { getCached, pruneCache, putCached } from './scan-cache';
@@ -74,7 +74,9 @@ async function enrichDevice(item: Item, mode: 'size' | 'hash' | 'blur') {
   }
 
   let size = cached?.size ?? 0;
-  const info = await assetInfo(item.id);
+  // The native analyzer reads Photos directly, so a hash/blur pass only asks for the file when it still needs the size.
+  const needInfo = !cached || !wantHash || !isScanAnalyzeSupported;
+  const info = needInfo ? await assetInfo(item.id) : null;
   const uri = info?.localUri ?? null;
   if (uri && !cached) {
     try {
@@ -87,12 +89,15 @@ async function enrichDevice(item: Item, mode: 'size' | 'hash' | 'blur') {
   let dhash: string | null = cached?.dhash ?? null;
   let blur: number | null = cached?.blur ?? null;
   if (wantHash && (dhash == null || (mode === 'blur' && blur == null))) {
-    // Always pass a file URI, never a ph:// library URL, to expo-image-manipulator.
-    // iCloud-only originals get a small thumbnail from Photos; a failed fetch skips the photo.
+    // iOS uses the native thumbnail analyzer for every photo. Elsewhere: always pass a file URI, never a
+    // ph:// library URL, to expo-image-manipulator. A failed or slow analysis skips the photo.
     const analysis = await analyzeForScan(item.id, uri, {
       analyze: analyzeThumb,
       fetchCloudThumb: scanThumb,
       removeFile: (fileUri) => new File(fileUri).delete(),
+      // iOS: dHash and blur from a small Photos thumbnail, computed natively. The old file +
+      // image-manipulator path never answered on the simulator, so every photo hit HASH_TIMEOUT_MS.
+      analyzeNative: isScanAnalyzeSupported ? scanAnalyze : undefined,
       hashTimeoutMs: HASH_TIMEOUT_MS,
     });
     if (analysis) {

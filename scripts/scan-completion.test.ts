@@ -7,7 +7,7 @@ import {
   shouldStartScanAfterAccessChange,
   toPhotoAccess,
 } from '../src/lib/photo-access';
-import { scanLibraryWithIO, type Enrichment, type LibraryAsset } from '../src/lib/scan-pipeline';
+import { analysisComplete, scanLibraryWithIO, type Enrichment, type LibraryAsset, type Progress } from '../src/lib/scan-pipeline';
 import { dupReclaimable, sum, type Item, type ScanResult } from '../src/lib/scan-logic';
 import { scanCompleteBody } from '../src/lib/scan-complete';
 
@@ -143,4 +143,66 @@ describe('scan completion', () => {
     );
     assert.deepEqual([...done].sort(), ['photos', 'screenshots', 'videos']);
   });
+
+  // Reproduces sim run 43429495465: every hash/blur call hung (the image-manipulator path never answered),
+  // so each photo cost a full timeout and the scan crawled at 97–99% with Similar and Blurry at 0.
+  it('completes by processed + skipped == total when the photo analyzer never answers, trying each photo once', async () => {
+    const assets = seedAssets();
+    let analysisCalls = 0;
+    const progress: Progress[] = [];
+    const enrich = async (item: Item, mode: 'size' | 'hash' | 'blur'): Promise<Enrichment> => {
+      if (mode !== 'size') {
+        analysisCalls++;
+        return never<Enrichment>();
+      }
+      return { size: item.id.startsWith('pair-') ? 3 * MB : 2 * MB + item.width, dhash: null, blur: null };
+    };
+    const started = Date.now();
+    const r = await scanLibraryWithIO(
+      { onProgress: (p) => progress.push(p), onCategory: () => {}, onPartial: () => {} },
+      { cancelled: false },
+      { getPage: pagedIO(assets), enrich, analyzeTimeoutMs: 20, workers: 8 },
+    );
+    assert.ok(Date.now() - started < 20_000, 'a hung analyzer must not hold the scan');
+    const last = progress[progress.length - 1];
+    assert.equal(last.complete, true);
+    assert.deepEqual(last.analysis, { processed: 0, skipped: 400, total: 400 });
+    assert.ok(analysisComplete(last.analysis!));
+    assert.ok(analysisCalls <= 400, `each photo is analyzed at most once (calls=${analysisCalls})`);
+    assert.equal(r.duplicates.length, 5, 'Duplicate still reports what it found');
+  });
+
+  it('publishes Similar and Blurry once analysis answers, and counts every photo', async () => {
+    const assets = seedAssets();
+    // Ten near-identical burst shots one second apart, and five blurry photos.
+    for (let i = 0; i < 10; i++) {
+      assets.push({
+        id: `burst-${i}`, uri: `file:///burst-${i}.jpg`, filename: `IMG_B${i}.JPG`, width: 4032, height: 3024,
+        creationTime: NOW - 1000 * i, modificationTime: NOW - 1000 * i, duration: 0, mediaType: 'photo',
+      });
+    }
+    const hashOf = (id: string) => {
+      if (id.startsWith('burst-')) return 'aaaaaaaaaaaaaaa' + (id.endsWith('0') ? 'b' : 'a');
+      let h = 0;
+      for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      return (h.toString(16).padStart(8, '0') + (h ^ 0x5bd1e995).toString(16).padStart(8, '0')).slice(0, 16);
+    };
+    const blurry = new Set(['p-20', 'p-21', 'p-22', 'p-23', 'p-24']);
+    const r = await scanLibraryWithIO(
+      { onProgress: () => {}, onCategory: () => {}, onPartial: () => {} },
+      { cancelled: false },
+      {
+        getPage: pagedIO(assets),
+        enrich: async (item, mode) => ({
+          size: 2 * MB + item.width,
+          dhash: mode === 'size' ? null : hashOf(item.id),
+          blur: mode === 'size' ? null : blurry.has(item.id) ? 20 : 900,
+        }),
+      },
+    );
+    assert.equal(r.blurry.length, 5);
+    assert.ok(r.similar.some((g) => g.items.some((i) => i.id.startsWith('burst-'))), 'burst shots group as Similar');
+    assert.match(scanCompleteBody(reclaimable(r)), /^Scan complete: .+ can be freed$/);
+  });
 });
+

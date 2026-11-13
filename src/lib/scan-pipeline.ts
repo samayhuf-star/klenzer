@@ -30,7 +30,18 @@ export type Progress = {
   percent?: number;
   /** Stable library size for the “Looking through N photos” line. */
   libraryTotal?: number;
+  /** Duplicate/Similar/Blurry analysis accounting: every still is processed or skipped exactly once. */
+  analysis?: AnalysisCount;
+  /** True only on the final tick, when processed + skipped == total for every stage. */
+  complete?: boolean;
 };
+
+export type AnalysisCount = { processed: number; skipped: number; total: number };
+
+/** The scan is complete when every asset is accounted for. Percent never decides this. */
+export function analysisComplete(c: AnalysisCount): boolean {
+  return c.processed + c.skipped >= c.total;
+}
 
 export const STAGE_WEIGHTS = { reading: 12, sizing: 55, hashing: 18, blur: 15 } as const;
 export type StageKey = keyof typeof STAGE_WEIGHTS;
@@ -97,6 +108,8 @@ export type ScanIO = {
   initialPercent?: number;
   /** Hard cap per asset and stage. A stuck read, hash or iCloud fetch is skipped so the scan always finishes. */
   enrichTimeoutMs?: number;
+  /** Hard cap per asset for the hash/blur analysis. A timed-out asset is skipped, never retried. */
+  analyzeTimeoutMs?: number;
   /** Hard cap per library page. A page that never answers ends enumeration with what was read. */
   pageTimeoutMs?: number;
 };
@@ -110,6 +123,8 @@ export const BLUR_WORKERS = 4;
 export const PROGRESS_MAX_GAP_MS = 2000;
 export const MAX_ASSETS = 60_000;
 export const ENRICH_TIMEOUT_MS = 20_000;
+/** Per-asset cap for the hash/blur analysis. Native cancels its Photos request at 10s. */
+export const ANALYZE_TIMEOUT_MS = 12_000;
 export const PAGE_TIMEOUT_MS = 30_000;
 
 function cancelled(signal?: ScanSignal) {
@@ -175,6 +190,7 @@ export async function scanLibraryWithIO(
     now = () => Date.now(),
     initialPercent = 0,
     enrichTimeoutMs = ENRICH_TIMEOUT_MS,
+    analyzeTimeoutMs = Math.min(ANALYZE_TIMEOUT_MS, enrichTimeoutMs),
     pageTimeoutMs = PAGE_TIMEOUT_MS,
   } = io;
 
@@ -310,23 +326,28 @@ export async function scanLibraryWithIO(
     };
 
     const inflight = new Map<string, Promise<void>>();
+    // Hash and blur share one analysis per photo. An attempted photo (hashed, failed or timed out) is never retried,
+    // so a photo that cannot be read costs one timeout, not one per stage.
+    const attempted = new Set<string>();
     const enrichOne = async (item: Item, mode: 'size' | 'hash' | 'blur') => {
-      if (mode === 'size' && item.size > 0) return;
-      if (mode === 'hash' && item.dhash) return;
-      if (mode === 'blur' && item.blur != null) return;
+      const analysisMode = mode !== 'size';
+      const settled = () =>
+        (mode === 'size' && item.size > 0) ||
+        (mode === 'hash' && (!!item.dhash || attempted.has(item.id))) ||
+        (mode === 'blur' && (item.blur != null || attempted.has(item.id)));
+      if (settled()) return;
       const pending = inflight.get(item.id);
       if (pending) {
         await pending;
-        if (mode === 'size' && item.size > 0) return;
-        if (mode === 'hash' && item.dhash) return;
-        if (mode === 'blur' && item.blur != null) return;
+        if (settled()) return;
       }
       const work = (async () => {
         try {
           // Skip-on-error and skip-on-timeout: one bad asset never holds the scan.
-          const e = await withTimeout(enrich(item, mode), enrichTimeoutMs, null);
+          const e = await withTimeout(enrich(item, mode), analysisMode ? analyzeTimeoutMs : enrichTimeoutMs, null);
           if (e) apply(item, e);
         } catch {}
+        if (analysisMode) attempted.add(item.id);
       })().finally(() => {
         if (inflight.get(item.id) === work) inflight.delete(item.id);
       });
@@ -378,6 +399,17 @@ export async function scanLibraryWithIO(
       }
     };
 
+    // Every still is analyzed once (dHash + blur together) and counted as processed or skipped.
+    const accounted = new Set<string>();
+    const analysis: AnalysisCount = { processed: 0, skipped: 0, total: stills.length };
+    const account = (item: Item) => {
+      if (accounted.has(item.id)) return;
+      if (!item.dhash && item.blur == null && !attempted.has(item.id)) return; // not looked at yet
+      accounted.add(item.id);
+      if (item.dhash || item.blur != null) analysis.processed++;
+      else analysis.skipped++;
+    };
+
     // Blurry starts immediately on the newest photos, in parallel, at low priority.
     const blurTargets = stills;
     stages.blur.reached = true;
@@ -394,8 +426,9 @@ export async function scanLibraryWithIO(
       for (let start = 0; start < blurTargets.length && !cancelled(signal); start += blurBatch) {
         const batch = blurTargets.slice(start, start + blurBatch);
         await mapPool(batch, BLUR_WORKERS, async (item) => {
-          if (cancelled(signal) || item.blur != null) return;
-          await enrichOne(item, 'blur');
+          if (cancelled(signal)) return;
+          if (item.blur == null) await enrichOne(item, 'blur');
+          account(item);
         }, () => {
           blurred = Math.min(blurTargets.length, blurred + 1);
           reportBlur(false);
@@ -448,8 +481,9 @@ export async function scanLibraryWithIO(
     for (let start = 0; start < hashTargets.length && !cancelled(signal); start += hashBatch) {
       const batch = hashTargets.slice(start, start + hashBatch);
       await mapPool(batch, Math.max(2, Math.min(workers, 6)), async (item) => {
-        if (cancelled(signal) || item.dhash) return;
-        await enrichOne(item, 'hash');
+        if (cancelled(signal)) return;
+        if (!item.dhash) await enrichOne(item, 'hash');
+        account(item);
       }, () => {
         hashed = Math.min(hashTargets.length, hashed + 1);
         reportHash(false);
@@ -463,6 +497,22 @@ export async function scanLibraryWithIO(
 
     await blurWork;
 
+    if (cancelled(signal)) {
+      stopTicker();
+      return result;
+    }
+
+    // Completion is processed + skipped == total, never a percent. Any still that slipped past both
+    // stages gets one bounded attempt here, then is counted as skipped.
+    if (!analysisComplete(analysis)) {
+      const left = stills.filter((i) => !accounted.has(i.id));
+      await mapPool(left, BLUR_WORKERS, async (item) => {
+        if (cancelled(signal)) return;
+        if (!item.dhash || item.blur == null) await enrichOne(item, 'blur');
+        attempted.add(item.id);
+        account(item);
+      });
+    }
     if (cancelled(signal)) {
       stopTicker();
       return result;
@@ -485,6 +535,8 @@ export async function scanLibraryWithIO(
       total: sizeQueue.length,
       libraryTotal,
       percent: 100,
+      analysis: { ...analysis },
+      complete: analysisComplete(analysis),
     }, true);
     stopTicker();
     return final;
