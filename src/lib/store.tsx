@@ -9,7 +9,8 @@ import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
-import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders } from './reminders';
+import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders, askNotificationPermissionOnScanStart, notifyScanComplete } from './reminders';
+import { beginShortBackgroundTask, endShortBackgroundTask } from 'live-photo-convert';
 import { initIAP, onEntitlementChange, refreshEntitlements } from './purchases';
 import { withTimeout } from './scan-logic';
 import { reclaimableBytes } from './reclaim';
@@ -298,6 +299,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       videos: { category: 'videos', status: 'running', done: 0, total: 0 },
     });
     markScanIncomplete(true);
+    // Ask only when a scan starts, never on launch. A denial must not stop the scan.
+    void askNotificationPermissionOnScanStart();
+    beginShortBackgroundTask();
     const finishCats = () =>
       setScanCats((c) => ({
         photos: { ...c.photos, status: 'done' },
@@ -323,12 +327,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         markScanIncomplete(false);
         const reclaim = reclaimableBytes(r, tempBytes());
         AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
+        void notifyScanComplete(reclaim);
         if (!opts.resume) askAboutReminders(reclaim);
       }
     } catch (e) {
       setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');
       finishCats();
     } finally {
+      endShortBackgroundTask();
       finishCats();
       scanningRef.current = false;
       setScanning(false);
@@ -343,7 +349,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [scan]);
 
   // If a scan was in progress when the app left the foreground, resume from the SQLite cache
-  // without wiping results. Do not promise background completion and do not fire a notification.
+  // without wiping results. A short iOS background task may let the current scan finish, but we do not promise background processing.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => {
       if (st !== 'active') return;

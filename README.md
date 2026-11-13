@@ -21,7 +21,8 @@ Scanning and reviewing are free. Deleting items and clearing Klenzer’s tempora
 
 Reminders are local only: no server, no push token, and no remote push entitlement.
 
-- After the first scan completes, Klenzer may ask for notification permission. It never asks on launch.
+- When the first scan starts, Klenzer may ask for notification permission. It never asks on launch.
+- When that scan finishes, a local notification with the default sound reports the real reclaimable size, for example: “Scan complete: 2.4 GB can be freed”. If nothing can be freed it says “Scan complete: your library looks clean”. The banner also appears if the app is in the foreground. If permission is denied, nothing is shown and the scan is unaffected.
 - If you turn them on, a notification is scheduled 3 days out with your current used and total storage, for example: “You've used 128.4 GB of 256 GB. Time to run Klenzer”.
 - Every time the app opens or returns to the foreground, that reminder is cancelled and rescheduled with fresh numbers.
 - Tapping the notification opens Klenzer and starts a scan.
@@ -32,7 +33,7 @@ Reminders are local only: no server, no push token, and no remote push entitleme
 - Expo (SDK 57) + Expo Router + TypeScript
 - `expo-media-library` for on-device PhotoKit / Android media access
 - `expo-sqlite` for the scan cache; `expo-image-manipulator` for thumbnail hashing
-- `expo-notifications` for local reminders
+- `expo-notifications` for local reminders and the scan-complete notification (no push server)
 - StoreKit 2 / Play Billing via `expo-iap` for products, purchases, restore, and entitlements (no RevenueCat)
 
 ## Identifiers

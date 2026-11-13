@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { formatBytes } from './format';
+import { scanCompleteBody } from './scan-complete';
+export { scanCompleteBody };
 
 /**
  * Local, on-device reminders only: no push server, no tokens, no data leaves the phone.
@@ -11,6 +13,7 @@ import { formatBytes } from './format';
 const KEY = 'klenzer.reminders.v1';
 const ASKED_KEY = 'klenzer.reminders.asked.v1';
 const CHANNEL = 'reminders';
+const SCAN_COMPLETE_CHANNEL = 'scan-complete';
 const INTERVAL_SECONDS = 3 * 24 * 60 * 60;
 export const SCAN_NOTIFICATION_ACTION = 'scan';
 
@@ -20,7 +23,7 @@ export type ReminderInfo = {
 };
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
 });
 
 export function isScanNotification(data: unknown): boolean {
@@ -117,4 +120,50 @@ export async function disableReminders(): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch {}
+}
+
+export const SCAN_COMPLETE_ACTION = 'scan-complete';
+
+
+/**
+ * Request notification permission when the first scan starts. Never call this on launch.
+ * If the user already decided, or the prompt fails, do nothing and do not throw.
+ */
+export async function askNotificationPermissionOnScanStart(): Promise<boolean> {
+  try {
+    const state = await permissionState();
+    if (state === 'granted') return true;
+    if (state !== 'undetermined') return false;
+    const r = await Notifications.requestPermissionsAsync();
+    return !!r.granted;
+  } catch {
+    return false;
+  }
+}
+
+/** Fire a local scan-complete notification with the default sound. No-op if permission was denied. */
+export async function notifyScanComplete(bytes: number): Promise<void> {
+  try {
+    if ((await permissionState()) !== 'granted') return;
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync(SCAN_COMPLETE_CHANNEL, {
+        name: 'Scan complete',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+      });
+    }
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'klenzer-scan-complete',
+      content: {
+        title: 'Klenzer',
+        body: scanCompleteBody(bytes),
+        sound: true,
+        data: { action: SCAN_COMPLETE_ACTION },
+        ...(Platform.OS === 'android' ? { channelId: SCAN_COMPLETE_CHANNEL } : {}),
+      },
+      trigger: null,
+    });
+  } catch {
+    // Permission errors or a missing channel must not break the scan.
+  }
 }

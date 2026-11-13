@@ -14,6 +14,8 @@ type NativeAPI = {
   pairedVideoSizes: (ids: string[]) => Promise<PairedVideoSize[]>;
   convertToStills: (ids: string[]) => Promise<ConvertResult>;
   scanThumb?: (id: string, targetPx: number, timeoutMs: number) => Promise<string | null>;
+  beginShortBackgroundTask?: () => void;
+  endShortBackgroundTask?: () => void;
 };
 
 const loadNative = (): NativeAPI | null => {
@@ -54,4 +56,17 @@ export async function scanThumb(id: string, targetPx: number, timeoutMs: number)
   } catch {
     return null;
   }
+}
+
+/** Ask iOS for a short remaining-time window. No-op on Android, web, or if unlinked. */
+export function beginShortBackgroundTask(): void {
+  try {
+    Native?.beginShortBackgroundTask?.();
+  } catch {}
+}
+
+export function endShortBackgroundTask(): void {
+  try {
+    Native?.endShortBackgroundTask?.();
+  } catch {}
 }
