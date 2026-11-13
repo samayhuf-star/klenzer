@@ -1,5 +1,7 @@
 import { File } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library/legacy';
+import { scanThumb } from 'live-photo-convert';
+import { analyzeForScan } from './icloud-thumb';
 import { analyzeThumb } from './image-hash';
 import { getCached, pruneCache, putCached } from './scan-cache';
 import {
@@ -84,9 +86,15 @@ async function enrichDevice(item: Item, mode: 'size' | 'hash' | 'blur') {
 
   let dhash: string | null = cached?.dhash ?? null;
   let blur: number | null = cached?.blur ?? null;
-  if (wantHash && (dhash == null || (mode === 'blur' && blur == null)) && uri) {
+  if (wantHash && (dhash == null || (mode === 'blur' && blur == null))) {
     // Always pass a file URI, never a ph:// library URL, to expo-image-manipulator.
-    const analysis = await withTimeout(analyzeThumb(uri), HASH_TIMEOUT_MS, null);
+    // iCloud-only originals get a small thumbnail from Photos; a failed fetch skips the photo.
+    const analysis = await analyzeForScan(item.id, uri, {
+      analyze: analyzeThumb,
+      fetchCloudThumb: scanThumb,
+      removeFile: (fileUri) => new File(fileUri).delete(),
+      hashTimeoutMs: HASH_TIMEOUT_MS,
+    });
     if (analysis) {
       dhash = analysis.dhash;
       blur = analysis.blur;

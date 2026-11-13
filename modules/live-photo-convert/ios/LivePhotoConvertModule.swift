@@ -26,6 +26,10 @@ public class LivePhotoConvertModule: Module {
     AsyncFunction("convertToStills") { (ids: [String]) -> [String: Any] in
       try await convertAll(ids: ids)
     }
+
+    AsyncFunction("scanThumb") { (id: String, targetPx: Int, timeoutMs: Int) -> String? in
+      await requestScanThumb(id: id, targetPx: targetPx, timeoutMs: timeoutMs)
+    }
   }
 }
 

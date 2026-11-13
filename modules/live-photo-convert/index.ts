@@ -13,6 +13,7 @@ export type ConvertResult = {
 type NativeAPI = {
   pairedVideoSizes: (ids: string[]) => Promise<PairedVideoSize[]>;
   convertToStills: (ids: string[]) => Promise<ConvertResult>;
+  scanThumb?: (id: string, targetPx: number, timeoutMs: number) => Promise<string | null>;
 };
 
 const loadNative = (): NativeAPI | null => {
@@ -43,4 +44,14 @@ export async function convertToStills(ids: string[]): Promise<ConvertResult> {
     throw new Error('Convert to still is available on iPhone.');
   }
   return Native.convertToStills(ids);
+}
+
+/** Small scan thumbnail from Photos, iCloud allowed. Temp JPEG file URI, or null if unavailable. */
+export async function scanThumb(id: string, targetPx: number, timeoutMs: number): Promise<string | null> {
+  if (!Native?.scanThumb) return null;
+  try {
+    return (await Native.scanThumb(id, targetPx, timeoutMs)) ?? null;
+  } catch {
+    return null;
+  }
 }
