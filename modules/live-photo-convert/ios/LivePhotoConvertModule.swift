@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import Photos
+import UIKit
 
 private let chunkSize = 250
 
@@ -29,6 +30,16 @@ public class LivePhotoConvertModule: Module {
 
     AsyncFunction("scanThumb") { (id: String, targetPx: Int, timeoutMs: Int) -> String? in
       await requestScanThumb(id: id, targetPx: targetPx, timeoutMs: timeoutMs)
+    }
+
+    // Extra seconds for an in-flight scan after the user leaves. This is the standard
+    // UIApplication background task, not a background-processing entitlement.
+    Function("beginShortBackgroundTask") {
+      beginScanBackgroundTask()
+    }
+
+    Function("endShortBackgroundTask") {
+      endScanBackgroundTask()
     }
   }
 }
@@ -214,5 +225,25 @@ private func applyChunk(_ items: [Prepared]) async throws -> (converted: [String
 private func cleanup(_ items: [Prepared]) {
   for item in items {
     try? FileManager.default.removeItem(at: item.photoURL)
+  }
+}
+
+
+private var scanBackgroundTask = UIBackgroundTaskIdentifier.invalid
+
+private func beginScanBackgroundTask() {
+  DispatchQueue.main.async {
+    if scanBackgroundTask != .invalid { return }
+    scanBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "klenzer-scan") {
+      endScanBackgroundTask()
+    }
+  }
+}
+
+private func endScanBackgroundTask() {
+  DispatchQueue.main.async {
+    guard scanBackgroundTask != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(scanBackgroundTask)
+    scanBackgroundTask = .invalid
   }
 }

@@ -34,8 +34,12 @@ xcrun simctl launch "$UDID" "$BUNDLE_ID" || true
 sleep 2
 xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
 
+# Full Photos access last: granting photos-add after photos leaves the app on add-only access.
 xcrun simctl privacy "$UDID" grant photos-add "$BUNDLE_ID"
+xcrun simctl privacy "$UDID" grant contacts "$BUNDLE_ID" || true
 xcrun simctl privacy "$UDID" grant photos "$BUNDLE_ID"
+xcrun simctl privacy "$UDID" grant notifications "$BUNDLE_ID" || true
+xcrun simctl privacy "$UDID" grant notification "$BUNDLE_ID" || true
 # Some runtimes also honor this alias:
 xcrun simctl privacy "$UDID" grant all "$BUNDLE_ID" || true
 
