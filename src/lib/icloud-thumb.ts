@@ -24,6 +24,11 @@ export type ThumbIO = {
   /** Ask Photos for a small thumbnail, iCloud allowed. Resolves to a temp file URI or null. */
   fetchCloudThumb: (id: string, targetPx: number, timeoutMs: number) => Promise<string | null>;
   removeFile: (fileUri: string) => void;
+  /**
+   * Native analysis straight from a small Photos thumbnail (iOS). When present it is used for every
+   * photo, local or iCloud, and the local-file + image-manipulator path is never touched.
+   */
+  analyzeNative?: (id: string, targetPx: number, timeoutMs: number) => Promise<ThumbAnalysis | null>;
   hashTimeoutMs: number;
   cloudTimeoutMs?: number;
 };
@@ -39,9 +44,18 @@ export function clampThumbPx(px: number): number {
  * skips the photo and keeps moving.
  */
 export async function analyzeForScan(id: string, localUri: string | null, io: ThumbIO): Promise<ThumbAnalysis | null> {
+  const cloudMs = io.cloudTimeoutMs ?? ICLOUD_THUMB_TIMEOUT_MS;
+  if (io.analyzeNative) {
+    // Native cancels its Photos request at cloudMs; the outer guard covers a bridge that never answers.
+    try {
+      return await withTimeout(io.analyzeNative(id, clampThumbPx(ICLOUD_THUMB_REQUEST.targetPx), cloudMs), cloudMs + 1000, null);
+    } catch {
+      return null;
+    }
+  }
+
   if (localUri) return withTimeout(io.analyze(localUri), io.hashTimeoutMs, null);
 
-  const cloudMs = io.cloudTimeoutMs ?? ICLOUD_THUMB_TIMEOUT_MS;
   // The native side cancels its own request at cloudMs; this outer guard covers a bridge that never answers.
   const thumb = await withTimeout(io.fetchCloudThumb(id, clampThumbPx(ICLOUD_THUMB_REQUEST.targetPx), cloudMs), cloudMs + 1000, null);
   if (!thumb) return null;

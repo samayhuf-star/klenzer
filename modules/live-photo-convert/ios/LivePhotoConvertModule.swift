@@ -32,6 +32,10 @@ public class LivePhotoConvertModule: Module {
       await requestScanThumb(id: id, targetPx: targetPx, timeoutMs: timeoutMs)
     }
 
+    AsyncFunction("scanAnalyze") { (id: String, targetPx: Int, timeoutMs: Int) -> [String: Any] in
+      await requestScanAnalyze(id: id, targetPx: targetPx, timeoutMs: timeoutMs)
+    }
+
     // Extra seconds for an in-flight scan after the user leaves. This is the standard
     // UIApplication background task, not a background-processing entitlement.
     Function("beginShortBackgroundTask") {
