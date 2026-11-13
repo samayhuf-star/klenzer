@@ -12,6 +12,7 @@ import { PressableScale } from '../components/PressableScale';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../lib/config';
 import { formatBytes } from '../lib/format';
 import { DEMO } from '../lib/demo';
+import { trialHint } from '../lib/introOffer';
 import { buy, defaultPlanKind, loadPlans, Plan, PLANS_UNAVAILABLE_MESSAGE, restore, type PlansLoad } from '../lib/purchases';
 import { scanReclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
@@ -138,11 +139,13 @@ export default function Paywall() {
               testID="unlock"
             />
             <Text style={styles.fine}>
-              {chosen?.kind === 'yearly'
-                ? `${chosen.price} per year. ${RENEW_NOTE}`
-                : chosen?.kind === 'monthly'
-                  ? `${chosen.price} per month. ${RENEW_NOTE}`
-                  : `${chosen?.price} one time. No subscription, no renewal.`}
+              {chosen?.kind === 'lifetime'
+                ? `${chosen.price} one time. No subscription, no renewal.`
+                : chosen?.trialDays
+                  ? `${chosen.trialDays} days free, then ${chosen.price} per ${chosen.kind === 'yearly' ? 'year' : 'month'}. ${RENEW_NOTE}`
+                  : chosen?.kind === 'yearly'
+                    ? `${chosen.price} per year. ${RENEW_NOTE}`
+                    : `${chosen?.price} per month. ${RENEW_NOTE}`}
             </Text>
           </>
         )}
@@ -173,14 +176,14 @@ function PlanCard({ plan, selected, onPress }: { plan: Plan; selected: boolean; 
   return (
     <PressableScale
       onPress={onPress}
-      accessibilityLabel={`${plan.title} plan, ${plan.price}`}
+      accessibilityLabel={`${plan.title} plan, ${trialHint({ price: plan.price, kind: plan.kind, trialDays: plan.trialDays, fallback: plan.price })}`}
       accessibilityState={{ checked: selected }}
       testID={`plan-${plan.kind}`}
       style={[styles.plan, selected && styles.planOn]}>
       <View style={[styles.radio, selected && styles.radioOn]}>{selected && <Ionicons name="checkmark" size={15} color="#fff" />}</View>
       <View style={{ flex: 1 }}>
         <Text style={styles.planTitle}>{plan.title}</Text>
-        <Text style={styles.planHint}>{plan.hint}</Text>
+        <Text style={styles.planHint}>{trialHint({ price: plan.price, kind: plan.kind, trialDays: plan.trialDays, fallback: plan.hint })}</Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
         {!!plan.badge && (
