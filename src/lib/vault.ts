@@ -14,6 +14,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import * as SecureStore from 'expo-secure-store';
 import { addEntries, constantTimeEqual, extensionFor, parseIndex, removeEntry, VAULT_MAX_ITEM_BYTES, type VaultEntry, type VaultIndex } from './vault-logic';
+import { PHOTO_PERMISSION_REQUEST } from './photo-access';
 
 const SS = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 const K = { key: 'klenzer.vault.key.v1', pin: 'klenzer.vault.pin.v1', faceId: 'klenzer.vault.faceid.v1' };
@@ -212,6 +213,13 @@ export function clearViewCache() {
 /** Save a decrypted copy back into Photos. The album copy stays until the user removes it. */
 export async function exportToPhotos(entry: VaultEntry): Promise<boolean> {
   try {
+    // Ask for full read-write access first. Writing with no grant makes iOS give add-only access,
+    // which later blocks the scan behind the "additional access" sheet.
+    const p = await MediaLibrary.getPermissionsAsync(PHOTO_PERMISSION_REQUEST.writeOnly, PHOTO_PERMISSION_REQUEST.granular);
+    if (p.status !== 'granted') {
+      const r = await MediaLibrary.requestPermissionsAsync(PHOTO_PERMISSION_REQUEST.writeOnly, PHOTO_PERMISSION_REQUEST.granular);
+      if (r.status !== 'granted') return false;
+    }
     const uri = await openForViewing(entry);
     await MediaLibrary.createAssetAsync(uri);
     return true;

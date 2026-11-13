@@ -13,6 +13,7 @@ import { PressableScale } from '../components/PressableScale';
 import { formatBytes, formatFreeAmount, formatMarketedTotal, tileNote } from '../lib/format';
 import { KINDS, Kind } from '../lib/kinds';
 import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
+import { scanStartAction } from '../lib/photo-access';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../theme';
 
@@ -27,7 +28,7 @@ const SECTIONS: { value: Section; label: string; icon: keyof typeof Ionicons.gly
 export default function Home() {
   const insets = useSafeAreaInsets();
   const {
-    disk, access, canAskAgain, requestAccess, openSettings, manageLimited,
+    disk, access, canAskAgain, openSettings, manageLimited,
     scanning, progress, scanCats, result, scan, startClean, refreshDisk, scanError,
   } = useStore();
   const [section, setSection] = useState<Section>('photos');
@@ -63,13 +64,14 @@ export default function Home() {
   const denied = access === 'denied';
 
   const smartClean = () => {
-    if (denied || access === 'unknown') {
-      if (canAskAgain) void requestAccess();
-      else openSettings();
+    // No access yet: the same tap asks for full Photos access and then scans. It never stops at the prompt.
+    const action = scanStartAction(access, canAskAgain);
+    if (action === 'open-settings') {
+      openSettings();
       return;
     }
     if (scanning) return;
-    if (!result) {
+    if (action === 'request-then-scan' || !result) {
       void scan();
       return;
     }
@@ -126,7 +128,7 @@ export default function Home() {
 
         {denied && (
           <Notice title="Photo access is off" body="Klenzer needs to read your photo library to find clutter. Photos never leave your device.">
-            <Button variant="light" label={canAskAgain ? 'Allow access' : 'Open Settings'} onPress={canAskAgain ? requestAccess : openSettings} />
+            <Button variant="light" label={canAskAgain ? 'Allow access' : 'Open Settings'} onPress={canAskAgain ? () => void scan() : openSettings} />
           </Notice>
         )}
         {access === 'limited' && (

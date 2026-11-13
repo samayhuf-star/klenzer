@@ -27,6 +27,7 @@ import {
   type ProFeature,
 } from './gating';
 import { DEMO, demoScanResult } from './demo';
+import { canScan, PHOTO_PERMISSION_REQUEST, shouldStartScanAfterAccessChange, toPhotoAccess } from './photo-access';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
 
@@ -102,8 +103,11 @@ const KEYS = { allowance: 'klenzer.allowance.v1', onboarded: 'klenzer.onboarded.
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
 
-const toAccess = (p: MediaLibrary.PermissionResponse): Access =>
-  p.status === 'granted' ? (p.accessPrivileges === 'limited' ? 'limited' : 'granted') : p.status === 'denied' ? 'denied' : 'unknown';
+const toAccess = (p: MediaLibrary.PermissionResponse): Access => toPhotoAccess(p);
+// Always read-write (writeOnly=false). Never add-only: add-only blocks the scan and makes iOS show
+// the "additional access" sheet later.
+const readPhotoPermission = () => MediaLibrary.getPermissionsAsync(PHOTO_PERMISSION_REQUEST.writeOnly, PHOTO_PERMISSION_REQUEST.granular);
+const askPhotoPermission = () => MediaLibrary.requestPermissionsAsync(PHOTO_PERMISSION_REQUEST.writeOnly, PHOTO_PERMISSION_REQUEST.granular);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -135,6 +139,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const scanningRef = useRef(false);
   const scanIncomplete = useRef(false);
   const progressRef = useRef<Progress | null>(null);
+  const accessRef = useRef<Access>('unknown');
+  // A scan the user asked for that is waiting on Photos access. Started as soon as access arrives.
+  const pendingScan = useRef(false);
+  const accessRequest = useRef<Promise<Access> | null>(null);
+  // The latest scan() call wins after its permission awaits, so a tap and the AppState restart never run two scans.
+  const scanToken = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -166,8 +176,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
         } catch {}
         try {
-          const p = await MediaLibrary.getPermissionsAsync(false, ['photo', 'video']);
-          setAccess(toAccess(p));
+          const p = await readPhotoPermission();
+          accessRef.current = toAccess(p);
+          setAccess(accessRef.current);
           setCanAskAgain(p.canAskAgain);
         } catch {}
       })();
@@ -182,12 +193,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(KEYS.onboarded, '1').catch(() => {});
   }, []);
 
+  // One read-write request at a time: repeated taps share the same system prompt.
   const requestAccess = useCallback(async () => {
-    const p = await MediaLibrary.requestPermissionsAsync(false, ['photo', 'video']);
-    const a = toAccess(p);
-    setAccess(a);
-    setCanAskAgain(p.canAskAgain);
-    return a;
+    if (accessRequest.current) return accessRequest.current;
+    const run = (async (): Promise<Access> => {
+      try {
+        const p = await askPhotoPermission();
+        const a = toAccess(p);
+        accessRef.current = a;
+        setAccess(a);
+        setCanAskAgain(p.canAskAgain);
+        return a;
+      } catch {
+        return accessRef.current;
+      } finally {
+        accessRequest.current = null;
+      }
+    })();
+    accessRequest.current = run;
+    return run;
+  }, []);
+
+  /** Re-read the live permission (it can change in the Photos sheet or in Settings while Klenzer runs). */
+  const refreshAccess = useCallback(async (): Promise<Access> => {
+    try {
+      const p = await readPhotoPermission();
+      const a = toAccess(p);
+      accessRef.current = a;
+      setAccess(a);
+      setCanAskAgain(p.canAskAgain);
+      return a;
+    } catch {
+      return accessRef.current;
+    }
   }, []);
 
   // Disk reads are async on iOS; ignore any answer that arrives after a newer one was requested.
@@ -282,9 +320,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const scan = useCallback(async (opts: { resume?: boolean } = {}) => {
     if (scanningRef.current) return;
-    let a = access;
-    if (a === 'unknown' || a === 'denied') a = await requestAccess();
-    if (a !== 'granted' && a !== 'limited') return;
+    const token = ++scanToken.current;
+    pendingScan.current = true;
+    // Read the live state first; the value from launch can be stale (Settings, Photos sheet, QA pre-grant).
+    let a = await refreshAccess();
+    // The first scan is the one place Klenzer asks for Photos, and it asks for full read-write access.
+    if (!canScan(a)) a = await requestAccess();
+    // The sheet can also resolve through the AppState listener below, which may have started the scan already.
+    if (scanningRef.current || token !== scanToken.current) return;
+    if (!canScan(a)) return; // stays pending: the AppState listener starts it if access is granted later
+    pendingScan.current = false;
     signal.current = { cancelled: false };
     setScanError(null);
     scanningRef.current = true;
@@ -341,7 +386,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setProgress(null);
       refreshDisk();
     }
-  }, [access, requestAccess, refreshDisk, askAboutReminders]);
+  }, [refreshAccess, requestAccess, refreshDisk, askAboutReminders]);
 
   const scanRef = useRef(scan);
   useEffect(() => {
@@ -354,11 +399,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const sub = AppState.addEventListener('change', (st) => {
       if (st !== 'active') return;
       if (scanningRef.current) return;
-      if (!scanIncomplete.current) return;
-      void scanRef.current({ resume: true });
+      void (async () => {
+        const prev = accessRef.current;
+        const next = await refreshAccess();
+        if (scanningRef.current) return;
+        // Access granted in the Photos sheet or in Settings: start the scan the user already asked for.
+        if (shouldStartScanAfterAccessChange({ prev, next, pendingScan: pendingScan.current, scanning: scanningRef.current })) {
+          void scanRef.current();
+          return;
+        }
+        if (scanIncomplete.current && canScan(next)) void scanRef.current({ resume: true });
+      })();
     });
     return () => sub.remove();
-  }, []);
+  }, [refreshAccess]);
 
   // Tapping a reminder opens the app and starts a scan. Never request notification permission here.
   useEffect(() => {
@@ -378,6 +432,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [ready, onboarded]);
 
   const cancelScan = useCallback(() => {
+    pendingScan.current = false;
     signal.current.cancelled = true;
     markScanIncomplete(false);
   }, []);
