@@ -1,0 +1,9 @@
+66:      <StoreKitConfigurationFileReference
+67-         identifier = "../../qa/Klenzer.storekit">
+68:      </StoreKitConfigurationFileReference>
+69-   </TestAction>
+--
+90:      <StoreKitConfigurationFileReference
+91-         identifier = "../../qa/Klenzer.storekit">
+92:      </StoreKitConfigurationFileReference>
+93-   </LaunchAction>

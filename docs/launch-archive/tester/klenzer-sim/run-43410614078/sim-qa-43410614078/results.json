@@ -1,0 +1,82 @@
+{
+  "steps" : [
+    {
+      "pass" : true,
+      "step" : 1,
+      "name" : "Launch",
+      "detail" : "home shown directly"
+    },
+    {
+      "step" : 21,
+      "name" : "Mid-scan cards show progress, not None yet",
+      "pass" : true,
+      "detail" : "scanningNote=false noneYetWhileScanning=false"
+    },
+    {
+      "step" : 10,
+      "detail" : "banner=none",
+      "name" : "Scan-complete notification",
+      "pass" : false
+    },
+    {
+      "pass" : false,
+      "detail" : "scanFinished=false firstNonZero=none",
+      "name" : "Home after scan",
+      "step" : 2
+    },
+    {
+      "step" : 22,
+      "pass" : false,
+      "detail" : "tile=Duplicate, 0 items count=0 min=5 reviewOpened=false",
+      "name" : "Duplicate card count and review"
+    },
+    {
+      "name" : "Blurry card count and review",
+      "step" : 23,
+      "pass" : false,
+      "detail" : "tile=Blurry, 0 items count=0 min=5 reviewOpened=false"
+    },
+    {
+      "detail" : "tile: Similar, 0 items; zero items, not opened",
+      "step" : 3,
+      "name" : "Similar review",
+      "pass" : false
+    },
+    {
+      "detail" : "swipe screen not reached",
+      "step" : 4,
+      "name" : "Swipe to Organize",
+      "pass" : false
+    },
+    {
+      "step" : 5,
+      "name" : "Merge Contacts preview",
+      "pass" : true,
+      "detail" : "group: Group of 3 contacts, Chris Park; preview shown"
+    },
+    {
+      "step" : 6,
+      "pass" : true,
+      "detail" : "PIN set, album open",
+      "name" : "Secret Album"
+    },
+    {
+      "pass" : false,
+      "name" : "Paywall prices and trial copy",
+      "detail" : "yearly $19.99=true monthly $3.99=true lifetime $29.99=true monthTrial=true yearTrial=true lifetimeOnce=false lifetimeTrialText=false unavailable=false",
+      "step" : 7
+    },
+    {
+      "detail" : "session=true; skipped, paywall prices missing",
+      "step" : 8,
+      "pass" : false,
+      "name" : "StoreKit test purchase (monthly) starts a trial"
+    },
+    {
+      "step" : 9,
+      "name" : "Restore purchases",
+      "pass" : false,
+      "detail" : "not on Settings"
+    }
+  ]
+}

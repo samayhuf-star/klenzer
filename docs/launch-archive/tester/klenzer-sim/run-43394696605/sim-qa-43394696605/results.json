@@ -1,0 +1,76 @@
+{
+  "steps" : [
+    {
+      "detail" : "home shown directly",
+      "name" : "Launch",
+      "step" : 1,
+      "pass" : true
+    },
+    {
+      "pass" : true,
+      "detail" : "scanningNote=false noneYetWhileScanning=false",
+      "step" : 21,
+      "name" : "Mid-scan cards show progress, not None yet"
+    },
+    {
+      "step" : 2,
+      "pass" : false,
+      "name" : "Home after scan",
+      "detail" : "scanFinished=false firstNonZero=none"
+    },
+    {
+      "detail" : "tile=Duplicate, 0 items count=0 min=5 reviewOpened=false",
+      "step" : 22,
+      "name" : "Duplicate card count and review",
+      "pass" : false
+    },
+    {
+      "detail" : "tile=Blurry, 0 items count=0 min=5 reviewOpened=false",
+      "step" : 23,
+      "name" : "Blurry card count and review",
+      "pass" : false
+    },
+    {
+      "detail" : "tile: Similar, 0 items; zero items, not opened",
+      "name" : "Similar review",
+      "step" : 3,
+      "pass" : false
+    },
+    {
+      "name" : "Swipe to Organize",
+      "step" : 4,
+      "detail" : "swipe screen not reached",
+      "pass" : false
+    },
+    {
+      "name" : "Merge Contacts preview",
+      "pass" : true,
+      "detail" : "group: Group of 3 contacts, Chris Park; preview shown",
+      "step" : 5
+    },
+    {
+      "name" : "Secret Album",
+      "pass" : true,
+      "detail" : "PIN set, album open",
+      "step" : 6
+    },
+    {
+      "detail" : "yearly $19.99=true monthly $3.99=true lifetime $29.99=true unavailable=false",
+      "pass" : true,
+      "name" : "Paywall prices",
+      "step" : 7
+    },
+    {
+      "step" : 8,
+      "name" : "StoreKit test purchase (monthly)",
+      "detail" : "session=true paywallClosed=true; Settings shows Plan: Pro",
+      "pass" : true
+    },
+    {
+      "name" : "Restore purchases",
+      "step" : 9,
+      "pass" : true,
+      "detail" : "alert: Restored"
+    }
+  ]
+}

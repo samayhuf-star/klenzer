@@ -1,0 +1,80 @@
+{
+ "build": [
+  "d47de19b-857f-4fa1-a66b-5a7c77c57a2d",
+  "VALID"
+ ],
+ "encryption": [
+  409,
+  "{\n  \"errors\" : [ {\n    \"id\" : \"e6f5ee9b-9da5-4882-8128-0cdf93d326e4\",\n    \"status\" : \"409\",\n    \"code\" : \"ENTITY_ERROR.ATTRIBUTE.INVALID\",\n    \"title\" : \"The provided entity includes an attribute with"
+ ],
+ "whatToTest": [
+  200,
+  "ok"
+ ],
+ "groups_all": {
+  "71fb37c4-fa11-49a0-94a8-20f9ce8223d0": [
+   "Team (Expo) \u2014 all builds (deprecated)",
+   true
+  ],
+  "7f7672c0-37f5-4ef1-a4a8-cc1b8db74c0f": [
+   "Krosz Personal Group",
+   true
+  ],
+  "df2bc14e-10ac-4e5a-9186-1b46cdaf947a": [
+   "Internal list",
+   true
+  ],
+  "1b0304f4-7907-4661-bd96-e8cbe61a5c49": [
+   "Team (Expo)",
+   true
+  ],
+  "eaebfff9-5014-4709-aef5-31e21fff3d06": [
+   "External Group",
+   false
+  ],
+  "c4195889-a325-42be-8a0b-2906b0248079": [
+   "Internal list",
+   false
+  ]
+ },
+ "add": [
+  [
+   "df2bc14e-10ac-4e5a-9186-1b46cdaf947a",
+   "Internal list",
+   404,
+   "{\n  \"errors\" : [ {\n    \"id\" : \"7ad4e826-9c2c-4458-8ccd-67bccf67d83f\",\n    \"status\" : \"404\",\n    \"code\" : \"NOT_FOUND\",\n    \"title\" : \"The specified resource does not exist\",\n    \"detail\" : \"There is no"
+  ],
+  [
+   "1b0304f4-7907-4661-bd96-e8cbe61a5c49",
+   "Team (Expo)",
+   404,
+   "{\n  \"errors\" : [ {\n    \"id\" : \"3e296dd3-f8bd-43f1-a2c9-7f66ecfcfb8b\",\n    \"status\" : \"404\",\n    \"code\" : \"NOT_FOUND\",\n    \"title\" : \"The specified resource does not exist\",\n    \"detail\" : \"There is no"
+  ]
+ ],
+ "other_groups": [
+  [
+   "71fb37c4-fa11-49a0-94a8-20f9ce8223d0",
+   "Team (Expo) \u2014 all builds (deprecated)",
+   true
+  ],
+  [
+   "7f7672c0-37f5-4ef1-a4a8-cc1b8db74c0f",
+   "Krosz Personal Group",
+   true
+  ]
+ ],
+ "attach": [
+  204,
+  "ok"
+ ],
+ "version_readback": [
+  "1.1.0",
+  "PREPARE_FOR_SUBMISSION",
+  [
+   [
+    "d47de19b-857f-4fa1-a66b-5a7c77c57a2d",
+    "26"
+   ]
+  ]
+ ]
+}

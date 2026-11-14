@@ -1,0 +1,1182 @@
+Command line invocation:
+    /Applications/Xcode_26.6.app/Contents/Developer/usr/bin/xcodebuild test-without-building -workspace ios/Klenzer.xcworkspace -scheme Klenzer -configuration Release -destination "platform=iOS Simulator,id=98A0BFA3-CEC3-4FD6-9916-5A2149774DBF" -derivedDataPath /Users/runner/work/sim-qa-runner/sim-qa-runner/ios/DerivedData -resultBundlePath /tmp/sim-qa/flow.xcresult "-only-testing:KlenzerQATests/SimQATests/testKlenzerFlow"
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  OpenIAP: https://github.com/hyodotdev/openiap.git @ 4.0.9
+
+Writing result bundle at path:
+	/tmp/sim-qa/flow.xcresult
+
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, arch:arm64, id:98A0BFA3-CEC3-4FD6-9916-5A2149774DBF, OS:26.2, name:iPhone 17 Pro }
+{ platform:iOS Simulator, arch:x86_64, id:98A0BFA3-CEC3-4FD6-9916-5A2149774DBF, OS:26.2, name:iPhone 17 Pro }
+2026-11-13 09:35:09.786502+0000 KlenzerQATests-Runner[46737:347418] [Default] Running tests...
+    t =      nans Interface orientation changed to Portrait
+Test Suite 'Selected tests' started at 2026-11-13 09:35:20.228.
+Test Suite 'KlenzerQATests.xctest' started at 2026-11-13 09:35:20.234.
+Test Suite 'SimQATests' started at 2026-11-13 09:35:20.234.
+Test Case '-[KlenzerQATests.SimQATests testKlenzerFlow]' started.
+    t =     0.00s Start Test at 2026-11-13 09:35:20.239
+    t =     2.03s Set Up
+2026-11-13 09:35:23.340891+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] SKTestSession from /tmp/klenzer-sk/Klenzer.storekit
+    t =     3.11s Open com.krosz.klenzer
+    t =     3.11s     Launch com.krosz.klenzer
+2026-11-13 09:35:26.330 xcodebuild[44981:342939] [MT] IDELaunchParametersSnapshot: The operation couldn’t be completed. (DebuggerLLDB.DebuggerVersionStore.StoreError error 0.)
+2026-11-13 09:35:26.331 xcodebuild[44981:342939] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =    21.12s         Setting up automation session
+    t =    25.02s         Wait for com.krosz.klenzer to idle
+    t =    29.98s Added attachment named '01-launch'
+    t =    29.99s Checking existence of `Any (First Match)`
+    t =    30.32s Checking existence of `Any (First Match)`
+    t =    30.82s Checking existence of `Any (First Match)`
+    t =    30.88s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    30.94s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    31.50s Checking existence of `Any (First Match)`
+    t =    31.56s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    31.58s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    32.16s Checking existence of `Any (First Match)`
+    t =    32.22s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    32.24s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    32.77s Checking existence of `Any (First Match)`
+    t =    32.82s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    32.83s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    33.37s Checking existence of `Any (First Match)`
+    t =    33.56s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    33.58s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    34.10s Checking existence of `Any (First Match)`
+    t =    34.24s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    34.30s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    34.85s Checking existence of `Any (First Match)`
+    t =    35.56s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    35.66s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    35.72s Checking existence of `Any (Element at index 0)`
+    t =    35.80s Find the Any (Element at index 0)
+    t =    35.97s Tap "onboarding-continue" Button
+    t =    35.97s     Wait for com.krosz.klenzer to idle
+    t =    35.98s     Find the "onboarding-continue" Button
+    t =    36.07s     Check for interrupting elements affecting "onboarding-continue" Button
+    t =    36.23s     Synthesize event
+    t =    36.67s     Wait for com.krosz.klenzer to idle
+    t =    37.49s Checking existence of `Any (First Match)`
+    t =    37.64s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    37.71s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    37.79s Checking existence of `Any (Element at index 0)`
+    t =    37.83s Find the Any (Element at index 0)
+    t =    37.92s Tap "onboarding-continue" Button
+    t =    37.92s     Wait for com.krosz.klenzer to idle
+    t =    37.93s     Find the "onboarding-continue" Button
+    t =    38.02s     Check for interrupting elements affecting "onboarding-continue" Button
+    t =    38.06s     Synthesize event
+    t =    38.38s     Wait for com.krosz.klenzer to idle
+    t =    39.20s Checking existence of `Any (First Match)`
+    t =    39.54s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    39.69s Checking existence of `Any (Element at index 0)`
+    t =    39.83s Find the Any (Element at index 0)
+    t =    40.15s Tap "onboarding-start" Button
+    t =    40.15s     Wait for com.krosz.klenzer to idle
+    t =    40.16s     Find the "onboarding-start" Button
+    t =    40.32s     Check for interrupting elements affecting "onboarding-start" Button
+    t =    40.48s     Synthesize event
+    t =    40.85s     Wait for com.krosz.klenzer to idle
+    t =    42.37s Checking existence of `Any (First Match)`
+    t =    42.65s Waiting 20.0s for Any (First Match) to exist
+    t =    43.70s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    43.70s         Checking existence of `Any (First Match)`
+2026-11-13 09:36:04.047277+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 1 PASS Launch: home shown directly
+    t =    43.81s Waiting 5.0s for Any (First Match) to exist
+    t =    44.87s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    44.87s         Checking existence of `Any (First Match)`
+    t =    45.61s Waiting 5.0s for Any (First Match) to exist
+    t =    46.66s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    46.66s         Checking existence of `Any (First Match)`
+    t =    46.83s Find the Any (First Match)
+    t =    47.24s Tap "smart-clean" Button
+    t =    47.24s     Wait for com.krosz.klenzer to idle
+    t =    47.24s     Find the "smart-clean" Button
+    t =    47.87s     Check for interrupting elements affecting "smart-clean" Button
+    t =    48.11s     Synthesize event
+    t =    48.46s     Wait for com.krosz.klenzer to idle
+    t =    51.78s Added attachment named '02a-home-mid-scan'
+    t =    51.79s Checking existence of `Any (First Match)`
+    t =    54.31s Checking existence of `Any (First Match)`
+2026-11-13 09:36:15.835611+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 21 PASS Mid-scan cards show progress, not None yet: scanningNote=false noneYetWhileScanning=false
+    t =    55.60s Checking existence of `Alert (First Match)`
+    t =    56.21s Checking existence of `Any (First Match)`
+    t =    56.62s Checking existence of `Any (First Match)`
+    t =    58.31s Checking existence of `Alert (First Match)`
+    t =    59.40s Checking existence of `Any (First Match)`
+    t =    60.27s Checking existence of `Any (First Match)`
+    t =    62.59s Checking existence of `Alert (First Match)`
+    t =    63.24s Checking existence of `Any (First Match)`
+    t =    64.07s Checking existence of `Any (First Match)`
+    t =    65.38s Checking existence of `Alert (First Match)`
+    t =    66.40s Checking existence of `Any (First Match)`
+    t =    67.87s Checking existence of `Any (First Match)`
+    t =    69.56s Checking existence of `Alert (First Match)`
+    t =    69.93s Checking existence of `Any (First Match)`
+    t =    70.73s Checking existence of `Any (First Match)`
+    t =    72.16s Checking existence of `Alert (First Match)`
+    t =    72.36s Checking existence of `Any (First Match)`
+    t =    72.64s Checking existence of `Any (First Match)`
+    t =    73.87s Checking existence of `Alert (First Match)`
+    t =    74.09s Checking existence of `Any (First Match)`
+    t =    74.27s Checking existence of `Any (First Match)`
+    t =    75.45s Checking existence of `Alert (First Match)`
+    t =    75.74s Checking existence of `Any (First Match)`
+    t =    76.00s Checking existence of `Any (First Match)`
+    t =    77.20s Checking existence of `Alert (First Match)`
+    t =    77.44s Checking existence of `Any (First Match)`
+    t =    77.80s Checking existence of `Any (First Match)`
+    t =    79.06s Checking existence of `Alert (First Match)`
+    t =    79.21s Checking existence of `Any (First Match)`
+    t =    79.45s Checking existence of `Any (First Match)`
+    t =    80.63s Checking existence of `Alert (First Match)`
+    t =    80.78s Checking existence of `Any (First Match)`
+    t =    81.02s Checking existence of `Any (First Match)`
+    t =    82.22s Checking existence of `Alert (First Match)`
+    t =    82.44s Checking existence of `Any (First Match)`
+    t =    82.97s Checking existence of `Any (First Match)`
+    t =    84.31s Checking existence of `Alert (First Match)`
+    t =    84.57s Checking existence of `Any (First Match)`
+    t =    84.93s Checking existence of `Any (First Match)`
+    t =    86.38s Checking existence of `Alert (First Match)`
+    t =    86.67s Checking existence of `Any (First Match)`
+    t =    86.98s Checking existence of `Any (First Match)`
+    t =    88.29s Checking existence of `Alert (First Match)`
+    t =    88.48s Checking existence of `Any (First Match)`
+    t =    88.80s Checking existence of `Any (First Match)`
+    t =    90.05s Checking existence of `Alert (First Match)`
+    t =    90.26s Checking existence of `Any (First Match)`
+    t =    90.58s Checking existence of `Any (First Match)`
+    t =    91.88s Checking existence of `Alert (First Match)`
+    t =    92.39s Checking existence of `Any (First Match)`
+    t =    93.00s Checking existence of `Any (First Match)`
+    t =    94.19s Checking existence of `Alert (First Match)`
+    t =    94.39s Checking existence of `Any (First Match)`
+    t =    94.67s Checking existence of `Any (First Match)`
+    t =    95.83s Checking existence of `Alert (First Match)`
+    t =    95.97s Checking existence of `Any (First Match)`
+    t =    96.21s Checking existence of `Any (First Match)`
+    t =    97.36s Checking existence of `Alert (First Match)`
+    t =    97.58s Checking existence of `Any (First Match)`
+    t =    97.80s Checking existence of `Any (First Match)`
+    t =    99.02s Checking existence of `Alert (First Match)`
+    t =    99.17s Checking existence of `Any (First Match)`
+    t =    99.43s Checking existence of `Any (First Match)`
+    t =   100.61s Checking existence of `Alert (First Match)`
+    t =   100.77s Checking existence of `Any (First Match)`
+    t =   100.92s Checking existence of `Any (First Match)`
+    t =   102.14s Checking existence of `Alert (First Match)`
+    t =   102.97s Checking existence of `Any (First Match)`
+    t =   103.76s Checking existence of `Any (First Match)`
+    t =   105.00s Checking existence of `Alert (First Match)`
+    t =   105.15s Checking existence of `Any (First Match)`
+    t =   105.36s Checking existence of `Any (First Match)`
+    t =   106.93s Checking existence of `Alert (First Match)`
+    t =   107.29s Checking existence of `Any (First Match)`
+    t =   107.57s Checking existence of `Any (First Match)`
+    t =   108.85s Checking existence of `Alert (First Match)`
+    t =   110.03s Checking existence of `Any (First Match)`
+    t =   110.65s Checking existence of `Any (First Match)`
+    t =   112.25s Checking existence of `Alert (First Match)`
+    t =   113.07s Checking existence of `Any (First Match)`
+    t =   113.52s Checking existence of `Any (First Match)`
+    t =   114.93s Checking existence of `Alert (First Match)`
+    t =   115.18s Checking existence of `Any (First Match)`
+    t =   115.46s Checking existence of `Any (First Match)`
+    t =   116.64s Checking existence of `Alert (First Match)`
+    t =   116.97s Checking existence of `Any (First Match)`
+    t =   117.32s Checking existence of `Any (First Match)`
+    t =   118.71s Checking existence of `Alert (First Match)`
+    t =   118.96s Checking existence of `Any (First Match)`
+    t =   119.32s Checking existence of `Any (First Match)`
+    t =   120.48s Checking existence of `Alert (First Match)`
+    t =   120.62s Checking existence of `Any (First Match)`
+    t =   120.79s Checking existence of `Any (First Match)`
+    t =   121.96s Checking existence of `Alert (First Match)`
+    t =   122.20s Checking existence of `Any (First Match)`
+    t =   122.54s Checking existence of `Any (First Match)`
+    t =   123.73s Checking existence of `Alert (First Match)`
+    t =   124.00s Checking existence of `Any (First Match)`
+    t =   124.42s Checking existence of `Any (First Match)`
+    t =   125.66s Checking existence of `Alert (First Match)`
+    t =   126.50s Checking existence of `Any (First Match)`
+    t =   128.17s Checking existence of `Any (First Match)`
+    t =   129.37s Checking existence of `Alert (First Match)`
+    t =   129.58s Checking existence of `Any (First Match)`
+    t =   129.81s Checking existence of `Any (First Match)`
+    t =   131.24s Checking existence of `Alert (First Match)`
+    t =   131.50s Checking existence of `Any (First Match)`
+    t =   131.73s Checking existence of `Any (First Match)`
+    t =   132.87s Checking existence of `Alert (First Match)`
+    t =   133.02s Checking existence of `Any (First Match)`
+    t =   133.27s Checking existence of `Any (First Match)`
+    t =   134.43s Checking existence of `Alert (First Match)`
+    t =   134.64s Checking existence of `Any (First Match)`
+    t =   134.94s Checking existence of `Any (First Match)`
+    t =   136.14s Checking existence of `Alert (First Match)`
+    t =   136.50s Checking existence of `Any (First Match)`
+    t =   136.80s Checking existence of `Any (First Match)`
+    t =   138.12s Checking existence of `Alert (First Match)`
+    t =   138.23s Checking existence of `Any (First Match)`
+    t =   138.42s Checking existence of `Any (First Match)`
+    t =   139.59s Checking existence of `Alert (First Match)`
+    t =   139.85s Checking existence of `Any (First Match)`
+    t =   140.07s Checking existence of `Any (First Match)`
+    t =   141.25s Checking existence of `Alert (First Match)`
+    t =   141.40s Checking existence of `Any (First Match)`
+    t =   141.69s Checking existence of `Any (First Match)`
+    t =   142.88s Checking existence of `Alert (First Match)`
+    t =   143.03s Checking existence of `Any (First Match)`
+    t =   143.24s Checking existence of `Any (First Match)`
+    t =   144.39s Checking existence of `Alert (First Match)`
+    t =   144.52s Checking existence of `Any (First Match)`
+    t =   144.69s Checking existence of `Any (First Match)`
+    t =   145.82s Checking existence of `Alert (First Match)`
+    t =   145.96s Checking existence of `Any (First Match)`
+    t =   146.15s Checking existence of `Any (First Match)`
+    t =   147.27s Checking existence of `Alert (First Match)`
+    t =   147.73s Checking existence of `Any (First Match)`
+    t =   148.02s Checking existence of `Any (First Match)`
+    t =   149.26s Checking existence of `Alert (First Match)`
+    t =   149.40s Checking existence of `Any (First Match)`
+    t =   149.61s Checking existence of `Any (First Match)`
+    t =   150.83s Checking existence of `Alert (First Match)`
+    t =   151.02s Checking existence of `Any (First Match)`
+    t =   151.32s Checking existence of `Any (First Match)`
+    t =   152.73s Checking existence of `Alert (First Match)`
+    t =   152.92s Checking existence of `Any (First Match)`
+    t =   153.23s Checking existence of `Any (First Match)`
+    t =   154.38s Checking existence of `Alert (First Match)`
+    t =   154.55s Checking existence of `Any (First Match)`
+    t =   154.78s Checking existence of `Any (First Match)`
+    t =   155.93s Checking existence of `Alert (First Match)`
+    t =   156.18s Checking existence of `Any (First Match)`
+    t =   156.52s Checking existence of `Any (First Match)`
+    t =   157.87s Checking existence of `Alert (First Match)`
+    t =   157.98s Checking existence of `Any (First Match)`
+    t =   158.13s Checking existence of `Any (First Match)`
+    t =   159.25s Checking existence of `Alert (First Match)`
+    t =   159.56s Checking existence of `Any (First Match)`
+    t =   160.11s Checking existence of `Any (First Match)`
+    t =   161.29s Checking existence of `Alert (First Match)`
+    t =   161.47s Checking existence of `Any (First Match)`
+    t =   161.68s Checking existence of `Any (First Match)`
+    t =   162.85s Checking existence of `Alert (First Match)`
+    t =   163.05s Checking existence of `Any (First Match)`
+    t =   163.29s Checking existence of `Any (First Match)`
+    t =   164.59s Checking existence of `Alert (First Match)`
+    t =   164.87s Checking existence of `Any (First Match)`
+    t =   165.22s Checking existence of `Any (First Match)`
+    t =   166.39s Checking existence of `Alert (First Match)`
+    t =   166.75s Checking existence of `Any (First Match)`
+    t =   167.14s Checking existence of `Any (First Match)`
+    t =   168.45s Checking existence of `Alert (First Match)`
+    t =   168.77s Checking existence of `Any (First Match)`
+    t =   169.12s Checking existence of `Any (First Match)`
+    t =   170.42s Checking existence of `Alert (First Match)`
+    t =   170.62s Checking existence of `Any (First Match)`
+    t =   170.89s Checking existence of `Any (First Match)`
+    t =   172.28s Checking existence of `Alert (First Match)`
+    t =   172.42s Checking existence of `Any (First Match)`
+    t =   172.65s Checking existence of `Any (First Match)`
+    t =   173.78s Checking existence of `Alert (First Match)`
+    t =   173.92s Checking existence of `Any (First Match)`
+    t =   174.12s Checking existence of `Any (First Match)`
+    t =   175.28s Checking existence of `Alert (First Match)`
+    t =   175.66s Checking existence of `Any (First Match)`
+    t =   175.91s Checking existence of `Any (First Match)`
+    t =   177.08s Checking existence of `Alert (First Match)`
+    t =   177.50s Checking existence of `Any (First Match)`
+    t =   177.81s Checking existence of `Any (First Match)`
+    t =   179.03s Checking existence of `Alert (First Match)`
+    t =   179.28s Checking existence of `Any (First Match)`
+    t =   179.51s Checking existence of `Any (First Match)`
+    t =   180.70s Checking existence of `Alert (First Match)`
+    t =   180.99s Checking existence of `Any (First Match)`
+    t =   181.27s Checking existence of `Any (First Match)`
+    t =   182.57s Checking existence of `Alert (First Match)`
+    t =   182.76s Checking existence of `Any (First Match)`
+    t =   182.98s Checking existence of `Any (First Match)`
+    t =   184.16s Checking existence of `Alert (First Match)`
+    t =   184.62s Checking existence of `Any (First Match)`
+    t =   184.97s Checking existence of `Any (First Match)`
+    t =   186.31s Checking existence of `Alert (First Match)`
+    t =   186.66s Checking existence of `Any (First Match)`
+    t =   186.97s Checking existence of `Any (First Match)`
+    t =   188.19s Checking existence of `Alert (First Match)`
+    t =   188.50s Checking existence of `Any (First Match)`
+    t =   188.80s Checking existence of `Any (First Match)`
+    t =   189.95s Checking existence of `Alert (First Match)`
+    t =   190.19s Checking existence of `Any (First Match)`
+    t =   190.57s Checking existence of `Any (First Match)`
+    t =   191.76s Checking existence of `Alert (First Match)`
+    t =   191.94s Checking existence of `Any (First Match)`
+    t =   192.17s Checking existence of `Any (First Match)`
+    t =   193.58s Checking existence of `Alert (First Match)`
+    t =   193.85s Checking existence of `Any (First Match)`
+    t =   194.21s Checking existence of `Any (First Match)`
+    t =   195.49s Checking existence of `Alert (First Match)`
+    t =   195.78s Checking existence of `Any (First Match)`
+    t =   196.15s Checking existence of `Any (First Match)`
+    t =   197.40s Checking existence of `Alert (First Match)`
+    t =   197.66s Checking existence of `Any (First Match)`
+    t =   197.91s Checking existence of `Any (First Match)`
+    t =   199.03s Checking existence of `Alert (First Match)`
+    t =   199.28s Checking existence of `Any (First Match)`
+    t =   199.45s Checking existence of `Any (First Match)`
+    t =   200.64s Checking existence of `Alert (First Match)`
+    t =   200.99s Checking existence of `Any (First Match)`
+    t =   201.31s Checking existence of `Any (First Match)`
+    t =   202.49s Checking existence of `Alert (First Match)`
+    t =   202.91s Checking existence of `Any (First Match)`
+    t =   203.13s Checking existence of `Any (First Match)`
+    t =   204.25s Checking existence of `Alert (First Match)`
+    t =   204.53s Checking existence of `Any (First Match)`
+    t =   204.78s Checking existence of `Any (First Match)`
+    t =   205.98s Checking existence of `Alert (First Match)`
+    t =   206.37s Checking existence of `Any (First Match)`
+    t =   206.70s Checking existence of `Any (First Match)`
+    t =   207.90s Checking existence of `Alert (First Match)`
+    t =   208.11s Checking existence of `Any (First Match)`
+    t =   208.50s Checking existence of `Any (First Match)`
+    t =   209.75s Checking existence of `Alert (First Match)`
+    t =   210.10s Checking existence of `Any (First Match)`
+    t =   210.81s Checking existence of `Any (First Match)`
+    t =   212.22s Checking existence of `Alert (First Match)`
+    t =   212.46s Checking existence of `Any (First Match)`
+    t =   212.92s Checking existence of `Any (First Match)`
+    t =   214.45s Checking existence of `Alert (First Match)`
+    t =   214.68s Checking existence of `Any (First Match)`
+    t =   215.00s Checking existence of `Any (First Match)`
+    t =   216.25s Checking existence of `Alert (First Match)`
+    t =   216.48s Checking existence of `Any (First Match)`
+    t =   216.70s Checking existence of `Any (First Match)`
+    t =   217.88s Checking existence of `Alert (First Match)`
+    t =   218.00s Checking existence of `Any (First Match)`
+    t =   218.24s Checking existence of `Any (First Match)`
+    t =   219.43s Checking existence of `Alert (First Match)`
+    t =   219.66s Checking existence of `Any (First Match)`
+    t =   219.94s Checking existence of `Any (First Match)`
+    t =   221.19s Checking existence of `Alert (First Match)`
+    t =   221.39s Checking existence of `Any (First Match)`
+    t =   221.69s Checking existence of `Any (First Match)`
+    t =   222.87s Checking existence of `Alert (First Match)`
+    t =   223.03s Checking existence of `Any (First Match)`
+    t =   223.24s Checking existence of `Any (First Match)`
+    t =   224.53s Checking existence of `Alert (First Match)`
+    t =   224.76s Checking existence of `Any (First Match)`
+    t =   225.35s Checking existence of `Any (First Match)`
+    t =   226.69s Checking existence of `Alert (First Match)`
+    t =   226.91s Checking existence of `Any (First Match)`
+    t =   227.24s Checking existence of `Any (First Match)`
+    t =   228.47s Checking existence of `Alert (First Match)`
+    t =   228.73s Checking existence of `Any (First Match)`
+    t =   228.97s Checking existence of `Any (First Match)`
+    t =   230.13s Checking existence of `Alert (First Match)`
+    t =   230.31s Checking existence of `Any (First Match)`
+    t =   230.54s Checking existence of `Any (First Match)`
+    t =   231.73s Checking existence of `Alert (First Match)`
+    t =   231.91s Checking existence of `Any (First Match)`
+    t =   232.11s Checking existence of `Any (First Match)`
+    t =   233.27s Checking existence of `Alert (First Match)`
+    t =   233.59s Checking existence of `Any (First Match)`
+    t =   233.86s Checking existence of `Any (First Match)`
+    t =   235.07s Checking existence of `Alert (First Match)`
+    t =   235.25s Checking existence of `Any (First Match)`
+    t =   235.47s Checking existence of `Any (First Match)`
+    t =   236.64s Checking existence of `Alert (First Match)`
+    t =   236.76s Checking existence of `Any (First Match)`
+    t =   236.95s Checking existence of `Any (First Match)`
+    t =   238.13s Checking existence of `Alert (First Match)`
+    t =   238.23s Checking existence of `Any (First Match)`
+    t =   238.41s Checking existence of `Any (First Match)`
+    t =   239.51s Checking existence of `Alert (First Match)`
+    t =   239.70s Checking existence of `Any (First Match)`
+    t =   239.85s Checking existence of `Any (First Match)`
+    t =   240.98s Checking existence of `Alert (First Match)`
+    t =   241.16s Checking existence of `Any (First Match)`
+    t =   241.32s Checking existence of `Any (First Match)`
+    t =   242.46s Checking existence of `Alert (First Match)`
+    t =   242.70s Checking existence of `Any (First Match)`
+    t =   243.00s Checking existence of `Any (First Match)`
+    t =   244.16s Checking existence of `Alert (First Match)`
+    t =   244.64s Checking existence of `Any (First Match)`
+    t =   245.11s Checking existence of `Any (First Match)`
+    t =   246.39s Checking existence of `Alert (First Match)`
+    t =   246.66s Checking existence of `Any (First Match)`
+    t =   247.12s Checking existence of `Any (First Match)`
+    t =   248.39s Checking existence of `Alert (First Match)`
+    t =   248.58s Checking existence of `Any (First Match)`
+    t =   248.81s Checking existence of `Any (First Match)`
+    t =   250.00s Checking existence of `Alert (First Match)`
+    t =   250.13s Checking existence of `Any (First Match)`
+    t =   250.38s Checking existence of `Any (First Match)`
+    t =   251.60s Checking existence of `Alert (First Match)`
+    t =   251.91s Checking existence of `Any (First Match)`
+    t =   252.40s Checking existence of `Any (First Match)`
+    t =   253.60s Checking existence of `Alert (First Match)`
+    t =   253.77s Checking existence of `Any (First Match)`
+    t =   253.96s Checking existence of `Any (First Match)`
+    t =   255.12s Checking existence of `Alert (First Match)`
+    t =   255.36s Checking existence of `Any (First Match)`
+    t =   255.70s Checking existence of `Any (First Match)`
+    t =   257.17s Checking existence of `Alert (First Match)`
+    t =   257.38s Checking existence of `Any (First Match)`
+    t =   257.73s Checking existence of `Any (First Match)`
+    t =   258.91s Checking existence of `Alert (First Match)`
+    t =   259.02s Checking existence of `Any (First Match)`
+    t =   259.17s Checking existence of `Any (First Match)`
+    t =   260.29s Checking existence of `Alert (First Match)`
+    t =   260.63s Checking existence of `Any (First Match)`
+    t =   261.13s Checking existence of `Any (First Match)`
+    t =   262.45s Checking existence of `Alert (First Match)`
+    t =   262.59s Checking existence of `Any (First Match)`
+    t =   262.77s Checking existence of `Any (First Match)`
+    t =   264.03s Checking existence of `Alert (First Match)`
+    t =   264.12s Checking existence of `Any (First Match)`
+    t =   264.28s Checking existence of `Any (First Match)`
+    t =   265.43s Checking existence of `Alert (First Match)`
+    t =   265.79s Checking existence of `Any (First Match)`
+    t =   266.11s Checking existence of `Any (First Match)`
+    t =   267.43s Checking existence of `Alert (First Match)`
+    t =   267.55s Checking existence of `Any (First Match)`
+    t =   267.68s Checking existence of `Any (First Match)`
+    t =   268.79s Checking existence of `Alert (First Match)`
+    t =   269.04s Checking existence of `Any (First Match)`
+    t =   269.19s Checking existence of `Any (First Match)`
+    t =   270.38s Checking existence of `Alert (First Match)`
+    t =   270.74s Checking existence of `Any (First Match)`
+    t =   271.18s Checking existence of `Any (First Match)`
+    t =   272.33s Checking existence of `Alert (First Match)`
+    t =   272.51s Checking existence of `Any (First Match)`
+    t =   272.92s Checking existence of `Any (First Match)`
+    t =   274.26s Checking existence of `Alert (First Match)`
+    t =   274.52s Checking existence of `Any (First Match)`
+    t =   274.81s Checking existence of `Any (First Match)`
+    t =   275.94s Checking existence of `Alert (First Match)`
+    t =   276.16s Checking existence of `Any (First Match)`
+    t =   276.56s Checking existence of `Any (First Match)`
+    t =   277.77s Checking existence of `Alert (First Match)`
+    t =   278.14s Checking existence of `Any (First Match)`
+    t =   278.55s Checking existence of `Any (First Match)`
+    t =   279.87s Checking existence of `Alert (First Match)`
+    t =   280.08s Checking existence of `Any (First Match)`
+    t =   280.30s Checking existence of `Any (First Match)`
+    t =   281.50s Checking existence of `Alert (First Match)`
+    t =   281.69s Checking existence of `Any (First Match)`
+    t =   282.02s Checking existence of `Any (First Match)`
+    t =   283.24s Checking existence of `Alert (First Match)`
+    t =   283.44s Checking existence of `Any (First Match)`
+    t =   283.66s Checking existence of `Any (First Match)`
+    t =   284.91s Checking existence of `Alert (First Match)`
+    t =   285.28s Checking existence of `Any (First Match)`
+    t =   285.83s Checking existence of `Any (First Match)`
+    t =   287.03s Checking existence of `Alert (First Match)`
+    t =   287.13s Checking existence of `Any (First Match)`
+    t =   287.26s Checking existence of `Any (First Match)`
+    t =   288.37s Checking existence of `Alert (First Match)`
+    t =   288.51s Checking existence of `Any (First Match)`
+    t =   288.71s Checking existence of `Any (First Match)`
+    t =   289.96s Checking existence of `Alert (First Match)`
+    t =   290.15s Checking existence of `Any (First Match)`
+    t =   290.56s Checking existence of `Any (First Match)`
+    t =   291.84s Checking existence of `Alert (First Match)`
+    t =   291.99s Checking existence of `Any (First Match)`
+    t =   292.12s Checking existence of `Any (First Match)`
+    t =   293.35s Checking existence of `Alert (First Match)`
+    t =   293.50s Checking existence of `Any (First Match)`
+    t =   293.67s Checking existence of `Any (First Match)`
+    t =   294.83s Checking existence of `Alert (First Match)`
+    t =   295.01s Checking existence of `Any (First Match)`
+    t =   295.19s Checking existence of `Any (First Match)`
+    t =   296.37s Checking existence of `Alert (First Match)`
+    t =   296.60s Checking existence of `Any (First Match)`
+    t =   297.00s Checking existence of `Any (First Match)`
+    t =   298.50s Checking existence of `Alert (First Match)`
+    t =   298.83s Checking existence of `Any (First Match)`
+    t =   299.11s Checking existence of `Any (First Match)`
+    t =   300.43s Checking existence of `Alert (First Match)`
+    t =   300.76s Checking existence of `Any (First Match)`
+    t =   301.13s Checking existence of `Any (First Match)`
+    t =   302.47s Checking existence of `Alert (First Match)`
+    t =   302.84s Checking existence of `Any (First Match)`
+    t =   303.04s Checking existence of `Any (First Match)`
+    t =   304.28s Checking existence of `Alert (First Match)`
+    t =   304.48s Checking existence of `Any (First Match)`
+    t =   304.63s Checking existence of `Any (First Match)`
+    t =   305.75s Checking existence of `Alert (First Match)`
+    t =   306.02s Checking existence of `Any (First Match)`
+    t =   306.25s Checking existence of `Any (First Match)`
+    t =   307.52s Checking existence of `Alert (First Match)`
+    t =   307.63s Checking existence of `Any (First Match)`
+    t =   307.81s Checking existence of `Any (First Match)`
+    t =   309.04s Checking existence of `Alert (First Match)`
+    t =   309.44s Checking existence of `Any (First Match)`
+    t =   309.83s Checking existence of `Any (First Match)`
+    t =   310.98s Checking existence of `Alert (First Match)`
+    t =   311.12s Checking existence of `Any (First Match)`
+    t =   311.35s Checking existence of `Any (First Match)`
+    t =   312.52s Checking existence of `Alert (First Match)`
+    t =   312.86s Checking existence of `Any (First Match)`
+    t =   313.03s Checking existence of `Any (First Match)`
+    t =   314.17s Checking existence of `Alert (First Match)`
+    t =   314.36s Checking existence of `Any (First Match)`
+    t =   315.10s Checking existence of `Any (First Match)`
+    t =   316.50s Checking existence of `Alert (First Match)`
+    t =   316.82s Checking existence of `Any (First Match)`
+    t =   317.19s Checking existence of `Any (First Match)`
+    t =   318.49s Checking existence of `Alert (First Match)`
+    t =   318.81s Checking existence of `Any (First Match)`
+    t =   319.32s Checking existence of `Any (First Match)`
+    t =   320.60s Checking existence of `Alert (First Match)`
+    t =   320.82s Checking existence of `Any (First Match)`
+    t =   321.37s Checking existence of `Any (First Match)`
+    t =   322.68s Checking existence of `Alert (First Match)`
+    t =   322.98s Checking existence of `Any (First Match)`
+    t =   323.22s Checking existence of `Any (First Match)`
+    t =   324.36s Checking existence of `Alert (First Match)`
+    t =   324.80s Checking existence of `Any (First Match)`
+    t =   325.16s Checking existence of `Any (First Match)`
+    t =   326.43s Checking existence of `Alert (First Match)`
+    t =   326.61s Checking existence of `Any (First Match)`
+    t =   326.80s Checking existence of `Any (First Match)`
+    t =   328.04s Checking existence of `Alert (First Match)`
+    t =   328.23s Checking existence of `Any (First Match)`
+    t =   328.56s Checking existence of `Any (First Match)`
+    t =   329.78s Checking existence of `Alert (First Match)`
+    t =   329.91s Checking existence of `Any (First Match)`
+    t =   330.06s Checking existence of `Any (First Match)`
+    t =   331.31s Checking existence of `Alert (First Match)`
+    t =   331.69s Checking existence of `Any (First Match)`
+    t =   332.04s Checking existence of `Any (First Match)`
+    t =   333.33s Checking existence of `Alert (First Match)`
+    t =   333.67s Checking existence of `Any (First Match)`
+    t =   333.99s Checking existence of `Any (First Match)`
+    t =   335.27s Checking existence of `Alert (First Match)`
+    t =   335.67s Checking existence of `Any (First Match)`
+    t =   336.30s Checking existence of `Any (First Match)`
+    t =   337.78s Checking existence of `Alert (First Match)`
+    t =   338.01s Checking existence of `Any (First Match)`
+    t =   338.35s Checking existence of `Any (First Match)`
+    t =   339.51s Checking existence of `Alert (First Match)`
+    t =   340.03s Checking existence of `Any (First Match)`
+    t =   340.73s Checking existence of `Any (First Match)`
+    t =   342.05s Checking existence of `Alert (First Match)`
+    t =   342.22s Checking existence of `Any (First Match)`
+    t =   342.48s Checking existence of `Any (First Match)`
+    t =   343.75s Checking existence of `Alert (First Match)`
+    t =   344.12s Checking existence of `Any (First Match)`
+    t =   344.43s Checking existence of `Any (First Match)`
+    t =   345.66s Checking existence of `Alert (First Match)`
+    t =   345.99s Checking existence of `Any (First Match)`
+    t =   346.21s Checking existence of `Any (First Match)`
+    t =   347.37s Checking existence of `Alert (First Match)`
+    t =   347.64s Checking existence of `Any (First Match)`
+    t =   347.89s Checking existence of `Any (First Match)`
+    t =   349.10s Checking existence of `Alert (First Match)`
+    t =   349.34s Checking existence of `Any (First Match)`
+    t =   349.57s Checking existence of `Any (First Match)`
+    t =   350.78s Checking existence of `Alert (First Match)`
+    t =   350.98s Checking existence of `Any (First Match)`
+    t =   351.25s Checking existence of `Any (First Match)`
+    t =   352.53s Checking existence of `Alert (First Match)`
+    t =   353.23s Checking existence of `Any (First Match)`
+    t =   353.91s Checking existence of `Any (First Match)`
+    t =   355.45s Checking existence of `Alert (First Match)`
+    t =   356.51s Checking existence of `Any (First Match)`
+    t =   372.86s Checking existence of `Any (First Match)`
+    t =   375.41s Waiting 2.0s for Alert (First Match) to exist
+    t =   376.48s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   376.49s         Checking existence of `Alert (First Match)`
+    t =   377.51s         Capturing element debug description
+    t =   377.53s     Checking existence of `Alert (First Match)`
+    t =   377.89s Collecting debug information to assist test failure triage
+    t =   377.90s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   379.03s Checking existence of `Any (First Match)`
+    t =   383.63s Added attachment named '02-home'
+2026-11-13 09:41:43.892496+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 2 FAIL Home after scan: scanFinished=false firstNonZero=none
+    t =   383.66s Waiting 5.0s for Any (First Match) to exist
+    t =   384.74s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   384.74s         Checking existence of `Any (First Match)`
+    t =   386.00s Find the Any (First Match)
+    t =   386.91s Added attachment named '02b-duplicate'
+    t =   387.02s Checking existence of `"Duplicate, 0 items" Button`
+    t =   387.60s Find the "Duplicate, 0 items" Button
+2026-11-13 09:41:48.800276+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 22 FAIL Duplicate card count and review: tile=Duplicate, 0 items count=0 min=5 reviewOpened=false
+    t =   388.57s Waiting 2.0s for Alert (First Match) to exist
+    t =   389.60s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   389.60s         Checking existence of `Alert (First Match)`
+    t =   390.86s         Capturing element debug description
+    t =   390.86s     Checking existence of `Alert (First Match)`
+    t =   392.56s Collecting debug information to assist test failure triage
+    t =   392.56s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   392.63s Checking existence of `Any (First Match)`
+    t =   393.47s Find the Any (First Match)
+    t =   394.17s Waiting 5.0s for Any (First Match) to exist
+    t =   395.18s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   395.18s         Checking existence of `Any (First Match)`
+    t =   395.27s Find the Any (First Match)
+    t =   395.74s Added attachment named '02c-blurry'
+    t =   395.76s Checking existence of `"Blurry, 0 items" Button`
+    t =   395.87s Find the "Blurry, 0 items" Button
+2026-11-13 09:41:56.238336+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 23 FAIL Blurry card count and review: tile=Blurry, 0 items count=0 min=5 reviewOpened=false
+    t =   396.00s Waiting 2.0s for Alert (First Match) to exist
+    t =   397.06s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   397.06s         Checking existence of `Alert (First Match)`
+    t =   397.28s         Capturing element debug description
+    t =   398.01s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   398.01s         Checking existence of `Alert (First Match)`
+    t =   398.20s         Capturing element debug description
+    t =   398.20s     Checking existence of `Alert (First Match)`
+    t =   398.36s Collecting debug information to assist test failure triage
+    t =   398.36s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   398.45s Checking existence of `Any (First Match)`
+    t =   398.64s Find the Any (First Match)
+    t =   398.78s Waiting 5.0s for Any (First Match) to exist
+    t =   399.85s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   399.85s         Checking existence of `Any (First Match)`
+    t =   400.12s Find the Any (First Match)
+    t =   400.45s Find the "Similar, 0 items" Button
+    t =   401.04s Added attachment named '03-similar'
+2026-11-13 09:42:01.283670+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 3 FAIL Similar review: tile: Similar, 0 items; zero items, not opened
+    t =   401.05s Waiting 2.0s for Alert (First Match) to exist
+    t =   402.11s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   402.11s         Checking existence of `Alert (First Match)`
+    t =   402.39s         Capturing element debug description
+    t =   403.05s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   403.05s         Checking existence of `Alert (First Match)`
+    t =   403.16s         Capturing element debug description
+    t =   403.17s     Checking existence of `Alert (First Match)`
+    t =   403.29s Collecting debug information to assist test failure triage
+    t =   403.29s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   403.35s Checking existence of `Any (First Match)`
+    t =   403.49s Find the Any (First Match)
+    t =   403.69s Checking existence of `Any (First Match)`
+    t =   403.80s Find the Any (First Match)
+    t =   403.93s Swipe up Target Application 'com.krosz.klenzer'
+    t =   403.93s     Wait for com.krosz.klenzer to idle
+    t =   403.94s     Find the Target Application 'com.krosz.klenzer'
+    t =   403.98s     Check for interrupting elements affecting "Klenzer" Application
+    t =   404.02s         Wait for com.apple.springboard to idle
+    t =   404.67s     Found 1 interrupting element:
+    t =   404.67s         Find the "“Klenzer” is requesting additional access to your Photo Library." Alert
+    t =   404.72s "“Klenzer” is requesting additional access to your Photo Library." Alert from Application 'com.apple.springboard'
+    t =   404.72s     Invoking UI interruption monitors for "“Klenzer” is requesting additional access to your Photo Library." Alert from Application 'com.apple.springboard'
+    t =   404.72s Invoking System alerts
+    t =   404.72s             Checking existence of `"Allow Full Access" Button`
+    t =   404.82s             Tap "Allow Full Access" Button
+    t =   404.82s                 Wait for com.apple.springboard to idle
+    t =   404.83s                 Find the "Allow Full Access" Button
+    t =   404.90s                 Check for interrupting elements affecting "Allow Full Access" Button
+    t =   405.04s                 Synthesize event
+    t =   405.81s                 Wait for com.apple.springboard to idle
+    t =   406.35s         Verifying handling...
+    t =   406.42s Confirmed successful handling of interrupting element
+    t =   406.42s     Synthesize event
+    t =   406.87s     Wait for com.krosz.klenzer to idle
+    t =   408.05s Checking existence of `"open-swipe" Button`
+    t =   409.00s Find the "open-swipe" Button
+    t =   409.77s Waiting 5.0s for Any (First Match) to exist
+    t =   410.83s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   410.84s         Checking existence of `Any (First Match)`
+    t =   411.96s Find the Any (First Match)
+    t =   413.33s Tap "open-swipe" Button
+    t =   413.33s     Wait for com.krosz.klenzer to idle
+    t =   413.34s     Find the "open-swipe" Button
+    t =   414.20s     Check for interrupting elements affecting "open-swipe" Button
+    t =   414.68s     Synthesize event
+    t =   415.02s     Wait for com.krosz.klenzer to idle
+    t =   415.93s Waiting 10.0s for Any (First Match) to exist
+    t =   416.98s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   416.98s         Checking existence of `Any (First Match)`
+    t =   417.69s         Capturing element debug description
+    t =   418.00s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   418.00s         Checking existence of `Any (First Match)`
+    t =   418.62s         Capturing element debug description
+    t =   418.93s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   418.93s         Checking existence of `Any (First Match)`
+    t =   419.37s         Capturing element debug description
+    t =   420.00s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   420.00s         Checking existence of `Any (First Match)`
+    t =   420.26s         Capturing element debug description
+    t =   421.00s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   421.00s         Checking existence of `Any (First Match)`
+    t =   421.35s         Capturing element debug description
+    t =   421.98s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   421.98s         Checking existence of `Any (First Match)`
+    t =   422.54s         Capturing element debug description
+    t =   422.96s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   422.96s         Checking existence of `Any (First Match)`
+    t =   423.16s         Capturing element debug description
+    t =   423.98s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   423.98s         Checking existence of `Any (First Match)`
+    t =   424.02s         Capturing element debug description
+    t =   424.95s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   424.95s         Checking existence of `Any (First Match)`
+    t =   425.03s         Capturing element debug description
+    t =   425.94s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   425.94s         Checking existence of `Any (First Match)`
+    t =   426.01s         Capturing element debug description
+    t =   426.01s     Checking existence of `Any (First Match)`
+    t =   426.09s Collecting debug information to assist test failure triage
+    t =   426.09s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   428.39s Added attachment named '04-swipe'
+2026-11-13 09:42:28.640609+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 4 FAIL Swipe to Organize: swipe screen not reached
+    t =   428.41s Waiting 2.0s for Alert (First Match) to exist
+    t =   429.45s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   429.45s         Checking existence of `Alert (First Match)`
+    t =   429.51s         Capturing element debug description
+    t =   430.41s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   430.41s         Checking existence of `Alert (First Match)`
+    t =   430.46s         Capturing element debug description
+    t =   430.46s     Checking existence of `Alert (First Match)`
+    t =   430.51s Collecting debug information to assist test failure triage
+    t =   430.51s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   430.54s Checking existence of `Any (First Match)`
+    t =   430.66s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =   430.68s Checking existence of `Any (Element at index 0)`
+    t =   430.71s Find the Any (Element at index 0)
+    t =   430.78s Tap "Back" Button
+    t =   430.78s     Wait for com.krosz.klenzer to idle
+    t =   430.78s     Find the "Back" Button
+    t =   430.81s     Check for interrupting elements affecting "Back" Button
+    t =   430.89s     Synthesize event
+    t =   431.22s     Wait for com.krosz.klenzer to idle
+    t =   432.74s Checking existence of `Any (First Match)`
+    t =   432.87s Find the Any (First Match)
+    t =   433.07s Swipe down Target Application 'com.krosz.klenzer'
+    t =   433.07s     Wait for com.krosz.klenzer to idle
+    t =   433.07s     Find the Target Application 'com.krosz.klenzer'
+    t =   433.11s     Check for interrupting elements affecting "Klenzer" Application
+    t =   433.17s     Synthesize event
+    t =   433.61s     Wait for com.krosz.klenzer to idle
+    t =   434.47s Swipe down Target Application 'com.krosz.klenzer'
+    t =   434.47s     Wait for com.krosz.klenzer to idle
+    t =   434.50s     Find the Target Application 'com.krosz.klenzer'
+    t =   434.70s     Check for interrupting elements affecting "Klenzer" Application
+    t =   434.80s     Synthesize event
+    t =   435.25s     Wait for com.krosz.klenzer to idle
+    t =   436.05s Swipe down Target Application 'com.krosz.klenzer'
+    t =   436.05s     Wait for com.krosz.klenzer to idle
+    t =   436.06s     Find the Target Application 'com.krosz.klenzer'
+    t =   436.14s     Check for interrupting elements affecting "Klenzer" Application
+    t =   436.20s     Synthesize event
+    t =   436.65s     Wait for com.krosz.klenzer to idle
+    t =   437.42s Waiting 5.0s for Any (First Match) to exist
+    t =   438.50s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   438.52s         Checking existence of `Any (First Match)`
+    t =   438.73s Waiting 5.0s for Any (First Match) to exist
+    t =   439.80s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   439.80s         Checking existence of `Any (First Match)`
+    t =   439.96s Find the Any (First Match)
+    t =   440.13s Tap "home-switch-contacts" Other
+    t =   440.13s     Wait for com.krosz.klenzer to idle
+    t =   440.14s     Find the "home-switch-contacts" Other
+    t =   440.27s     Check for interrupting elements affecting "home-switch-contacts" Other
+    t =   440.44s     Synthesize event
+    t =   440.79s     Wait for com.krosz.klenzer to idle
+    t =   441.61s Waiting 5.0s for Any (First Match) to exist
+    t =   442.64s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   442.65s         Checking existence of `Any (First Match)`
+    t =   442.82s Waiting 5.0s for Any (First Match) to exist
+    t =   443.86s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   443.86s         Checking existence of `Any (First Match)`
+    t =   444.06s Find the Any (First Match)
+    t =   444.46s Tap "open-contacts" Button
+    t =   444.46s     Wait for com.krosz.klenzer to idle
+    t =   444.47s     Find the "open-contacts" Button
+    t =   444.76s     Check for interrupting elements affecting "open-contacts" Button
+    t =   445.00s     Synthesize event
+    t =   445.33s     Wait for com.krosz.klenzer to idle
+    t =   446.58s Waiting 4.0s for Any (First Match) to exist
+    t =   447.63s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   447.64s         Checking existence of `Any (First Match)`
+    t =   447.79s         Capturing element debug description
+    t =   448.61s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   448.61s         Checking existence of `Any (First Match)`
+    t =   448.91s         Capturing element debug description
+    t =   449.65s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   449.65s         Checking existence of `Any (First Match)`
+    t =   449.90s         Capturing element debug description
+    t =   450.58s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   450.59s         Checking existence of `Any (First Match)`
+    t =   450.78s         Capturing element debug description
+    t =   450.78s     Checking existence of `Any (First Match)`
+    t =   450.88s Collecting debug information to assist test failure triage
+    t =   450.88s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   450.92s Waiting 15.0s for Any (First Match) to exist
+    t =   451.98s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   451.98s         Checking existence of `Any (First Match)`
+    t =   452.40s Find the Any (First Match)
+    t =   453.17s Added attachment named '05-contacts-list'
+    t =   453.18s Waiting 5.0s for "Group of 3 contacts, Chris Park" Button to exist
+    t =   454.27s     Checking `Expect predicate `existsNoRetry == 1` for object "Group of 3 contacts, Chris Park" Button`
+    t =   454.27s         Checking existence of `"Group of 3 contacts, Chris Park" Button`
+    t =   454.54s Find the "Group of 3 contacts, Chris Park" Button
+    t =   455.09s Tap "Group of 3 contacts, Chris Park" Button
+    t =   455.09s     Wait for com.krosz.klenzer to idle
+    t =   455.15s     Find the "Group of 3 contacts, Chris Park" Button
+    t =   455.29s     Check for interrupting elements affecting "Group of 3 contacts, Chris Park" Button
+    t =   455.46s     Synthesize event
+    t =   455.81s     Wait for com.krosz.klenzer to idle
+    t =   456.90s Waiting 8.0s for Any (First Match) to exist
+    t =   457.96s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   457.96s         Checking existence of `Any (First Match)`
+    t =   459.97s Added attachment named '05-contacts-preview'
+    t =   459.98s Get all elements bound by index for: Elements matching predicate 'identifier == "Close" OR label == "Close"'
+    t =   461.09s Checking existence of `Any (Element at index 0)`
+    t =   461.60s Find the Any (Element at index 0)
+    t =   461.82s Tap "Close" Button
+    t =   461.82s     Wait for com.krosz.klenzer to idle
+    t =   461.83s     Find the "Close" Button
+    t =   462.23s     Check for interrupting elements affecting "Close" Button
+    t =   462.42s     Synthesize event
+    t =   462.76s     Wait for com.krosz.klenzer to idle
+2026-11-13 09:43:04.400910+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 5 PASS Merge Contacts preview: group: Group of 3 contacts, Chris Park; preview shown
+    t =   464.17s Waiting 2.0s for Alert (First Match) to exist
+    t =   465.18s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   465.18s         Checking existence of `Alert (First Match)`
+    t =   466.18s         Capturing element debug description
+    t =   466.18s     Checking existence of `Alert (First Match)`
+    t =   466.61s Collecting debug information to assist test failure triage
+    t =   466.61s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   466.65s Checking existence of `Any (First Match)`
+    t =   467.30s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =   467.90s Checking existence of `Any (Element at index 0)`
+    t =   468.07s Find the Any (Element at index 0)
+    t =   468.62s Tap "Back" Button
+    t =   468.62s     Wait for com.krosz.klenzer to idle
+    t =   468.66s     Find the "Back" Button
+    t =   468.81s     Check for interrupting elements affecting "Back" Button
+    t =   468.88s     Synthesize event
+    t =   469.28s     Wait for com.krosz.klenzer to idle
+    t =   470.36s Checking existence of `Any (First Match)`
+    t =   471.77s Find the Any (First Match)
+    t =   472.18s Swipe down Target Application 'com.krosz.klenzer'
+    t =   472.18s     Wait for com.krosz.klenzer to idle
+    t =   472.19s     Find the Target Application 'com.krosz.klenzer'
+    t =   472.22s     Check for interrupting elements affecting "Klenzer" Application
+    t =   472.32s     Synthesize event
+    t =   472.79s     Wait for com.krosz.klenzer to idle
+    t =   473.60s Swipe down Target Application 'com.krosz.klenzer'
+    t =   473.60s     Wait for com.krosz.klenzer to idle
+    t =   473.61s     Find the Target Application 'com.krosz.klenzer'
+    t =   473.86s     Check for interrupting elements affecting "Klenzer" Application
+    t =   474.00s     Synthesize event
+    t =   474.45s     Wait for com.krosz.klenzer to idle
+    t =   475.24s Swipe down Target Application 'com.krosz.klenzer'
+    t =   475.24s     Wait for com.krosz.klenzer to idle
+    t =   475.25s     Find the Target Application 'com.krosz.klenzer'
+    t =   475.30s     Check for interrupting elements affecting "Klenzer" Application
+    t =   475.40s     Synthesize event
+    t =   475.91s     Wait for com.krosz.klenzer to idle
+    t =   476.68s Waiting 5.0s for Any (First Match) to exist
+    t =   477.71s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   477.71s         Checking existence of `Any (First Match)`
+    t =   477.91s Waiting 5.0s for Any (First Match) to exist
+    t =   478.96s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   478.96s         Checking existence of `Any (First Match)`
+    t =   479.09s Find the Any (First Match)
+    t =   479.44s Tap "home-switch-photos" Other
+    t =   479.45s     Wait for com.krosz.klenzer to idle
+    t =   479.47s     Find the "home-switch-photos" Other
+    t =   479.84s     Check for interrupting elements affecting "home-switch-photos" Other
+    t =   480.23s     Synthesize event
+    t =   480.56s     Wait for com.krosz.klenzer to idle
+    t =   481.38s Checking existence of `Any (First Match)`
+    t =   481.82s Find the Any (First Match)
+    t =   482.27s Swipe up Target Application 'com.krosz.klenzer'
+    t =   482.27s     Wait for com.krosz.klenzer to idle
+    t =   482.28s     Find the Target Application 'com.krosz.klenzer'
+    t =   482.34s     Check for interrupting elements affecting "Klenzer" Application
+    t =   482.44s     Synthesize event
+    t =   482.90s     Wait for com.krosz.klenzer to idle
+    t =   484.05s Checking existence of `"open-secret-album" Button`
+    t =   484.47s Find the "open-secret-album" Button
+    t =   484.83s Waiting 5.0s for Any (First Match) to exist
+    t =   485.85s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   485.85s         Checking existence of `Any (First Match)`
+    t =   486.27s Find the Any (First Match)
+    t =   486.76s Tap "open-secret-album" Button
+    t =   486.76s     Wait for com.krosz.klenzer to idle
+    t =   486.79s     Find the "open-secret-album" Button
+    t =   487.13s     Check for interrupting elements affecting "open-secret-album" Button
+    t =   487.36s     Synthesize event
+    t =   487.70s     Wait for com.krosz.klenzer to idle
+    t =   488.94s Waiting 10.0s for Any (First Match) to exist
+    t =   489.98s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   489.98s         Checking existence of `Any (First Match)`
+    t =   490.30s Added attachment named '06-secret-album-pin'
+    t =   490.31s Get all elements bound by index for: Elements matching predicate 'identifier == "1" OR label == "1"'
+    t =   490.34s Checking existence of `Any (Element at index 0)`
+    t =   490.38s Find the Any (Element at index 0)
+    t =   490.44s Tap "1" Button
+    t =   490.44s     Wait for com.krosz.klenzer to idle
+    t =   490.44s     Find the "1" Button
+    t =   490.49s     Check for interrupting elements affecting "1" Button
+    t =   490.55s     Synthesize event
+    t =   490.89s     Wait for com.krosz.klenzer to idle
+    t =   491.21s Get all elements bound by index for: Elements matching predicate 'identifier == "2" OR label == "2"'
+    t =   491.25s Checking existence of `Any (Element at index 0)`
+    t =   491.29s Find the Any (Element at index 0)
+    t =   491.37s Tap "2" Button
+    t =   491.37s     Wait for com.krosz.klenzer to idle
+    t =   491.37s     Find the "2" Button
+    t =   491.41s     Check for interrupting elements affecting "2" Button
+    t =   491.45s     Synthesize event
+    t =   491.76s     Wait for com.krosz.klenzer to idle
+    t =   492.06s Get all elements bound by index for: Elements matching predicate 'identifier == "3" OR label == "3"'
+    t =   492.16s Checking existence of `Any (Element at index 0)`
+    t =   492.28s Find the Any (Element at index 0)
+    t =   492.43s Tap "3" Button
+    t =   492.43s     Wait for com.krosz.klenzer to idle
+    t =   492.44s     Find the "3" Button
+    t =   492.57s     Check for interrupting elements affecting "3" Button
+    t =   492.62s     Synthesize event
+    t =   492.97s     Wait for com.krosz.klenzer to idle
+    t =   493.29s Get all elements bound by index for: Elements matching predicate 'identifier == "4" OR label == "4"'
+    t =   493.35s Checking existence of `Any (Element at index 0)`
+    t =   493.39s Find the Any (Element at index 0)
+    t =   493.53s Tap "4" Button
+    t =   493.54s     Wait for com.krosz.klenzer to idle
+    t =   493.59s     Find the "4" Button
+    t =   493.69s     Check for interrupting elements affecting "4" Button
+    t =   493.78s     Synthesize event
+    t =   494.16s     Wait for com.krosz.klenzer to idle
+    t =   494.47s Get all elements bound by index for: Elements matching predicate 'identifier == "Next" OR label == "Next"'
+    t =   494.52s Checking existence of `Any (Element at index 0)`
+    t =   494.57s Find the Any (Element at index 0)
+    t =   494.73s Tap "Next" Button
+    t =   494.73s     Wait for com.krosz.klenzer to idle
+    t =   494.74s     Find the "Next" Button
+    t =   494.83s     Check for interrupting elements affecting "Next" Button
+    t =   494.87s     Synthesize event
+    t =   495.19s     Wait for com.krosz.klenzer to idle
+    t =   496.72s Added attachment named '06-secret-album-confirm'
+    t =   496.72s Get all elements bound by index for: Elements matching predicate 'identifier == "1" OR label == "1"'
+    t =   496.77s Checking existence of `Any (Element at index 0)`
+    t =   496.84s Find the Any (Element at index 0)
+    t =   496.91s Tap "1" Button
+    t =   496.91s     Wait for com.krosz.klenzer to idle
+    t =   496.92s     Find the "1" Button
+    t =   497.02s     Check for interrupting elements affecting "1" Button
+    t =   497.11s     Synthesize event
+    t =   497.46s     Wait for com.krosz.klenzer to idle
+    t =   497.77s Get all elements bound by index for: Elements matching predicate 'identifier == "2" OR label == "2"'
+    t =   497.83s Checking existence of `Any (Element at index 0)`
+    t =   497.93s Find the Any (Element at index 0)
+    t =   498.09s Tap "2" Button
+    t =   498.09s     Wait for com.krosz.klenzer to idle
+    t =   498.11s     Find the "2" Button
+    t =   498.20s     Check for interrupting elements affecting "2" Button
+    t =   498.26s     Synthesize event
+    t =   498.60s     Wait for com.krosz.klenzer to idle
+    t =   498.91s Get all elements bound by index for: Elements matching predicate 'identifier == "3" OR label == "3"'
+    t =   498.98s Checking existence of `Any (Element at index 0)`
+    t =   499.02s Find the Any (Element at index 0)
+    t =   499.10s Tap "3" Button
+    t =   499.11s     Wait for com.krosz.klenzer to idle
+    t =   499.11s     Find the "3" Button
+    t =   499.16s     Check for interrupting elements affecting "3" Button
+    t =   499.22s     Synthesize event
+    t =   499.53s     Wait for com.krosz.klenzer to idle
+    t =   499.85s Get all elements bound by index for: Elements matching predicate 'identifier == "4" OR label == "4"'
+    t =   499.92s Checking existence of `Any (Element at index 0)`
+    t =   499.98s Find the Any (Element at index 0)
+    t =   500.13s Tap "4" Button
+    t =   500.13s     Wait for com.krosz.klenzer to idle
+    t =   500.14s     Find the "4" Button
+    t =   500.20s     Check for interrupting elements affecting "4" Button
+    t =   500.26s     Synthesize event
+    t =   500.58s     Wait for com.krosz.klenzer to idle
+    t =   500.90s Get all elements bound by index for: Elements matching predicate 'identifier == "Next" OR label == "Next"'
+    t =   500.96s Checking existence of `Any (Element at index 0)`
+    t =   501.00s Find the Any (Element at index 0)
+    t =   501.10s Tap "Next" Button
+    t =   501.10s     Wait for com.krosz.klenzer to idle
+    t =   501.11s     Find the "Next" Button
+    t =   501.21s     Check for interrupting elements affecting "Next" Button
+    t =   501.28s     Synthesize event
+    t =   501.64s     Wait for com.krosz.klenzer to idle
+    t =   502.96s Waiting 2.0s for Alert (First Match) to exist
+    t =   504.00s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   504.00s         Checking existence of `Alert (First Match)`
+    t =   504.09s         Capturing element debug description
+    t =   504.99s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   504.99s         Checking existence of `Alert (First Match)`
+    t =   505.16s         Capturing element debug description
+    t =   505.16s     Checking existence of `Alert (First Match)`
+    t =   505.27s Collecting debug information to assist test failure triage
+    t =   505.27s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   505.31s Waiting 10.0s for Any (First Match) to exist
+    t =   506.31s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   506.31s         Checking existence of `Any (First Match)`
+    t =   507.59s Added attachment named '06-secret-album'
+2026-11-13 09:43:47.829259+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 6 PASS Secret Album: PIN set, album open
+    t =   507.60s Waiting 2.0s for Alert (First Match) to exist
+    t =   508.66s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   508.66s         Checking existence of `Alert (First Match)`
+    t =   508.74s         Capturing element debug description
+    t =   509.60s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   509.60s         Checking existence of `Alert (First Match)`
+    t =   509.71s         Capturing element debug description
+    t =   509.71s     Checking existence of `Alert (First Match)`
+    t =   509.78s Collecting debug information to assist test failure triage
+    t =   509.78s     Requesting snapshot of accessibility hierarchy for app with pid 47578
+    t =   509.81s Checking existence of `Any (First Match)`
+    t =   509.89s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =   509.91s Checking existence of `Any (Element at index 0)`
+    t =   509.94s Find the Any (Element at index 0)
+    t =   509.99s Tap "Back" Button
+    t =   509.99s     Wait for com.krosz.klenzer to idle
+    t =   509.99s     Find the "Back" Button
+    t =   510.05s     Check for interrupting elements affecting "Back" Button
+    t =   510.11s     Synthesize event
+    t =   510.45s     Wait for com.krosz.klenzer to idle
+    t =   511.92s Checking existence of `Any (First Match)`
+    t =   512.26s Find the Any (First Match)
+    t =   512.63s Swipe down Target Application 'com.krosz.klenzer'
+    t =   512.63s     Wait for com.krosz.klenzer to idle
+    t =   512.63s     Find the Target Application 'com.krosz.klenzer'
+    t =   512.72s     Check for interrupting elements affecting "Klenzer" Application
+    t =   512.81s     Synthesize event
+    t =   513.28s     Wait for com.krosz.klenzer to idle
+    t =   514.11s Swipe down Target Application 'com.krosz.klenzer'
+    t =   514.11s     Wait for com.krosz.klenzer to idle
+    t =   514.12s     Find the Target Application 'com.krosz.klenzer'
+    t =   514.18s     Check for interrupting elements affecting "Klenzer" Application
+    t =   514.25s     Synthesize event
+    t =   514.68s     Wait for com.krosz.klenzer to idle
+    t =   515.47s Swipe down Target Application 'com.krosz.klenzer'
+    t =   515.47s     Wait for com.krosz.klenzer to idle
+    t =   515.48s     Find the Target Application 'com.krosz.klenzer'
+    t =   515.53s     Check for interrupting elements affecting "Klenzer" Application
+    t =   515.59s     Synthesize event
+    t =   516.07s     Wait for com.krosz.klenzer to idle
+    t =   516.86s Waiting 5.0s for Any (First Match) to exist
+    t =   517.88s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   517.88s         Checking existence of `Any (First Match)`
+    t =   518.13s Waiting 5.0s for Any (First Match) to exist
+    t =   519.22s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   519.22s         Checking existence of `Any (First Match)`
+    t =   519.29s Find the Any (First Match)
+    t =   519.60s Tap "open-paywall" Button
+    t =   519.60s     Wait for com.krosz.klenzer to idle
+    t =   519.61s     Find the "open-paywall" Button
+    t =   519.71s     Check for interrupting elements affecting "open-paywall" Button
+    t =   520.09s     Synthesize event
+    t =   520.42s     Wait for com.krosz.klenzer to idle
+    t =   521.67s Waiting 10.0s for Any (First Match) to exist
+    t =   522.68s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   522.68s         Checking existence of `Any (First Match)`
+    t =   522.74s Checking existence of `Any (First Match)`
+    t =   522.98s Checking existence of `Any (First Match)`
+    t =   523.23s Checking existence of `Any (First Match)`
+    t =   523.39s Checking existence of `Any (First Match)`
+    t =   524.39s Added attachment named '07-paywall'
+2026-11-13 09:44:04.631997+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 7 PASS Paywall prices: yearly $19.99=true monthly $3.99=true lifetime $29.99=true unavailable=false
+    t =   524.40s Waiting 5.0s for Any (First Match) to exist
+    t =   525.45s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   525.45s         Checking existence of `Any (First Match)`
+    t =   525.65s Find the Any (First Match)
+    t =   525.92s Tap "plan-monthly" Button
+    t =   525.92s     Wait for com.krosz.klenzer to idle
+    t =   525.95s     Find the "plan-monthly" Button
+    t =   526.13s     Check for interrupting elements affecting "plan-monthly" Button
+    t =   526.32s     Synthesize event
+    t =   526.65s     Wait for com.krosz.klenzer to idle
+    t =   528.69s Added attachment named '08-paywall-monthly-selected'
+    t =   528.69s Waiting 5.0s for Any (First Match) to exist
+    t =   529.71s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   529.72s         Checking existence of `Any (First Match)`
+    t =   529.97s Find the Any (First Match)
+    t =   530.20s Tap "unlock" Button
+    t =   530.20s     Wait for com.krosz.klenzer to idle
+    t =   530.21s     Find the "unlock" Button
+    t =   530.32s     Check for interrupting elements affecting "unlock" Button
+    t =   530.45s     Synthesize event
+    t =   530.75s     Wait for com.krosz.klenzer to idle
+    t =   534.57s Checking existence of `"Subscribe" Button`
+    t =   534.73s Checking existence of `"Purchase" Button`
+    t =   534.86s Checking existence of `"Buy" Button`
+    t =   534.94s Checking existence of `"Confirm" Button`
+    t =   535.03s Checking existence of `"OK" Button`
+    t =   535.21s Checking existence of `"Subscribe" Button`
+    t =   535.39s Checking existence of `"Purchase" Button`
+    t =   535.44s Checking existence of `"Buy" Button`
+    t =   535.50s Checking existence of `"Confirm" Button`
+    t =   535.54s Checking existence of `"OK" Button`
+    t =   535.58s Checking existence of `Any (First Match)`
+    t =   541.62s Waiting 8.0s for Any (First Match) to exist
+    t =   542.64s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   542.65s         Checking existence of `Any (First Match)`
+    t =   542.85s Waiting 5.0s for Any (First Match) to exist
+    t =   543.94s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   543.94s         Checking existence of `Any (First Match)`
+    t =   544.10s Find the Any (First Match)
+    t =   544.35s Tap "open-settings" Button
+    t =   544.35s     Wait for com.krosz.klenzer to idle
+    t =   544.37s     Find the "open-settings" Button
+    t =   544.69s     Check for interrupting elements affecting "open-settings" Button
+    t =   545.74s     Synthesize event
+    t =   546.16s     Wait for com.krosz.klenzer to idle
+    t =   546.99s Waiting 10.0s for Any (First Match) to exist
+    t =   548.01s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   548.01s         Checking existence of `Any (First Match)`
+    t =   548.77s Added attachment named '08-purchase-settings'
+2026-11-13 09:44:29.010284+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 8 PASS StoreKit test purchase (monthly): session=true paywallClosed=true; Settings shows Plan: Pro
+    t =   548.78s Checking existence of `Any (First Match)`
+    t =   549.37s Checking existence of `Any (First Match)`
+    t =   549.54s Find the Any (First Match)
+    t =   549.87s Waiting 5.0s for Any (First Match) to exist
+    t =   550.90s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   550.90s         Checking existence of `Any (First Match)`
+    t =   551.08s Find the Any (First Match)
+    t =   551.26s Tap ", Restore purchases, " Button
+    t =   551.26s     Wait for com.krosz.klenzer to idle
+    t =   551.27s     Find the ", Restore purchases, " Button
+    t =   551.42s     Check for interrupting elements affecting ", Restore purchases, " Button
+    t =   551.58s     Synthesize event
+    t =   551.90s     Wait for com.krosz.klenzer to idle
+    t =   552.72s Waiting 15.0s for Alert (First Match) to exist
+    t =   553.79s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   553.80s         Checking existence of `Alert (First Match)`
+    t =   554.02s Find the Alert (First Match)
+    t =   554.17s Find the "Restored" Alert
+    t =   554.50s Added attachment named '09-restore'
+    t =   554.50s Waiting 2.0s for Alert (First Match) to exist
+    t =   555.56s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   555.56s         Checking existence of `Alert (First Match)`
+    t =   555.61s Find the Alert (First Match)
+2026-11-13 09:44:35.883575+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] app alert: Restored
+    t =   555.65s Checking existence of `"Not now" Button`
+    t =   555.77s Checking existence of `"OK" Button`
+    t =   555.84s Tap "OK" Button
+    t =   555.84s     Wait for com.krosz.klenzer to idle
+    t =   555.86s     Find the "OK" Button
+    t =   555.95s     Check for interrupting elements affecting "OK" Button
+    t =   556.15s     Synthesize event
+    t =   556.52s     Wait for com.krosz.klenzer to idle
+2026-11-13 09:44:37.870739+0000 KlenzerQATests-Runner[46737:347418] [klenzer-qa] step 9 PASS Restore purchases: alert: Restored
+    t =   557.69s Tear Down
+Test Case '-[KlenzerQATests.SimQATests testKlenzerFlow]' passed (558.487 seconds).
+Test Suite 'SimQATests' passed at 2026-11-13 09:44:38.727.
+	 Executed 1 test, with 0 failures (0 unexpected) in 558.487 (558.492) seconds
+Test Suite 'KlenzerQATests.xctest' passed at 2026-11-13 09:44:38.728.
+	 Executed 1 test, with 0 failures (0 unexpected) in 558.487 (558.494) seconds
+Test Suite 'Selected tests' passed at 2026-11-13 09:44:38.728.
+	 Executed 1 test, with 0 failures (0 unexpected) in 558.487 (558.501) seconds
+2026-11-13 09:44:42.890 xcodebuild[44981:342939] [MT] IDETestOperationsObserverDebug: 589.052 elapsed -- Testing started completed.
+2026-11-13 09:44:42.891 xcodebuild[44981:342939] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-13 09:44:42.891 xcodebuild[44981:342939] [MT] IDETestOperationsObserverDebug: 589.052 sec, +589.052 sec -- end
+
+Test session results, code coverage, and logs:
+	/tmp/sim-qa/flow.xcresult
+
+** TEST EXECUTE SUCCEEDED **
+
+Testing started

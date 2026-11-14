@@ -1,0 +1,82 @@
+{
+  "steps" : [
+    {
+      "pass" : true,
+      "name" : "Launch",
+      "step" : 1,
+      "detail" : "home shown directly"
+    },
+    {
+      "step" : 21,
+      "detail" : "scanBarSeen=true scanningNote=true noneYetWhileScanning=false",
+      "pass" : true,
+      "name" : "Mid-scan cards show progress, not None yet"
+    },
+    {
+      "pass" : false,
+      "step" : 10,
+      "name" : "Scan-complete notification",
+      "detail" : "banner=none realNumber=false"
+    },
+    {
+      "step" : 2,
+      "pass" : false,
+      "detail" : "scanFinished=false firstNonZero=Duplicate, 82 items counts=Similar, 0 items; Duplicate, 82 items; Blurry, 0 items; Screenshots, 0 items",
+      "name" : "Home after scan"
+    },
+    {
+      "pass" : true,
+      "detail" : "tile=missing count=82 min=5 reviewOpened=true",
+      "step" : 22,
+      "name" : "Duplicate card count and review"
+    },
+    {
+      "step" : 23,
+      "name" : "Blurry card count and review",
+      "pass" : false,
+      "detail" : "tile=Blurry, 0 items count=0 min=5 reviewOpened=false"
+    },
+    {
+      "pass" : false,
+      "detail" : "tile: Similar, 0 items; zero items, not opened",
+      "step" : 3,
+      "name" : "Similar review"
+    },
+    {
+      "name" : "Swipe to Organize",
+      "pass" : true,
+      "detail" : "swipe-screen shown",
+      "step" : 4
+    },
+    {
+      "detail" : "group: Group of 3 contacts, Chris Park; preview shown",
+      "pass" : true,
+      "name" : "Merge Contacts preview",
+      "step" : 5
+    },
+    {
+      "step" : 6,
+      "name" : "Secret Album",
+      "pass" : true,
+      "detail" : "PIN set, album open"
+    },
+    {
+      "pass" : true,
+      "detail" : "yearly $19.99=true monthly $3.99=true lifetime $29.99=true monthTrial=true yearTrial=true lifetimeOnce=true lifetimeTrialText=false lifetimeLabel=Lifetime plan, $29.99, Pay once, clean forever. unavailable=false",
+      "step" : 7,
+      "name" : "Paywall prices and trial copy"
+    },
+    {
+      "name" : "StoreKit test purchase (monthly) starts a trial",
+      "step" : 8,
+      "pass" : true,
+      "detail" : "session=true paywallClosed=true; Settings shows Plan: Pro; trial 7.0d"
+    },
+    {
+      "detail" : "alert: Restored",
+      "step" : 9,
+      "pass" : true,
+      "name" : "Restore purchases"
+    }
+  ]
+}

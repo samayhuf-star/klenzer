@@ -1,0 +1,88 @@
+{
+  "steps" : [
+    {
+      "name" : "Launch",
+      "detail" : "home shown directly",
+      "pass" : true,
+      "step" : 1
+    },
+    {
+      "name" : "Mid-scan cards show progress, not None yet",
+      "pass" : true,
+      "step" : 21,
+      "detail" : "scanBarSeen=true scanningNote=true noneYetWhileScanning=false"
+    },
+    {
+      "detail" : "banner=KLENZER, now, Klenzer, Scan complete: 338 KB can be freed realNumber=true",
+      "step" : 10,
+      "pass" : true,
+      "name" : "Scan-complete notification"
+    },
+    {
+      "pass" : true,
+      "step" : 2,
+      "detail" : "scanFinished=true firstNonZero=Similar, 73 items counts=Similar, 73 items; Duplicate, 72 items; Blurry, 8 items; Screenshots, 0 items",
+      "name" : "Home after scan"
+    },
+    {
+      "pass" : true,
+      "name" : "Duplicate card count and review",
+      "step" : 22,
+      "detail" : "tile=missing count=72 min=5 reviewOpened=true"
+    },
+    {
+      "name" : "Blurry card count and review",
+      "detail" : "tile=missing count=8 min=5 reviewOpened=true",
+      "pass" : true,
+      "step" : 23
+    },
+    {
+      "step" : 3,
+      "detail" : "tile: Similar, 73 items; group shown: Nov 13, 2026 · 2 similar",
+      "pass" : true,
+      "name" : "Similar review"
+    },
+    {
+      "detail" : "tile=missing count=0",
+      "pass" : false,
+      "step" : 24,
+      "name" : "Live Photos counted"
+    },
+    {
+      "step" : 4,
+      "pass" : true,
+      "detail" : "swipe-screen shown",
+      "name" : "Swipe to Organize"
+    },
+    {
+      "name" : "Merge Contacts preview",
+      "step" : 5,
+      "detail" : "group: Group of 3 contacts, Chris Park; preview shown",
+      "pass" : true
+    },
+    {
+      "detail" : "PIN set, album open",
+      "name" : "Secret Album",
+      "pass" : true,
+      "step" : 6
+    },
+    {
+      "step" : 7,
+      "pass" : true,
+      "detail" : "yearly $19.99=true monthly $3.99=true lifetime $29.99=true monthTrial=true yearTrial=true lifetimeOnce=true lifetimeTrialText=false lifetimeLabel=Lifetime plan, $29.99, Pay once, clean forever. unavailable=false",
+      "name" : "Paywall prices and trial copy"
+    },
+    {
+      "name" : "StoreKit test purchase (monthly) starts a trial",
+      "pass" : true,
+      "step" : 8,
+      "detail" : "session=true paywallClosed=true; Settings shows Plan: Pro; trial 7.0d"
+    },
+    {
+      "pass" : true,
+      "name" : "Restore purchases",
+      "step" : 9,
+      "detail" : "alert: Restored"
+    }
+  ]
+}

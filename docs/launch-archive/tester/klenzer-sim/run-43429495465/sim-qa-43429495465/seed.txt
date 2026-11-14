@@ -1,0 +1,2 @@
+photos seeded: 400
+contacts seeded: 10

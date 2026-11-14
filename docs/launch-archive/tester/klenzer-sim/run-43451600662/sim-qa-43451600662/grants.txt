@@ -1,0 +1,2 @@
+grant photos: ok
+grant contacts: ok

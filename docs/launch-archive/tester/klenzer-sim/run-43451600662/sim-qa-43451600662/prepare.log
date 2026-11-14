@@ -1,0 +1,19 @@
+added UI test target KlenzerQATests to /Users/runner/work/sim-qa-runner/sim-qa-runner/ios/Klenzer.xcodeproj
+KlenzerQATests Release: PRODUCT_NAME=KlenzerQATests TEST_TARGET_NAME=Klenzer
+KlenzerQATests Debug: PRODUCT_NAME=KlenzerQATests TEST_TARGET_NAME=Klenzer
+updated scheme /Users/runner/work/sim-qa-runner/sim-qa-runner/ios/Klenzer.xcodeproj/xcshareddata/xcschemes/Klenzer.xcscheme
+storekit reference: ../../qa/Klenzer.storekit in LaunchAction and TestAction, plus test-target resource
+66:      <StoreKitConfigurationFileReference
+67-         identifier = "../../qa/Klenzer.storekit">
+68:      </StoreKitConfigurationFileReference>
+69-   </TestAction>
+--
+90:      <StoreKitConfigurationFileReference
+91-         identifier = "../../qa/Klenzer.storekit">
+92:      </StoreKitConfigurationFileReference>
+93-   </LaunchAction>
+==> Photos permission request is read-write
+PASS: Klenzer asks Photos for read-write access only (writeOnly=false, no add-only)
+==> Pre-grant full Photos access to com.krosz.klenzer on 98A0BFA3-CEC3-4FD6-9916-5A2149774DBF
+grant photos (prepare): ok
+==> Seed Live Photos on 98A0BFA3-CEC3-4FD6-9916-5A2149774DBF

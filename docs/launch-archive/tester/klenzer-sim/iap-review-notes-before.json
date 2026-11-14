@@ -1,0 +1,25 @@
+{
+ "com.krosz.klenzer.lifetime": {
+  "type": "iap",
+  "id": "6829830806",
+  "name": "Klenzer Pro Lifetime",
+  "state": "READY_TO_SUBMIT",
+  "reviewNote": "Scanning is free. The paywall opens when you tap Fix now or any Clear/Delete button, and from Settings by tapping the Klenzer row (it shows Free scan until unlocked). Lifetime is pre-selected. Restore purchase is on the paywall and in Settings."
+ },
+ "com.krosz.klenzer.monthly": {
+  "type": "sub",
+  "id": "6833133616",
+  "name": "Klenzer Pro Monthly",
+  "state": "READY_TO_SUBMIT",
+  "reviewNote": "Scanning is free. The paywall opens when you tap Fix now or any Clear/Delete button, and from Settings by tapping the Klenzer row (it shows Free scan until unlocked). Lifetime is pre-selected. Restore purchase is on the paywall and in Settings.",
+  "group": "Klenzer Pro"
+ },
+ "com.krosz.klenzer.yearly": {
+  "type": "sub",
+  "id": "6833884989",
+  "name": "Klenzer Pro Yearly",
+  "state": "READY_TO_SUBMIT",
+  "reviewNote": "Scanning is free. The paywall opens when you tap Fix now or any Clear/Delete button, and from Settings by tapping the Klenzer row (it shows Free scan until unlocked). Lifetime is pre-selected. Restore purchase is on the paywall and in Settings.",
+  "group": "Klenzer Pro"
+ }
+}

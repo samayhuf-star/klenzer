@@ -1,0 +1,33 @@
+# Compress / debug / AI / ellipsis grep evidence, 12 Nov 2026 22:10 BDT (klenzer/features working tree before commit)
+## grep -rni compress src/app src/components (all screens and components users can reach)
+(no matches)
+## grep -rni 'coming soon' src
+(no matches)
+## remaining non-UI references (unreachable type/comments in gating, image quality params)
+src/lib/image-hash.ts:97:      { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+src/lib/vault.ts:156:      const thumb = await ImageManipulator.manipulateAsync(s.uri, [{ resize: { width: 360 } }], { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG });
+src/lib/gating.ts:7: * merging contacts, adding items to the Secret Album, Compress and Convert Live Photos.
+src/lib/gating.ts:10: * Compress and Convert Live Photos have no free allowance.
+src/lib/gating.ts:16:export type ProFeature = 'delete' | 'merge' | 'vault' | 'compress' | 'convert';
+src/lib/store.tsx:92:   * The one gate for every other Pro action (merging contacts, adding to the Secret Album, Compress).
+## routes in src/app
+src/app/_layout.tsx
+src/app/cleaning.tsx
+src/app/contacts.tsx
+src/app/done.tsx
+src/app/index.tsx
+src/app/onboarding.tsx
+src/app/paywall.tsx
+src/app/privacy.tsx
+src/app/review/[kind].tsx
+src/app/secret-album.tsx
+src/app/settings.tsx
+src/app/swipe.tsx
+## paywall debug line
+(no matches in paywall.tsx)
+## 'AI' word in UI strings
+(no matches)
+## ellipsis character U+2026 in src
+(no matches)
+## RevenueCat in src
+(no matches)

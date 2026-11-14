@@ -1,0 +1,29 @@
+PURPOSE AND AUDIENCE
+Klenzer is a phone storage cleaner for everyday iPhone users who want to free space on their device. It finds similar and duplicate photos, blurry shots, screenshots, Live Photos, short and screen recordings, and large videos, then lets the user review and delete only what they choose. Nothing is deleted automatically. The target audience is general consumers who want a simple, private way to tidy their photo library, merge duplicate contacts, and keep selected photos in a private Secret Album. No login, account or demo account is needed.
+
+SETUP AND MAIN FEATURES
+1. Launch the app. There is no sign-in. On first launch, allow Photos access (full or limited; limited access covers only the photos the user selects). Klenzer reads the library on the device only.
+2. Similar, duplicate and blurry photos: from Home, start a scan or open the matching category. Results are grouped so the user can review them and delete only selected items. Deletes always go through the iOS confirmation dialog and land in Recently Deleted.
+3. Swipe review: from Home, open Swipe to Organize and swipe to keep or clear items.
+4. Merge contacts (optional): open the Contacts tab on Home and tap Merge duplicate contacts. Contacts access is requested only then. The user previews a group, then taps Merge. No contact data leaves the device.
+5. Secret Album: from Home, open Secret Album. Set a PIN first; Face ID can then be turned on to unlock it. Photos in Secret Album are encrypted on this device only.
+6. Paywall: scanning, reviewing and Swipe browsing are free, with 10 free items per day across deleting, merging contacts and adding to Secret Album. To open Klenzer Pro, tap the Pro button at the top right of Home. Other paths: Settings (top-right sliders icon) > "Plan: Free"; after the daily free limit; or Convert to still on a Live Photo (Pro only).
+7. Restore: tap "Restore purchase" at the bottom of the Pro screen, or Settings > "Restore purchases". StoreKit checks the Apple ID's existing transactions on the device and unlocks Pro if a lifetime purchase or an active monthly or yearly subscription is found. It never charges again.
+
+SUBSCRIPTION AND PRICING
+The app is free to download. Klenzer Pro is sold only through Apple In-App Purchase:
+- Monthly (com.krosz.klenzer.monthly): $3.99, with a 7-day free trial
+- Yearly (com.krosz.klenzer.yearly): $19.99, with a 7-day free trial
+- Lifetime (com.krosz.klenzer.lifetime): $29.99 one-time purchase, no trial
+The prices above are US list prices. After a trial, the subscription renews automatically unless it is cancelled in the user's Apple ID settings.
+
+EXTERNAL SERVICES
+The only external service used for paid features is Apple StoreKit 2 In-App Purchase. Scanning and all photo work run on-device using the Photos library. There is no backend, no account system, no analytics, no ads and no tracking. App Privacy is published as Data Not Collected. Optional local reminders (every 3 days) are scheduled on the device only if the user turns them on; there is no push server. Privacy policy: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
+
+CONSISTENCY ACROSS REGIONS
+The same features, content and plan options are available in every region. Displayed prices are localised by Apple's territory price tiers. There are no region-specific features or content.
+
+REGULATED OR THIRD-PARTY CONTENT
+Klenzer does not operate in a highly regulated industry and does not include protected third-party material. It only works with the user's own photos and contacts on their device.
+
+A screen recording of the typical user flow, captured on a physical device, is available on request.

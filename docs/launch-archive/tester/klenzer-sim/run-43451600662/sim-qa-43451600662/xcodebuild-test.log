@@ -1,0 +1,963 @@
+Command line invocation:
+    /Applications/Xcode_26.6.app/Contents/Developer/usr/bin/xcodebuild test-without-building -workspace ios/Klenzer.xcworkspace -scheme Klenzer -configuration Release -destination "platform=iOS Simulator,id=98A0BFA3-CEC3-4FD6-9916-5A2149774DBF" -derivedDataPath /Users/runner/work/sim-qa-runner/sim-qa-runner/ios/DerivedData -resultBundlePath /tmp/sim-qa/flow.xcresult "-only-testing:KlenzerQATests/SimQATests/testKlenzerFlow"
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  OpenIAP: https://github.com/hyodotdev/openiap.git @ 4.0.9
+
+Writing result bundle at path:
+	/tmp/sim-qa/flow.xcresult
+
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, arch:arm64, id:98A0BFA3-CEC3-4FD6-9916-5A2149774DBF, OS:26.2, name:iPhone 17 Pro }
+{ platform:iOS Simulator, arch:x86_64, id:98A0BFA3-CEC3-4FD6-9916-5A2149774DBF, OS:26.2, name:iPhone 17 Pro }
+2026-11-13 15:36:51.891506+0000 KlenzerQATests-Runner[53523:137478] [Default] Running tests...
+    t =      nans Interface orientation changed to Portrait
+Test Suite 'Selected tests' started at 2026-11-13 15:36:56.735.
+Test Suite 'KlenzerQATests.xctest' started at 2026-11-13 15:36:56.736.
+Test Suite 'SimQATests' started at 2026-11-13 15:36:56.736.
+Test Case '-[KlenzerQATests.SimQATests testKlenzerFlow]' started.
+    t =     0.00s Start Test at 2026-11-13 15:36:56.737
+    t =     0.42s Set Up
+2026-11-13 15:36:57.664000+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] SKTestSession from /tmp/klenzer-sk/Klenzer.storekit
+    t =     0.93s Open com.krosz.klenzer
+    t =     0.93s     Launch com.krosz.klenzer
+2026-11-13 15:36:59.322 xcodebuild[52755:135481] [MT] IDELaunchParametersSnapshot: The operation couldn’t be completed. (DebuggerLLDB.DebuggerVersionStore.StoreError error 0.)
+2026-11-13 15:36:59.322 xcodebuild[52755:135481] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     7.46s         Setting up automation session
+    t =     9.24s         Wait for com.krosz.klenzer to idle
+    t =    13.67s Added attachment named '01-launch'
+    t =    13.68s Checking existence of `Any (First Match)`
+    t =    13.71s Checking existence of `Any (First Match)`
+    t =    13.72s Checking existence of `Any (First Match)`
+    t =    13.75s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    13.77s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    14.30s Checking existence of `Any (First Match)`
+    t =    14.43s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    14.48s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    14.50s Checking existence of `Any (Element at index 0)`
+    t =    14.52s Find the Any (Element at index 0)
+    t =    14.58s Tap "onboarding-continue" Button
+    t =    14.58s     Wait for com.krosz.klenzer to idle
+    t =    14.59s     Find the "onboarding-continue" Button
+    t =    14.64s     Check for interrupting elements affecting "onboarding-continue" Button
+    t =    14.69s     Synthesize event
+    t =    15.10s     Wait for com.krosz.klenzer to idle
+    t =    15.92s Checking existence of `Any (First Match)`
+    t =    16.00s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    16.03s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-continue" OR label == "onboarding-continue"'
+    t =    16.07s Checking existence of `Any (Element at index 0)`
+    t =    16.09s Find the Any (Element at index 0)
+    t =    16.14s Tap "onboarding-continue" Button
+    t =    16.14s     Wait for com.krosz.klenzer to idle
+    t =    16.14s     Find the "onboarding-continue" Button
+    t =    16.17s     Check for interrupting elements affecting "onboarding-continue" Button
+    t =    16.20s     Synthesize event
+    t =    16.51s     Wait for com.krosz.klenzer to idle
+    t =    17.31s Checking existence of `Any (First Match)`
+    t =    17.42s Get all elements bound by index for: Elements matching predicate 'identifier == "onboarding-start" OR label == "onboarding-start"'
+    t =    17.44s Checking existence of `Any (Element at index 0)`
+    t =    17.46s Find the Any (Element at index 0)
+    t =    17.51s Tap "onboarding-start" Button
+    t =    17.51s     Wait for com.krosz.klenzer to idle
+    t =    17.51s     Find the "onboarding-start" Button
+    t =    17.54s     Check for interrupting elements affecting "onboarding-start" Button
+    t =    17.58s     Synthesize event
+    t =    17.89s     Wait for com.krosz.klenzer to idle
+    t =    19.81s Checking existence of `Any (First Match)`
+    t =    19.86s Waiting 20.0s for Any (First Match) to exist
+    t =    20.92s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    20.92s         Checking existence of `Any (First Match)`
+2026-11-13 15:37:17.700606+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 1 PASS Launch: home shown directly
+    t =    20.96s Waiting 5.0s for Any (First Match) to exist
+    t =    22.02s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    22.02s         Checking existence of `Any (First Match)`
+    t =    22.12s Waiting 5.0s for Any (First Match) to exist
+    t =    23.18s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    23.18s         Checking existence of `Any (First Match)`
+    t =    23.28s Find the Any (First Match)
+    t =    23.40s Tap "smart-clean" Button
+    t =    23.40s     Wait for com.krosz.klenzer to idle
+    t =    23.40s     Find the "smart-clean" Button
+    t =    23.50s     Check for interrupting elements affecting "smart-clean" Button
+    t =    23.58s     Synthesize event
+    t =    23.89s     Wait for com.krosz.klenzer to idle
+    t =    24.71s Checking existence of `"Allow Full Access" Button`
+    t =    24.88s Checking existence of `"Allow Access to All Photos" Button`
+    t =    24.91s Checking existence of `Alert (First Match)`
+    t =    24.97s Checking existence of `Any (First Match)`
+    t =    25.64s Checking existence of `"Allow Full Access" Button`
+    t =    25.68s Checking existence of `"Allow Access to All Photos" Button`
+    t =    25.72s Checking existence of `Alert (First Match)`
+    t =    25.78s Checking existence of `Any (First Match)`
+    t =    26.58s Checking existence of `"Allow Full Access" Button`
+    t =    26.74s Find the "Allow Full Access" Button
+2026-11-13 15:37:23.567325+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] tapped Photos access: Allow Full Access
+    t =    26.83s Tap "Allow Full Access" Button
+    t =    26.83s     Wait for com.apple.springboard to idle
+    t =    26.83s     Find the "Allow Full Access" Button
+    t =    26.94s     Check for interrupting elements affecting "Allow Full Access" Button
+    t =    27.04s     Synthesize event
+    t =    27.34s     Wait for com.apple.springboard to idle
+    t =    28.65s Checking existence of `Any (First Match)`
+    t =    31.83s Checking existence of `"Allow Full Access" Button`
+    t =    31.89s Checking existence of `"Allow Access to All Photos" Button`
+    t =    31.95s Checking existence of `Alert (First Match)`
+    t =    32.01s Find the Alert (First Match)
+    t =    32.11s Checking existence of `"Allow" Button`
+2026-11-13 15:37:28.986743+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] tapped notifications Allow
+    t =    32.25s Tap "Allow" Button
+    t =    32.25s     Wait for com.apple.springboard to idle
+    t =    32.31s     Find the "Allow" Button
+    t =    32.40s     Check for interrupting elements affecting "Allow" Button
+    t =    32.73s     Synthesize event
+    t =    33.06s     Wait for com.apple.springboard to idle
+    t =    34.48s Added attachment named '02a-home-mid-scan'
+    t =    34.48s Checking existence of `Any (First Match)`
+    t =    34.67s Checking existence of `Any (First Match)`
+    t =    34.88s Checking existence of `Any (First Match)`
+2026-11-13 15:37:31.751906+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 21 PASS Mid-scan cards show progress, not None yet: scanBarSeen=true scanningNote=true noneYetWhileScanning=false
+    t =    35.02s Checking existence of `"Allow Full Access" Button`
+    t =    35.05s Checking existence of `"Allow Access to All Photos" Button`
+    t =    35.08s Checking existence of `Alert (First Match)`
+    t =    35.15s Checking existence of `Any (First Match)`
+    t =    35.24s Checking existence of `Alert (First Match)`
+    t =    35.26s Waiting 8.0s for Any (First Match) to exist
+    t =    36.31s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    36.31s         Checking existence of `Any (First Match)`
+    t =    36.40s Checking existence of `Any (First Match)`
+    t =    36.46s Find the Any (First Match)
+    t =    36.74s Added attachment named '10-scan-notification'
+2026-11-13 15:37:33.476792+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 10 PASS Scan-complete notification: banner=KLENZER, now, Klenzer, Scan complete: 338 KB can be freed realNumber=true
+    t =    36.74s Waiting 2.0s for Alert (First Match) to exist
+    t =    37.79s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =    37.79s         Checking existence of `Alert (First Match)`
+    t =    37.80s Find the Alert (First Match)
+2026-11-13 15:37:34.550549+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] app alert: Remind me to clean up?
+    t =    37.81s Checking existence of `"Not now" Button`
+    t =    37.84s Tap "Not now" Button
+    t =    37.84s     Wait for com.krosz.klenzer to idle
+    t =    37.84s     Find the "Not now" Button
+    t =    37.87s     Check for interrupting elements affecting "Not now" Button
+    t =    37.93s         Wait for com.apple.springboard to idle
+    t =    37.97s     Synthesize event
+    t =    38.27s     Wait for com.krosz.klenzer to idle
+    t =    40.33s Checking existence of `Any (First Match)`
+    t =    40.40s Find the Any (First Match)
+    t =    40.50s Swipe down Target Application 'com.krosz.klenzer'
+    t =    40.50s     Wait for com.krosz.klenzer to idle
+    t =    40.50s     Find the Target Application 'com.krosz.klenzer'
+    t =    40.53s     Check for interrupting elements affecting "Klenzer" Application
+    t =    40.58s         Wait for com.apple.springboard to idle
+    t =    40.64s     Found 1 interrupting element:
+    t =    40.64s         Find the "NotificationShortLookView" BannerNotification
+    t =    40.67s "NotificationShortLookView" BannerNotification from Application 'com.apple.springboard'
+    t =    40.67s     Invoking UI interruption monitors for "NotificationShortLookView" BannerNotification from Application 'com.apple.springboard'
+    t =    40.67s Invoking System alerts
+    t =    40.67s             Checking existence of `"Allow Full Access" Button`
+    t =    40.70s             Checking existence of `"Allow Access to All Photos" Button`
+    t =    40.73s             Checking existence of `"Allow" Button`
+    t =    40.77s             Checking existence of `"OK" Button`
+    t =    40.80s             Checking existence of `"Continue" Button`
+    t =    40.86s             Checking existence of `"Not Now" Button`
+    t =    40.90s             Checking existence of `"Don’t Allow" Button`
+    t =    40.94s         Find the "NotificationShortLookView" BannerNotification
+    t =    40.99s Default interruption handler ignoring non-alert type element "NotificationShortLookView" BannerNotification.
+    t =    40.99s         Find the "NotificationShortLookView" BannerNotification
+    t =    41.02s         Default interruption handler waiting for banner notification to expire/automatically dismiss
+    t =    41.03s             Waiting 15.0s for "NotificationShortLookView" BannerNotification to not exist
+    t =    42.08s                 Checking `Expect predicate `existsNoRetry == 0` for object "NotificationShortLookView" BannerNotification`
+    t =    42.08s                     Checking existence of `"NotificationShortLookView" BannerNotification`
+    t =    42.11s                     Capturing element debug description
+    t =    42.11s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    42.17s                         Find: Descendants matching type BannerNotification
+    t =    42.17s                         Find: Identity Binding
+    t =    42.17s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    42.23s                         Find: Descendants matching type BannerNotification
+    t =    42.23s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    43.04s                 Checking `Expect predicate `existsNoRetry == 0` for object "NotificationShortLookView" BannerNotification`
+    t =    43.05s                     Checking existence of `"NotificationShortLookView" BannerNotification`
+    t =    43.08s                     Capturing element debug description
+    t =    43.08s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    43.14s                         Find: Descendants matching type BannerNotification
+    t =    43.14s                         Find: Identity Binding
+    t =    43.14s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    43.20s                         Find: Descendants matching type BannerNotification
+    t =    43.21s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    44.12s                 Checking `Expect predicate `existsNoRetry == 0` for object "NotificationShortLookView" BannerNotification`
+    t =    44.12s                     Checking existence of `"NotificationShortLookView" BannerNotification`
+    t =    44.16s                     Capturing element debug description
+    t =    44.16s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    44.23s                         Find: Descendants matching type BannerNotification
+    t =    44.23s                         Find: Identity Binding
+    t =    44.23s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    44.29s                         Find: Descendants matching type BannerNotification
+    t =    44.29s                         Requesting snapshot of accessibility hierarchy for app with pid 1400
+    t =    45.05s                 Checking `Expect predicate `existsNoRetry == 0` for object "NotificationShortLookView" BannerNotification`
+    t =    45.05s                     Checking existence of `"NotificationShortLookView" BannerNotification`
+    t =    45.07s         Verifying handling...
+    t =    45.11s Confirmed successful handling of interrupting element
+    t =    45.11s     Synthesize event
+    t =    45.54s     Wait for com.krosz.klenzer to idle
+    t =    46.33s Swipe down Target Application 'com.krosz.klenzer'
+    t =    46.33s     Wait for com.krosz.klenzer to idle
+    t =    46.33s     Find the Target Application 'com.krosz.klenzer'
+    t =    46.37s     Check for interrupting elements affecting "Klenzer" Application
+    t =    46.41s     Synthesize event
+    t =    46.84s     Wait for com.krosz.klenzer to idle
+    t =    47.64s Swipe down Target Application 'com.krosz.klenzer'
+    t =    47.64s     Wait for com.krosz.klenzer to idle
+    t =    47.64s     Find the Target Application 'com.krosz.klenzer'
+    t =    47.68s     Check for interrupting elements affecting "Klenzer" Application
+    t =    47.73s     Synthesize event
+    t =    48.15s     Wait for com.krosz.klenzer to idle
+    t =    49.08s Added attachment named '02-home'
+    t =    49.23s Added attachment named '02-home-finished'
+    t =    49.24s Get all elements bound by index for: Elements matching predicate 'label MATCHES "^(Similar|Duplicate|Blurry|Screenshots|Live Photos|Videos|Large videos), [0-9,]+ items$"'
+    t =    49.28s Find the Any (Element at index 0)
+    t =    49.32s Find the Any (Element at index 1)
+    t =    49.36s Find the Any (Element at index 2)
+    t =    49.41s Find the Any (Element at index 3)
+2026-11-13 15:37:46.186122+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 2 PASS Home after scan: scanFinished=true firstNonZero=Similar, 73 items counts=Similar, 73 items; Duplicate, 72 items; Blurry, 8 items; Screenshots, 0 items
+    t =    49.45s Waiting 5.0s for Any (First Match) to exist
+    t =    50.50s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    50.50s         Checking existence of `Any (First Match)`
+    t =    50.60s Find the Any (First Match)
+    t =    50.70s Waiting 5.0s for "Duplicate, 72 items" Button to exist
+    t =    51.73s     Checking `Expect predicate `existsNoRetry == 1` for object "Duplicate, 72 items" Button`
+    t =    51.73s         Checking existence of `"Duplicate, 72 items" Button`
+    t =    51.82s Find the "Duplicate, 72 items" Button
+    t =    51.93s Tap "Duplicate, 72 items" Button
+    t =    51.93s     Wait for com.krosz.klenzer to idle
+    t =    51.93s     Find the "Duplicate, 72 items" Button
+    t =    52.02s     Check for interrupting elements affecting "Duplicate, 72 items" Button
+    t =    52.12s     Synthesize event
+    t =    52.43s     Wait for com.krosz.klenzer to idle
+    t =    53.98s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =    54.15s Checking existence of `Any (Element at index 0)`
+    t =    54.29s Find the Any (Element at index 0)
+    t =    54.40s Checking existence of `Any (First Match)`
+    t =    55.94s Added attachment named '02b-duplicate'
+    t =    55.94s Checking existence of `"Duplicate, 72 items" Button`
+2026-11-13 15:37:52.989380+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 22 PASS Duplicate card count and review: tile=missing count=72 min=5 reviewOpened=true
+    t =    56.25s Waiting 2.0s for Alert (First Match) to exist
+    t =    57.29s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =    57.29s         Checking existence of `Alert (First Match)`
+    t =    57.60s         Capturing element debug description
+    t =    58.26s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =    58.26s         Checking existence of `Alert (First Match)`
+    t =    58.57s         Capturing element debug description
+    t =    58.57s     Checking existence of `Alert (First Match)`
+    t =    58.92s Collecting debug information to assist test failure triage
+    t =    58.92s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =    59.10s Checking existence of `Any (First Match)`
+    t =    59.55s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =    59.69s Checking existence of `Any (Element at index 0)`
+    t =    59.83s Find the Any (Element at index 0)
+    t =    59.98s Tap "Back" Button
+    t =    59.99s     Wait for com.krosz.klenzer to idle
+    t =    59.99s     Find the "Back" Button
+    t =    60.12s     Check for interrupting elements affecting "Back" Button
+    t =    60.23s     Synthesize event
+    t =    60.55s     Wait for com.krosz.klenzer to idle
+    t =    62.02s Checking existence of `Any (First Match)`
+    t =    62.13s Find the Any (First Match)
+    t =    62.24s Waiting 5.0s for Any (First Match) to exist
+    t =    63.24s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    63.24s         Checking existence of `Any (First Match)`
+    t =    63.34s Find the Any (First Match)
+    t =    63.44s Waiting 5.0s for "Blurry, 8 items" Button to exist
+    t =    64.47s     Checking `Expect predicate `existsNoRetry == 1` for object "Blurry, 8 items" Button`
+    t =    64.47s         Checking existence of `"Blurry, 8 items" Button`
+    t =    64.56s Find the "Blurry, 8 items" Button
+    t =    64.66s Tap "Blurry, 8 items" Button
+    t =    64.66s     Wait for com.krosz.klenzer to idle
+    t =    64.66s     Find the "Blurry, 8 items" Button
+    t =    64.76s     Check for interrupting elements affecting "Blurry, 8 items" Button
+    t =    64.86s     Synthesize event
+    t =    65.19s     Wait for com.krosz.klenzer to idle
+    t =    66.33s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =    66.35s Checking existence of `Any (Element at index 0)`
+    t =    66.38s Find the Any (Element at index 0)
+    t =    66.42s Checking existence of `Any (First Match)`
+    t =    67.65s Added attachment named '02c-blurry'
+    t =    67.65s Checking existence of `"Blurry, 8 items" Button`
+2026-11-13 15:38:04.441789+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 23 PASS Blurry card count and review: tile=missing count=8 min=5 reviewOpened=true
+    t =    67.71s Waiting 2.0s for Alert (First Match) to exist
+    t =    68.75s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =    68.75s         Checking existence of `Alert (First Match)`
+    t =    68.82s         Capturing element debug description
+    t =    69.71s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =    69.71s         Checking existence of `Alert (First Match)`
+    t =    69.78s         Capturing element debug description
+    t =    69.78s     Checking existence of `Alert (First Match)`
+    t =    69.84s Collecting debug information to assist test failure triage
+    t =    69.85s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =    69.88s Checking existence of `Any (First Match)`
+    t =    69.96s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =    69.99s Checking existence of `Any (Element at index 0)`
+    t =    70.01s Find the Any (Element at index 0)
+    t =    70.14s Tap "Back" Button
+    t =    70.14s     Wait for com.krosz.klenzer to idle
+    t =    70.14s     Find the "Back" Button
+    t =    70.17s     Check for interrupting elements affecting "Back" Button
+    t =    70.21s     Synthesize event
+    t =    70.51s     Wait for com.krosz.klenzer to idle
+    t =    71.97s Checking existence of `Any (First Match)`
+    t =    72.10s Find the Any (First Match)
+    t =    72.23s Waiting 5.0s for Any (First Match) to exist
+    t =    73.29s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    73.29s         Checking existence of `Any (First Match)`
+    t =    73.37s Find the Any (First Match)
+    t =    73.45s Find the "Similar, 73 items" Button
+    t =    73.53s Waiting 5.0s for "Similar, 73 items" Button to exist
+    t =    74.58s     Checking `Expect predicate `existsNoRetry == 1` for object "Similar, 73 items" Button`
+    t =    74.58s         Checking existence of `"Similar, 73 items" Button`
+    t =    74.65s Find the "Similar, 73 items" Button
+    t =    74.74s Tap "Similar, 73 items" Button
+    t =    74.74s     Wait for com.krosz.klenzer to idle
+    t =    74.75s     Find the "Similar, 73 items" Button
+    t =    74.82s     Check for interrupting elements affecting "Similar, 73 items" Button
+    t =    74.90s     Synthesize event
+    t =    75.22s     Wait for com.krosz.klenzer to idle
+    t =    76.76s Waiting 10.0s for StaticText (First Match) to exist
+    t =    77.81s     Checking `Expect predicate `existsNoRetry == 1` for object StaticText (First Match)`
+    t =    77.81s         Checking existence of `StaticText (First Match)`
+    t =    77.93s Find the StaticText (First Match)
+    t =    78.18s Added attachment named '03-similar'
+2026-11-13 15:38:14.917270+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 3 PASS Similar review: tile: Similar, 73 items; group shown: Nov 13, 2026 · 2 similar
+    t =    78.18s Waiting 2.0s for Alert (First Match) to exist
+    t =    79.21s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =    79.21s         Checking existence of `Alert (First Match)`
+    t =    79.60s         Capturing element debug description
+    t =    80.19s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =    80.19s         Checking existence of `Alert (First Match)`
+    t =    80.50s         Capturing element debug description
+    t =    80.50s     Checking existence of `Alert (First Match)`
+    t =    80.85s Collecting debug information to assist test failure triage
+    t =    80.85s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =    81.04s Checking existence of `Any (First Match)`
+    t =    81.49s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =    81.64s Checking existence of `Any (Element at index 0)`
+    t =    81.76s Find the Any (Element at index 0)
+    t =    81.91s Tap "Back" Button
+    t =    81.91s     Wait for com.krosz.klenzer to idle
+    t =    81.92s     Find the "Back" Button
+    t =    82.06s     Check for interrupting elements affecting "Back" Button
+    t =    82.16s     Synthesize event
+    t =    82.48s     Wait for com.krosz.klenzer to idle
+    t =    83.52s Checking existence of `Any (First Match)`
+    t =    83.60s Find the Any (First Match)
+    t =    83.69s Swipe down Target Application 'com.krosz.klenzer'
+    t =    83.70s     Wait for com.krosz.klenzer to idle
+    t =    83.70s     Find the Target Application 'com.krosz.klenzer'
+    t =    83.73s     Check for interrupting elements affecting "Klenzer" Application
+    t =    83.77s     Synthesize event
+    t =    84.20s     Wait for com.krosz.klenzer to idle
+    t =    84.99s Swipe down Target Application 'com.krosz.klenzer'
+    t =    84.99s     Wait for com.krosz.klenzer to idle
+    t =    84.99s     Find the Target Application 'com.krosz.klenzer'
+    t =    85.02s     Check for interrupting elements affecting "Klenzer" Application
+    t =    85.06s     Synthesize event
+    t =    85.48s     Wait for com.krosz.klenzer to idle
+    t =    86.26s Swipe down Target Application 'com.krosz.klenzer'
+    t =    86.26s     Wait for com.krosz.klenzer to idle
+    t =    86.27s     Find the Target Application 'com.krosz.klenzer'
+    t =    86.30s     Check for interrupting elements affecting "Klenzer" Application
+    t =    86.34s     Synthesize event
+    t =    86.76s     Wait for com.krosz.klenzer to idle
+    t =    87.55s Waiting 3.0s for Any (First Match) to exist
+    t =    88.60s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    88.61s         Checking existence of `Any (First Match)`
+    t =    88.70s         Capturing element debug description
+    t =    89.64s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    89.65s         Checking existence of `Any (First Match)`
+    t =    89.74s         Capturing element debug description
+    t =    90.55s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    90.55s         Checking existence of `Any (First Match)`
+    t =    90.63s         Capturing element debug description
+    t =    90.64s     Checking existence of `Any (First Match)`
+    t =    90.73s Collecting debug information to assist test failure triage
+    t =    90.73s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =    90.78s Checking existence of `Any (First Match)`
+    t =    90.87s Swipe up Target Application 'com.krosz.klenzer'
+    t =    90.87s     Wait for com.krosz.klenzer to idle
+    t =    90.88s     Find the Target Application 'com.krosz.klenzer'
+    t =    90.91s     Check for interrupting elements affecting "Klenzer" Application
+    t =    90.94s     Synthesize event
+    t =    91.37s     Wait for com.krosz.klenzer to idle
+    t =    92.52s Checking existence of `Any (First Match)`
+    t =    92.61s Swipe up Target Application 'com.krosz.klenzer'
+    t =    92.61s     Wait for com.krosz.klenzer to idle
+    t =    92.61s     Find the Target Application 'com.krosz.klenzer'
+    t =    92.64s     Check for interrupting elements affecting "Klenzer" Application
+    t =    92.67s     Synthesize event
+    t =    93.09s     Wait for com.krosz.klenzer to idle
+    t =    94.18s Checking existence of `Any (First Match)`
+    t =    94.28s Swipe up Target Application 'com.krosz.klenzer'
+    t =    94.28s     Wait for com.krosz.klenzer to idle
+    t =    94.28s     Find the Target Application 'com.krosz.klenzer'
+    t =    94.31s     Check for interrupting elements affecting "Klenzer" Application
+    t =    94.34s     Synthesize event
+    t =    94.77s     Wait for com.krosz.klenzer to idle
+    t =    95.87s Checking existence of `Any (First Match)`
+    t =    95.97s Swipe up Target Application 'com.krosz.klenzer'
+    t =    95.97s     Wait for com.krosz.klenzer to idle
+    t =    95.97s     Find the Target Application 'com.krosz.klenzer'
+    t =    96.00s     Check for interrupting elements affecting "Klenzer" Application
+    t =    96.03s     Synthesize event
+    t =    96.46s     Wait for com.krosz.klenzer to idle
+    t =    97.57s Checking existence of `Any (First Match)`
+    t =    97.65s Swipe up Target Application 'com.krosz.klenzer'
+    t =    97.65s     Wait for com.krosz.klenzer to idle
+    t =    97.65s     Find the Target Application 'com.krosz.klenzer'
+    t =    97.68s     Check for interrupting elements affecting "Klenzer" Application
+    t =    97.71s     Synthesize event
+    t =    98.14s     Wait for com.krosz.klenzer to idle
+    t =    99.23s Checking existence of `Any (First Match)`
+    t =    99.33s Swipe up Target Application 'com.krosz.klenzer'
+    t =    99.33s     Wait for com.krosz.klenzer to idle
+    t =    99.34s     Find the Target Application 'com.krosz.klenzer'
+    t =    99.36s     Check for interrupting elements affecting "Klenzer" Application
+    t =    99.40s     Synthesize event
+    t =    99.82s     Wait for com.krosz.klenzer to idle
+    t =   100.94s Checking existence of `Any (First Match)`
+    t =   101.02s Checking existence of `Any (First Match)`
+    t =   101.11s Checking existence of `Any (First Match)`
+2026-11-13 15:38:37.930715+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 24 FAIL Live Photos counted: tile=missing count=0
+    t =   101.20s Swipe down Target Application 'com.krosz.klenzer'
+    t =   101.20s     Wait for com.krosz.klenzer to idle
+    t =   101.20s     Find the Target Application 'com.krosz.klenzer'
+    t =   101.24s     Check for interrupting elements affecting "Klenzer" Application
+    t =   101.28s     Synthesize event
+    t =   101.70s     Wait for com.krosz.klenzer to idle
+    t =   102.56s Swipe down Target Application 'com.krosz.klenzer'
+    t =   102.56s     Wait for com.krosz.klenzer to idle
+    t =   102.56s     Find the Target Application 'com.krosz.klenzer'
+    t =   102.60s     Check for interrupting elements affecting "Klenzer" Application
+    t =   102.63s     Synthesize event
+    t =   103.05s     Wait for com.krosz.klenzer to idle
+    t =   103.84s Swipe down Target Application 'com.krosz.klenzer'
+    t =   103.84s     Wait for com.krosz.klenzer to idle
+    t =   103.84s     Find the Target Application 'com.krosz.klenzer'
+    t =   103.87s     Check for interrupting elements affecting "Klenzer" Application
+    t =   103.91s     Synthesize event
+    t =   104.34s     Wait for com.krosz.klenzer to idle
+    t =   105.13s Checking existence of `Any (First Match)`
+    t =   105.26s Find the Any (First Match)
+    t =   105.38s Swipe up Target Application 'com.krosz.klenzer'
+    t =   105.38s     Wait for com.krosz.klenzer to idle
+    t =   105.38s     Find the Target Application 'com.krosz.klenzer'
+    t =   105.42s     Check for interrupting elements affecting "Klenzer" Application
+    t =   105.45s     Synthesize event
+    t =   105.88s     Wait for com.krosz.klenzer to idle
+    t =   107.00s Checking existence of `"open-swipe" Button`
+    t =   107.11s Find the "open-swipe" Button
+    t =   107.21s Waiting 5.0s for Any (First Match) to exist
+    t =   108.24s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   108.24s         Checking existence of `Any (First Match)`
+    t =   108.35s Find the Any (First Match)
+    t =   108.48s Tap "open-swipe" Button
+    t =   108.48s     Wait for com.krosz.klenzer to idle
+    t =   108.48s     Find the "open-swipe" Button
+    t =   108.58s     Check for interrupting elements affecting "open-swipe" Button
+    t =   108.67s     Synthesize event
+    t =   108.97s     Wait for com.krosz.klenzer to idle
+    t =   110.13s Waiting 10.0s for Any (First Match) to exist
+    t =   111.18s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   111.18s         Checking existence of `Any (First Match)`
+    t =   113.35s Added attachment named '04-swipe'
+    t =   113.35s Checking existence of `Any (First Match)`
+    t =   113.39s Find the Any (First Match)
+    t =   113.44s Waiting 5.0s for "swipe-keep" Button to exist
+    t =   114.49s     Checking `Expect predicate `existsNoRetry == 1` for object "swipe-keep" Button`
+    t =   114.49s         Checking existence of `"swipe-keep" Button`
+    t =   114.53s Find the "swipe-keep" Button
+    t =   114.59s Tap "swipe-keep" Button
+    t =   114.59s     Wait for com.krosz.klenzer to idle
+    t =   114.59s     Find the "swipe-keep" Button
+    t =   114.66s     Check for interrupting elements affecting "swipe-keep" Button
+    t =   114.71s     Synthesize event
+    t =   115.01s     Wait for com.krosz.klenzer to idle
+    t =   116.97s Added attachment named '04-swipe-after-keep'
+2026-11-13 15:38:53.708369+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 4 PASS Swipe to Organize: swipe-screen shown
+    t =   116.97s Waiting 2.0s for Alert (First Match) to exist
+    t =   118.00s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   118.00s         Checking existence of `Alert (First Match)`
+    t =   118.08s         Capturing element debug description
+    t =   118.98s     Checking existence of `Alert (First Match)`
+    t =   119.06s Collecting debug information to assist test failure triage
+    t =   119.06s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =   119.10s Checking existence of `Any (First Match)`
+    t =   119.20s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =   119.23s Checking existence of `Any (Element at index 0)`
+    t =   119.26s Find the Any (Element at index 0)
+    t =   119.30s Tap "Back" Button
+    t =   119.30s     Wait for com.krosz.klenzer to idle
+    t =   119.31s     Find the "Back" Button
+    t =   119.34s     Check for interrupting elements affecting "Back" Button
+    t =   119.38s     Synthesize event
+    t =   119.68s     Wait for com.krosz.klenzer to idle
+    t =   120.69s Checking existence of `Any (First Match)`
+    t =   120.77s Find the Any (First Match)
+    t =   120.86s Swipe down Target Application 'com.krosz.klenzer'
+    t =   120.87s     Wait for com.krosz.klenzer to idle
+    t =   120.87s     Find the Target Application 'com.krosz.klenzer'
+    t =   120.90s     Check for interrupting elements affecting "Klenzer" Application
+    t =   120.93s     Synthesize event
+    t =   121.35s     Wait for com.krosz.klenzer to idle
+    t =   122.19s Swipe down Target Application 'com.krosz.klenzer'
+    t =   122.19s     Wait for com.krosz.klenzer to idle
+    t =   122.19s     Find the Target Application 'com.krosz.klenzer'
+    t =   122.22s     Check for interrupting elements affecting "Klenzer" Application
+    t =   122.25s     Synthesize event
+    t =   122.67s     Wait for com.krosz.klenzer to idle
+    t =   123.47s Swipe down Target Application 'com.krosz.klenzer'
+    t =   123.47s     Wait for com.krosz.klenzer to idle
+    t =   123.47s     Find the Target Application 'com.krosz.klenzer'
+    t =   123.51s     Check for interrupting elements affecting "Klenzer" Application
+    t =   123.57s     Synthesize event
+    t =   124.00s     Wait for com.krosz.klenzer to idle
+    t =   124.78s Waiting 5.0s for Any (First Match) to exist
+    t =   125.83s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   125.83s         Checking existence of `Any (First Match)`
+    t =   125.88s Waiting 5.0s for Any (First Match) to exist
+    t =   126.94s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   126.94s         Checking existence of `Any (First Match)`
+    t =   126.99s Find the Any (First Match)
+    t =   127.06s Tap "home-switch-contacts" Other
+    t =   127.06s     Wait for com.krosz.klenzer to idle
+    t =   127.06s     Find the "home-switch-contacts" Other
+    t =   127.12s     Check for interrupting elements affecting "home-switch-contacts" Other
+    t =   127.20s     Synthesize event
+    t =   127.50s     Wait for com.krosz.klenzer to idle
+    t =   128.31s Waiting 5.0s for Any (First Match) to exist
+    t =   129.37s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   129.38s         Checking existence of `Any (First Match)`
+    t =   129.46s Waiting 5.0s for Any (First Match) to exist
+    t =   130.50s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   130.50s         Checking existence of `Any (First Match)`
+    t =   130.57s Find the Any (First Match)
+    t =   130.67s Tap "open-contacts" Button
+    t =   130.67s     Wait for com.krosz.klenzer to idle
+    t =   130.67s     Find the "open-contacts" Button
+    t =   130.75s     Check for interrupting elements affecting "open-contacts" Button
+    t =   130.82s     Synthesize event
+    t =   131.12s     Wait for com.krosz.klenzer to idle
+    t =   132.25s Waiting 4.0s for Any (First Match) to exist
+    t =   133.29s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   133.29s         Checking existence of `Any (First Match)`
+    t =   133.39s         Capturing element debug description
+    t =   134.33s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   134.33s         Checking existence of `Any (First Match)`
+    t =   134.39s         Capturing element debug description
+    t =   135.31s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   135.31s         Checking existence of `Any (First Match)`
+    t =   135.37s         Capturing element debug description
+    t =   136.26s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   136.26s         Checking existence of `Any (First Match)`
+    t =   136.33s         Capturing element debug description
+    t =   136.33s     Checking existence of `Any (First Match)`
+    t =   136.42s Collecting debug information to assist test failure triage
+    t =   136.42s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =   136.45s Waiting 15.0s for Any (First Match) to exist
+    t =   137.48s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   137.48s         Checking existence of `Any (First Match)`
+    t =   137.52s Find the Any (First Match)
+    t =   137.71s Added attachment named '05-contacts-list'
+    t =   137.71s Waiting 5.0s for "Group of 3 contacts, Chris Park" Button to exist
+    t =   138.76s     Checking `Expect predicate `existsNoRetry == 1` for object "Group of 3 contacts, Chris Park" Button`
+    t =   138.76s         Checking existence of `"Group of 3 contacts, Chris Park" Button`
+    t =   138.82s Find the "Group of 3 contacts, Chris Park" Button
+    t =   138.88s Tap "Group of 3 contacts, Chris Park" Button
+    t =   138.88s     Wait for com.krosz.klenzer to idle
+    t =   138.88s     Find the "Group of 3 contacts, Chris Park" Button
+    t =   138.95s     Check for interrupting elements affecting "Group of 3 contacts, Chris Park" Button
+    t =   139.04s     Synthesize event
+    t =   139.35s     Wait for com.krosz.klenzer to idle
+    t =   140.56s Waiting 8.0s for Any (First Match) to exist
+    t =   141.61s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   141.62s         Checking existence of `Any (First Match)`
+    t =   142.81s Added attachment named '05-contacts-preview'
+    t =   142.81s Get all elements bound by index for: Elements matching predicate 'identifier == "Close" OR label == "Close"'
+    t =   142.86s Checking existence of `Any (Element at index 0)`
+    t =   142.91s Find the Any (Element at index 0)
+    t =   142.98s Tap "Close" Button
+    t =   142.98s     Wait for com.krosz.klenzer to idle
+    t =   142.98s     Find the "Close" Button
+    t =   143.02s     Check for interrupting elements affecting "Close" Button
+    t =   143.07s     Synthesize event
+    t =   143.38s     Wait for com.krosz.klenzer to idle
+2026-11-13 15:39:21.474913+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 5 PASS Merge Contacts preview: group: Group of 3 contacts, Chris Park; preview shown
+    t =   144.74s Waiting 2.0s for Alert (First Match) to exist
+    t =   145.76s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   145.76s         Checking existence of `Alert (First Match)`
+    t =   145.81s         Capturing element debug description
+    t =   146.75s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   146.75s         Checking existence of `Alert (First Match)`
+    t =   146.81s         Capturing element debug description
+    t =   146.81s     Checking existence of `Alert (First Match)`
+    t =   146.86s Collecting debug information to assist test failure triage
+    t =   146.86s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =   146.89s Checking existence of `Any (First Match)`
+    t =   146.96s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =   146.99s Checking existence of `Any (Element at index 0)`
+    t =   147.01s Find the Any (Element at index 0)
+    t =   147.05s Tap "Back" Button
+    t =   147.05s     Wait for com.krosz.klenzer to idle
+    t =   147.06s     Find the "Back" Button
+    t =   147.09s     Check for interrupting elements affecting "Back" Button
+    t =   147.12s     Synthesize event
+    t =   147.42s     Wait for com.krosz.klenzer to idle
+    t =   148.43s Checking existence of `Any (First Match)`
+    t =   148.52s Find the Any (First Match)
+    t =   148.63s Swipe down Target Application 'com.krosz.klenzer'
+    t =   148.63s     Wait for com.krosz.klenzer to idle
+    t =   148.64s     Find the Target Application 'com.krosz.klenzer'
+    t =   148.69s     Check for interrupting elements affecting "Klenzer" Application
+    t =   148.74s     Synthesize event
+    t =   149.17s     Wait for com.krosz.klenzer to idle
+    t =   149.95s Swipe down Target Application 'com.krosz.klenzer'
+    t =   149.95s     Wait for com.krosz.klenzer to idle
+    t =   149.95s     Find the Target Application 'com.krosz.klenzer'
+    t =   149.98s     Check for interrupting elements affecting "Klenzer" Application
+    t =   150.02s     Synthesize event
+    t =   150.45s     Wait for com.krosz.klenzer to idle
+    t =   151.24s Swipe down Target Application 'com.krosz.klenzer'
+    t =   151.24s     Wait for com.krosz.klenzer to idle
+    t =   151.24s     Find the Target Application 'com.krosz.klenzer'
+    t =   151.27s     Check for interrupting elements affecting "Klenzer" Application
+    t =   151.32s     Synthesize event
+    t =   151.76s     Wait for com.krosz.klenzer to idle
+    t =   152.56s Waiting 5.0s for Any (First Match) to exist
+    t =   153.60s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   153.60s         Checking existence of `Any (First Match)`
+    t =   153.71s Waiting 5.0s for Any (First Match) to exist
+    t =   154.75s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   154.75s         Checking existence of `Any (First Match)`
+    t =   154.82s Find the Any (First Match)
+    t =   154.95s Tap "home-switch-photos" Other
+    t =   154.95s     Wait for com.krosz.klenzer to idle
+    t =   154.95s     Find the "home-switch-photos" Other
+    t =   155.04s     Check for interrupting elements affecting "home-switch-photos" Other
+    t =   155.25s     Synthesize event
+    t =   155.55s     Wait for com.krosz.klenzer to idle
+    t =   156.37s Checking existence of `Any (First Match)`
+    t =   156.48s Find the Any (First Match)
+    t =   156.65s Swipe up Target Application 'com.krosz.klenzer'
+    t =   156.65s     Wait for com.krosz.klenzer to idle
+    t =   156.65s     Find the Target Application 'com.krosz.klenzer'
+    t =   156.69s     Check for interrupting elements affecting "Klenzer" Application
+    t =   156.73s     Synthesize event
+    t =   157.17s     Wait for com.krosz.klenzer to idle
+    t =   158.31s Checking existence of `"open-secret-album" Button`
+    t =   158.41s Find the "open-secret-album" Button
+    t =   158.53s Waiting 5.0s for Any (First Match) to exist
+    t =   159.59s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   159.59s         Checking existence of `Any (First Match)`
+    t =   159.73s Find the Any (First Match)
+    t =   159.87s Tap "open-secret-album" Button
+    t =   159.87s     Wait for com.krosz.klenzer to idle
+    t =   159.88s     Find the "open-secret-album" Button
+    t =   159.98s     Check for interrupting elements affecting "open-secret-album" Button
+    t =   160.12s     Synthesize event
+    t =   160.41s     Wait for com.krosz.klenzer to idle
+    t =   161.58s Waiting 10.0s for Any (First Match) to exist
+    t =   162.64s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   162.64s         Checking existence of `Any (First Match)`
+    t =   162.83s Added attachment named '06-secret-album-pin'
+    t =   162.83s Get all elements bound by index for: Elements matching predicate 'identifier == "1" OR label == "1"'
+    t =   162.85s Checking existence of `Any (Element at index 0)`
+    t =   162.88s Find the Any (Element at index 0)
+    t =   162.92s Tap "1" Button
+    t =   162.92s     Wait for com.krosz.klenzer to idle
+    t =   162.92s     Find the "1" Button
+    t =   162.96s     Check for interrupting elements affecting "1" Button
+    t =   162.99s     Synthesize event
+    t =   163.32s     Wait for com.krosz.klenzer to idle
+    t =   163.63s Get all elements bound by index for: Elements matching predicate 'identifier == "2" OR label == "2"'
+    t =   163.66s Checking existence of `Any (Element at index 0)`
+    t =   163.69s Find the Any (Element at index 0)
+    t =   163.74s Tap "2" Button
+    t =   163.74s     Wait for com.krosz.klenzer to idle
+    t =   163.74s     Find the "2" Button
+    t =   163.77s     Check for interrupting elements affecting "2" Button
+    t =   163.80s     Synthesize event
+    t =   164.10s     Wait for com.krosz.klenzer to idle
+    t =   164.41s Get all elements bound by index for: Elements matching predicate 'identifier == "3" OR label == "3"'
+    t =   164.44s Checking existence of `Any (Element at index 0)`
+    t =   164.46s Find the Any (Element at index 0)
+    t =   164.51s Tap "3" Button
+    t =   164.51s     Wait for com.krosz.klenzer to idle
+    t =   164.51s     Find the "3" Button
+    t =   164.55s     Check for interrupting elements affecting "3" Button
+    t =   164.60s     Synthesize event
+    t =   164.90s     Wait for com.krosz.klenzer to idle
+    t =   165.21s Get all elements bound by index for: Elements matching predicate 'identifier == "4" OR label == "4"'
+    t =   165.24s Checking existence of `Any (Element at index 0)`
+    t =   165.27s Find the Any (Element at index 0)
+    t =   165.33s Tap "4" Button
+    t =   165.33s     Wait for com.krosz.klenzer to idle
+    t =   165.34s     Find the "4" Button
+    t =   165.37s     Check for interrupting elements affecting "4" Button
+    t =   165.40s     Synthesize event
+    t =   165.71s     Wait for com.krosz.klenzer to idle
+    t =   166.02s Get all elements bound by index for: Elements matching predicate 'identifier == "Next" OR label == "Next"'
+    t =   166.05s Checking existence of `Any (Element at index 2)`
+    t =   166.08s Find the Any (Element at index 2)
+    t =   166.12s Tap "Next" StaticText
+    t =   166.12s     Wait for com.krosz.klenzer to idle
+    t =   166.12s     Find the "Next" StaticText
+    t =   166.15s     Check for interrupting elements affecting "Next" StaticText
+    t =   166.19s     Synthesize event
+    t =   166.49s     Wait for com.krosz.klenzer to idle
+    t =   167.95s Added attachment named '06-secret-album-confirm'
+    t =   167.95s Get all elements bound by index for: Elements matching predicate 'identifier == "1" OR label == "1"'
+    t =   168.00s Checking existence of `Any (Element at index 0)`
+    t =   168.02s Find the Any (Element at index 0)
+    t =   168.06s Tap "1" Button
+    t =   168.06s     Wait for com.krosz.klenzer to idle
+    t =   168.06s     Find the "1" Button
+    t =   168.09s     Check for interrupting elements affecting "1" Button
+    t =   168.12s     Synthesize event
+    t =   168.42s     Wait for com.krosz.klenzer to idle
+    t =   168.73s Get all elements bound by index for: Elements matching predicate 'identifier == "2" OR label == "2"'
+    t =   168.77s Checking existence of `Any (Element at index 0)`
+    t =   168.80s Find the Any (Element at index 0)
+    t =   168.88s Tap "2" Button
+    t =   168.88s     Wait for com.krosz.klenzer to idle
+    t =   168.89s     Find the "2" Button
+    t =   168.91s     Check for interrupting elements affecting "2" Button
+    t =   168.95s     Synthesize event
+    t =   169.24s     Wait for com.krosz.klenzer to idle
+    t =   169.56s Get all elements bound by index for: Elements matching predicate 'identifier == "3" OR label == "3"'
+    t =   169.59s Checking existence of `Any (Element at index 0)`
+    t =   169.61s Find the Any (Element at index 0)
+    t =   169.65s Tap "3" Button
+    t =   169.65s     Wait for com.krosz.klenzer to idle
+    t =   169.66s     Find the "3" Button
+    t =   169.68s     Check for interrupting elements affecting "3" Button
+    t =   169.71s     Synthesize event
+    t =   170.01s     Wait for com.krosz.klenzer to idle
+    t =   170.32s Get all elements bound by index for: Elements matching predicate 'identifier == "4" OR label == "4"'
+    t =   170.36s Checking existence of `Any (Element at index 0)`
+    t =   170.40s Find the Any (Element at index 0)
+    t =   170.45s Tap "4" Button
+    t =   170.45s     Wait for com.krosz.klenzer to idle
+    t =   170.45s     Find the "4" Button
+    t =   170.48s     Check for interrupting elements affecting "4" Button
+    t =   170.52s     Synthesize event
+    t =   170.83s     Wait for com.krosz.klenzer to idle
+    t =   171.14s Get all elements bound by index for: Elements matching predicate 'identifier == "Next" OR label == "Next"'
+    t =   171.17s Checking existence of `Any (Element at index 2)`
+    t =   171.20s Find the Any (Element at index 2)
+    t =   171.24s Tap "Next" StaticText
+    t =   171.24s     Wait for com.krosz.klenzer to idle
+    t =   171.24s     Find the "Next" StaticText
+    t =   171.28s     Check for interrupting elements affecting "Next" StaticText
+    t =   171.31s     Synthesize event
+    t =   171.61s     Wait for com.krosz.klenzer to idle
+    t =   172.93s Waiting 2.0s for Alert (First Match) to exist
+    t =   173.96s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   173.96s         Checking existence of `Alert (First Match)`
+    t =   174.03s         Capturing element debug description
+    t =   174.94s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   174.94s         Checking existence of `Alert (First Match)`
+    t =   174.98s         Capturing element debug description
+    t =   174.98s     Checking existence of `Alert (First Match)`
+    t =   175.02s Collecting debug information to assist test failure triage
+    t =   175.02s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =   175.05s Waiting 10.0s for Any (First Match) to exist
+    t =   176.10s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   176.10s         Checking existence of `Any (First Match)`
+    t =   177.26s Added attachment named '06-secret-album'
+2026-11-13 15:39:53.999445+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 6 PASS Secret Album: PIN set, album open
+    t =   177.26s Waiting 2.0s for Alert (First Match) to exist
+    t =   178.30s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   178.30s         Checking existence of `Alert (First Match)`
+    t =   178.34s         Capturing element debug description
+    t =   179.26s     Checking existence of `Alert (First Match)`
+    t =   179.30s Collecting debug information to assist test failure triage
+    t =   179.30s     Requesting snapshot of accessibility hierarchy for app with pid 54442
+    t =   179.33s Checking existence of `Any (First Match)`
+    t =   179.38s Get all elements bound by index for: Elements matching predicate 'identifier == "Back" OR label == "Back"'
+    t =   179.40s Checking existence of `Any (Element at index 0)`
+    t =   179.42s Find the Any (Element at index 0)
+    t =   179.48s Tap "Back" Button
+    t =   179.48s     Wait for com.krosz.klenzer to idle
+    t =   179.48s     Find the "Back" Button
+    t =   179.51s     Check for interrupting elements affecting "Back" Button
+    t =   179.54s     Synthesize event
+    t =   179.84s     Wait for com.krosz.klenzer to idle
+    t =   180.85s Checking existence of `Any (First Match)`
+    t =   180.93s Find the Any (First Match)
+    t =   181.16s Swipe down Target Application 'com.krosz.klenzer'
+    t =   181.16s     Wait for com.krosz.klenzer to idle
+    t =   181.16s     Find the Target Application 'com.krosz.klenzer'
+    t =   181.19s     Check for interrupting elements affecting "Klenzer" Application
+    t =   181.23s     Synthesize event
+    t =   181.65s     Wait for com.krosz.klenzer to idle
+    t =   182.47s Swipe down Target Application 'com.krosz.klenzer'
+    t =   182.48s     Wait for com.krosz.klenzer to idle
+    t =   182.48s     Find the Target Application 'com.krosz.klenzer'
+    t =   182.52s     Check for interrupting elements affecting "Klenzer" Application
+    t =   182.55s     Synthesize event
+    t =   182.99s     Wait for com.krosz.klenzer to idle
+    t =   183.78s Swipe down Target Application 'com.krosz.klenzer'
+    t =   183.78s     Wait for com.krosz.klenzer to idle
+    t =   183.78s     Find the Target Application 'com.krosz.klenzer'
+    t =   183.81s     Check for interrupting elements affecting "Klenzer" Application
+    t =   183.85s     Synthesize event
+    t =   184.28s     Wait for com.krosz.klenzer to idle
+    t =   185.06s Waiting 5.0s for Any (First Match) to exist
+    t =   186.08s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   186.08s         Checking existence of `Any (First Match)`
+    t =   186.13s Waiting 5.0s for Any (First Match) to exist
+    t =   187.15s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   187.15s         Checking existence of `Any (First Match)`
+    t =   187.19s Find the Any (First Match)
+    t =   187.26s Tap "open-paywall" Button
+    t =   187.26s     Wait for com.krosz.klenzer to idle
+    t =   187.27s     Find the "open-paywall" Button
+    t =   187.34s     Check for interrupting elements affecting "open-paywall" Button
+    t =   187.43s     Synthesize event
+    t =   187.74s     Wait for com.krosz.klenzer to idle
+    t =   188.90s Waiting 10.0s for Any (First Match) to exist
+    t =   189.96s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   189.96s         Checking existence of `Any (First Match)`
+    t =   189.99s Checking existence of `Any (First Match)`
+    t =   190.05s Checking existence of `Any (First Match)`
+    t =   190.09s Checking existence of `Any (First Match)`
+    t =   190.14s Checking existence of `Any (First Match)`
+    t =   190.19s Checking existence of `Any (First Match)`
+    t =   190.24s Checking existence of `Any (First Match)`
+    t =   190.30s Find the Any (First Match)
+    t =   190.39s Waiting 8.0s for "plan-lifetime" Button to exist
+    t =   191.42s     Checking `Expect predicate `existsNoRetry == 1` for object "plan-lifetime" Button`
+    t =   191.42s         Checking existence of `"plan-lifetime" Button`
+    t =   191.48s Find the "plan-lifetime" Button
+    t =   191.55s Checking existence of `Any (First Match)`
+    t =   191.72s Swipe down Target Application 'com.krosz.klenzer'
+    t =   191.72s     Wait for com.krosz.klenzer to idle
+    t =   191.72s     Find the Target Application 'com.krosz.klenzer'
+    t =   191.77s     Check for interrupting elements affecting "Klenzer" Application
+    t =   191.81s     Synthesize event
+    t =   192.24s     Wait for com.krosz.klenzer to idle
+    t =   192.89s Swipe down Target Application 'com.krosz.klenzer'
+    t =   192.89s     Wait for com.krosz.klenzer to idle
+    t =   192.89s     Find the Target Application 'com.krosz.klenzer'
+    t =   192.93s     Check for interrupting elements affecting "Klenzer" Application
+    t =   193.00s     Synthesize event
+    t =   193.42s     Wait for com.krosz.klenzer to idle
+    t =   194.08s Swipe down Target Application 'com.krosz.klenzer'
+    t =   194.08s     Wait for com.krosz.klenzer to idle
+    t =   194.09s     Find the Target Application 'com.krosz.klenzer'
+    t =   194.14s     Check for interrupting elements affecting "Klenzer" Application
+    t =   194.20s     Synthesize event
+    t =   194.64s     Wait for com.krosz.klenzer to idle
+    t =   195.29s Checking existence of `Any (First Match)`
+    t =   195.61s Added attachment named '07-paywall'
+2026-11-13 15:40:12.343912+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 7 PASS Paywall prices and trial copy: yearly $19.99=true monthly $3.99=true lifetime $29.99=true monthTrial=true yearTrial=true lifetimeOnce=true lifetimeTrialText=false lifetimeLabel=Lifetime plan, $29.99, Pay once, clean forever. unavailable=false
+    t =   195.61s Waiting 5.0s for Any (First Match) to exist
+    t =   196.62s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   196.62s         Checking existence of `Any (First Match)`
+    t =   196.69s Find the Any (First Match)
+    t =   196.79s Tap "plan-monthly" Button
+    t =   196.79s     Wait for com.krosz.klenzer to idle
+    t =   196.79s     Find the "plan-monthly" Button
+    t =   196.85s     Check for interrupting elements affecting "plan-monthly" Button
+    t =   196.92s     Synthesize event
+    t =   197.22s     Wait for com.krosz.klenzer to idle
+    t =   199.18s Added attachment named '08-paywall-monthly-selected'
+    t =   199.18s Waiting 5.0s for Any (First Match) to exist
+    t =   200.21s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   200.21s         Checking existence of `Any (First Match)`
+    t =   200.28s Find the Any (First Match)
+    t =   200.34s Tap "unlock" Button
+    t =   200.34s     Wait for com.krosz.klenzer to idle
+    t =   200.35s     Find the "unlock" Button
+    t =   200.41s     Check for interrupting elements affecting "unlock" Button
+    t =   200.48s     Synthesize event
+    t =   200.78s     Wait for com.krosz.klenzer to idle
+    t =   204.60s Checking existence of `"Subscribe" Button`
+    t =   204.64s Checking existence of `"Purchase" Button`
+    t =   204.68s Checking existence of `"Buy" Button`
+    t =   204.71s Checking existence of `"Confirm" Button`
+    t =   204.75s Checking existence of `"OK" Button`
+    t =   204.80s Checking existence of `"Subscribe" Button`
+    t =   204.84s Checking existence of `"Purchase" Button`
+    t =   204.86s Checking existence of `"Buy" Button`
+    t =   204.90s Checking existence of `"Confirm" Button`
+    t =   204.94s Checking existence of `"OK" Button`
+    t =   204.97s Checking existence of `Any (First Match)`
+    t =   205.10s Waiting 8.0s for Any (First Match) to exist
+    t =   206.14s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   206.14s         Checking existence of `Any (First Match)`
+    t =   206.18s Waiting 5.0s for Any (First Match) to exist
+    t =   207.23s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   207.23s         Checking existence of `Any (First Match)`
+    t =   207.28s Find the Any (First Match)
+    t =   207.34s Tap "open-settings" Button
+    t =   207.35s     Wait for com.krosz.klenzer to idle
+    t =   207.35s     Find the "open-settings" Button
+    t =   207.40s     Check for interrupting elements affecting "open-settings" Button
+    t =   207.47s     Synthesize event
+    t =   207.77s     Wait for com.krosz.klenzer to idle
+    t =   208.94s Waiting 10.0s for Any (First Match) to exist
+    t =   209.96s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   209.96s         Checking existence of `Any (First Match)`
+    t =   210.12s Added attachment named '08-purchase-settings'
+2026-11-13 15:40:26.856519+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 8 PASS StoreKit test purchase (monthly) starts a trial: session=true paywallClosed=true; Settings shows Plan: Pro; trial 7.0d
+    t =   210.12s Checking existence of `Any (First Match)`
+    t =   210.17s Checking existence of `Any (First Match)`
+    t =   210.25s Find the Any (First Match)
+    t =   210.31s Waiting 5.0s for Any (First Match) to exist
+    t =   211.36s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   211.36s         Checking existence of `Any (First Match)`
+    t =   211.42s Find the Any (First Match)
+    t =   211.50s Tap ", Restore purchases, " Button
+    t =   211.50s     Wait for com.krosz.klenzer to idle
+    t =   211.50s     Find the ", Restore purchases, " Button
+    t =   211.57s     Check for interrupting elements affecting ", Restore purchases, " Button
+    t =   211.64s     Synthesize event
+    t =   211.94s     Wait for com.krosz.klenzer to idle
+    t =   213.15s Waiting 15.0s for Alert (First Match) to exist
+    t =   214.18s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   214.19s         Checking existence of `Alert (First Match)`
+    t =   214.20s Find the Alert (First Match)
+    t =   214.23s Find the "Restored" Alert
+    t =   214.38s Added attachment named '09-restore'
+    t =   214.38s Waiting 2.0s for Alert (First Match) to exist
+    t =   215.42s     Checking `Expect predicate `existsNoRetry == 1` for object Alert (First Match)`
+    t =   215.42s         Checking existence of `Alert (First Match)`
+    t =   215.43s Find the Alert (First Match)
+2026-11-13 15:40:32.181211+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] app alert: Restored
+    t =   215.45s Checking existence of `"Not now" Button`
+    t =   215.47s Checking existence of `"OK" Button`
+    t =   215.50s Tap "OK" Button
+    t =   215.50s     Wait for com.krosz.klenzer to idle
+    t =   215.51s     Find the "OK" Button
+    t =   215.54s     Check for interrupting elements affecting "OK" Button
+    t =   215.59s     Synthesize event
+    t =   215.89s     Wait for com.krosz.klenzer to idle
+2026-11-13 15:40:33.681185+0000 KlenzerQATests-Runner[53523:137478] [klenzer-qa] step 9 PASS Restore purchases: alert: Restored
+    t =   216.96s Tear Down
+Test Case '-[KlenzerQATests.SimQATests testKlenzerFlow]' passed (217.465 seconds).
+Test Suite 'SimQATests' passed at 2026-11-13 15:40:34.202.
+	 Executed 1 test, with 0 failures (0 unexpected) in 217.465 (217.466) seconds
+Test Suite 'KlenzerQATests.xctest' passed at 2026-11-13 15:40:34.203.
+	 Executed 1 test, with 0 failures (0 unexpected) in 217.465 (217.467) seconds
+Test Suite 'Selected tests' passed at 2026-11-13 15:40:34.203.
+	 Executed 1 test, with 0 failures (0 unexpected) in 217.465 (217.468) seconds
+2026-11-13 15:40:34.921 xcodebuild[52755:135481] [MT] IDETestOperationsObserverDebug: 226.757 elapsed -- Testing started completed.
+2026-11-13 15:40:34.922 xcodebuild[52755:135481] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-13 15:40:34.922 xcodebuild[52755:135481] [MT] IDETestOperationsObserverDebug: 226.757 sec, +226.757 sec -- end
+
+Test session results, code coverage, and logs:
+	/tmp/sim-qa/flow.xcresult
+
+** TEST EXECUTE SUCCEEDED **
+
+Testing started

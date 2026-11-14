@@ -1,0 +1,1 @@
+PASS: Klenzer asks Photos for read-write access only (writeOnly=false, no add-only)

@@ -1,0 +1,3 @@
+photos seeded: 400 (5 exact pairs, 8 blurry, 20 near pairs, 6 similar bursts x3, 20 screenshots)
+live photos: result=generate_failed 
+contacts seeded: 10

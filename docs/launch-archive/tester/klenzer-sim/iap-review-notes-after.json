@@ -1,0 +1,25 @@
+{
+ "com.krosz.klenzer.lifetime": {
+  "type": "iap",
+  "id": "6829830806",
+  "name": "Klenzer Pro Lifetime",
+  "state": "READY_TO_SUBMIT",
+  "reviewNote": "Scanning and reviewing are free, with no account or sign-in. To reach the paywall from the Home screen, tap the Pro button at the top right, next to the Settings icon. The paywall also opens from Settings (the icon at the top right of Home) by tapping the Plan: Free row, when a free user goes past the 10 free items per day for deleting photos, merging contacts or adding to Secret Album (tap Upgrade in the alert), and when tapping Convert to still on Live Photos. On the paywall, tap the Lifetime plan card, then tap the Unlock button below the plans to buy this one-time lifetime purchase. Yearly is selected by default. Restore Purchases: tap Restore purchase under the plans on the paywall, or tap Restore purchases in Settings."
+ },
+ "com.krosz.klenzer.monthly": {
+  "type": "sub",
+  "id": "6833133616",
+  "name": "Klenzer Pro Monthly",
+  "state": "READY_TO_SUBMIT",
+  "reviewNote": "Scanning and reviewing are free, with no account or sign-in. To reach the paywall from the Home screen, tap the Pro button at the top right, next to the Settings icon. The paywall also opens from Settings (the icon at the top right of Home) by tapping the Plan: Free row, when a free user goes past the 10 free items per day for deleting photos, merging contacts or adding to Secret Album (tap Upgrade in the alert), and when tapping Convert to still on Live Photos. On the paywall, tap the Monthly plan card, then tap the Unlock button below the plans to buy this monthly subscription. Yearly is selected by default. Restore Purchases: tap Restore purchase under the plans on the paywall, or tap Restore purchases in Settings.",
+  "group": "Klenzer Pro"
+ },
+ "com.krosz.klenzer.yearly": {
+  "type": "sub",
+  "id": "6833884989",
+  "name": "Klenzer Pro Yearly",
+  "state": "READY_TO_SUBMIT",
+  "reviewNote": "Scanning and reviewing are free, with no account or sign-in. To reach the paywall from the Home screen, tap the Pro button at the top right, next to the Settings icon. The paywall also opens from Settings (the icon at the top right of Home) by tapping the Plan: Free row, when a free user goes past the 10 free items per day for deleting photos, merging contacts or adding to Secret Album (tap Upgrade in the alert), and when tapping Convert to still on Live Photos. On the paywall, keep the Yearly plan card selected, then tap the Unlock button below the plans to buy this yearly subscription. Yearly is selected by default. Restore Purchases: tap Restore purchase under the plans on the paywall, or tap Restore purchases in Settings.",
+  "group": "Klenzer Pro"
+ }
+}
