@@ -4,29 +4,30 @@
 
 | Field | Value | Limit |
 |---|---|---|
-| Name | Ai Klenzer - Storage Cleaner | 29/30 |
-| Subtitle | Scan & Remove Photo Clutter | 28/30 |
+| Name | Ai Klenzer: Storage Cleaner | 28/30 |
+| Subtitle | Recordings & Large Videos | 26/30 |
 | Category | Primary: Utilities · Secondary: Photo & Video | |
 | Age rating | 4+ | |
 | Price | Free forever | |
 
-**Keywords (100 max):**
-`duplicate,similar,screenshots,videos,storage,space,declutter,gallery,large files,organizer,recordings,clean`
+**Keywords (100 max, comma-separated, no spaces):**
+`screen recordings,large videos,similar,screenshots,live photos,blurry,on device,free forever,near identical,declutter`
 
 **Promotional text (170 max):**
-Scan and remove clutter. Free forever. Find duplicates, screenshots, large videos and recordings. Review everything before you delete. 100% on-device.
+Find screen recordings, large videos, similar photos and screenshots. Free forever. Review everything before you delete. 100% on-device.
 
 **Description:**
 Your camera roll fills up with duplicates, old screenshots, large videos and forgotten recordings. Ai Klenzer scans your library on your device, shows you exactly what it finds, and lets you clear what you choose.
 
 **WHAT AI KLENZER DOES**
-• Duplicates & near-identical photos: groups photos taken at the same moment with the same size. Keeps the largest by default; you can change the pick.
-• Screenshots: lists every screenshot, biggest first, so you can clear the ones you no longer need.
-• Large videos: surfaces videos over 100 MB so you reclaim the most space with the fewest taps.
-• Live Photos: reviews photos that also store a short video clip.
-• Recordings: shows screen recordings and similar video recordings so you can free space quickly.
-• Temporary files: clears the app’s own temporary files in one tap.
-• Separate progress for each category while scanning, so you always know what’s happening.
+• Screen recordings: find screen recordings and similar video recordings so you can free space quickly.
+• Large videos: surface videos over 100 MB so you reclaim the most space with the fewest taps.
+• Similar and near-identical photos: groups photos taken at the same moment with the same size. Keeps the largest by default; you can change the pick.
+• Screenshots: lists every screenshot, biggest first.
+• Live Photos: review photos that also store a short video clip.
+• Blurry and low-quality shots: surface photos that are less useful to keep.
+• Temporary files: clear the app’s own temporary files in one tap.
+• Separate progress for each category while scanning.
 • Real storage numbers: free and total space straight from the system.
 
 **WHY IT’S DIFFERENT**
@@ -34,7 +35,7 @@ Your camera roll fills up with duplicates, old screenshots, large videos and for
 • Nothing is deleted automatically. You review every item and confirm.
 • Fully on-device. Photos are never uploaded or analysed in the cloud.
 • Clear progress while scanning. You can leave the app and we’ll let you know when it’s done.
-• Simple, transparent UI with no fake “boost” or “junk” claims.
+• Focused on recordings, large videos and similar photos — not fake “boost” claims.
 
 **YOU STAY IN CONTROL**
 Deleted items go to Recently Deleted on iOS so you can change your mind. On Android, the system asks you to confirm before anything is removed.
@@ -47,7 +48,7 @@ Ai Klenzer cleans photos and videos. It does not clear other apps’ data or sys
 
 Questions? Contact us from Settings › Contact support.
 
-**What's New (1.1):** Renamed to Ai Klenzer. Free forever. Improved scanning with per-category progress and clearer results.
+**What's New (1.1):** Renamed to Ai Klenzer. Free forever. Improved scanning with per-category progress. Store listing focused on recordings and large videos.
 
 **App Review notes:**
 Native Expo app using PhotoKit via expo-media-library. No login. Allow Photos access and tap Scan. Deletion uses the system confirmation dialog. No data leaves the device.
@@ -56,23 +57,24 @@ Native Expo app using PhotoKit via expo-media-library. No login. Allow Photos ac
 
 | Field | Value | Limit |
 |---|---|---|
-| Title | Ai Klenzer: Storage Cleaner | 27/30 |
-| Short description | Scan & remove photo clutter. Free forever. On-device. | 52/80 |
+| Title | Ai Klenzer: Screen Recordings & Large Videos | 42/50 |
+| Short description | Find large videos, recordings & similar photos. Free forever. On-device. | 68/80 |
 | Category | Tools | |
 | Content rating | Everyone | |
 | Price | Free forever | |
 
 **Full description:**
-Scan and remove clutter. Free forever.
+Find screen recordings, large videos and similar photos. Free forever.
 
-Ai Klenzer finds duplicate photos, screenshots, large videos and recordings, then lets you clear only what you choose.
+Ai Klenzer finds recordings, large videos, similar photos, screenshots and Live Photos, then lets you clear only what you choose.
 
 ★ FEATURES
-• Duplicates & near-identical photos
-• Screenshots, biggest first
+• Screen recordings
 • Large videos over 100 MB
+• Similar and near-identical photos
+• Screenshots, biggest first
 • Live Photos (iOS)
-• Recordings
+• Blurry / low-quality shots
 • Temporary files
 • Separate progress bars while scanning
 • Real free / total storage numbers
