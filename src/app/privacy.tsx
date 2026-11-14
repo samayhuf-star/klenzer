@@ -32,7 +32,7 @@ export default function Privacy() {
           onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
           accessibilityRole="link"
         >
-          View the hosted privacy policy
+          Published policy at klenzer.online/privacy
         </Text>
       </ScrollView>
     </View>

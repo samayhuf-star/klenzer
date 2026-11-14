@@ -2,7 +2,7 @@
 
 Private, on-device photo clutter cleaner for iOS and Android. Ai Klenzer finds duplicate and similar photos, screenshots, blurry shots, Live Photos, screen recordings, and large videos, then lets you review and delete only what you choose. Photos are never uploaded.
 
-Scanning and reviewing are free. Without Ai Klenzer Pro you can clear 10 items a day, shared across deletes, contact merges, and Secret Album. Pro removes that limit. Yearly and monthly show a 7-day free trial when the store says the user is eligible.
+Scanning and reviewing are free. Without Ai Klenzer Pro you can clear 50 items a day, shared across deletes, contact merges, and Secret Album. Pro removes that limit. Yearly and monthly show a 7-day free trial when the store says the user is eligible.
 
 App version in `app.json`: 1.1.1. EAS production builds take the version and build number from the remote source (`eas.json` `appVersionSource: remote`), so set 1.1.1 there before the next store build.
 
@@ -55,9 +55,11 @@ EXPO_PUBLIC_DEMO=1 npx expo start --web
 
 ## Privacy and support
 
-- Privacy: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
-- Terms: https://samayhuf-star.github.io/app-legal/klenzer/terms.html
-- Support: https://samayhuf-star.github.io/app-legal/klenzer/support.html
+- Privacy: https://klenzer.online/privacy
+- Terms: https://klenzer.online/terms
+- Support: https://klenzer.online/support
 - Contact: samayhuf@gmail.com
+- Source for those pages: the `site/` folder (`site/CNAME` is `klenzer.online`). `.github/workflows/pages.yml` publishes only that folder with GitHub Actions. Do not point Pages at `/docs`: that folder also holds the launch archive and release screenshots.
+- On 14 Nov 2026 `https://klenzer.online` did not return HTTP 200. DNS pointed at AWS Global Accelerator (`15.197.148.33`, `3.33.130.190`), not GitHub Pages. After this branch is on `main`, set Settings → Pages → Source to GitHub Actions, set the custom domain to `klenzer.online`, and point the apex A records at `185.199.108.153`, `185.199.109.153`, `185.199.110.153` and `185.199.111.153`, with `www` as a CNAME to `samayhuf-star.github.io`.
 
 Do not run `eas build` or `eas submit` from a release-candidate branch until the remote version is set to 1.1.1 and build 27 has finished App Store review.

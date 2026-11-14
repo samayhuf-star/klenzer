@@ -2,7 +2,7 @@
 
 Every claim below is something the app actually does. Do not add "boost", "speed up", "RAM", "battery", "virus", "junk", "cache" or "system data" language: Apple 2.3.1/5.6 and Google Play's Deceptive Behavior / Misleading Claims policies treat those as fake-optimizer signals.
 
-Scanning and reviewing are free. Clearing past 10 items a day, merging contacts, Secret Album adds, and Convert Live Photo to still require Ai Klenzer Pro. Yearly and monthly show a 7-day free trial only when the store says this user is eligible. Do not describe the app as free forever or as having no in-app purchases.
+Scanning and reviewing are free. Clearing past 50 items a day, merging contacts, Secret Album adds, and Convert Live Photo to still require Ai Klenzer Pro. Yearly and monthly show a 7-day free trial only when the store says this user is eligible. Do not describe the app as free forever or as having no in-app purchases.
 
 ## Apple App Store
 
@@ -38,7 +38,7 @@ Your camera roll fills up with duplicates, old screenshots, large videos and for
 • Real storage numbers: free and total space straight from the system.
 
 **WHY IT’S DIFFERENT**
-• Scanning and reviewing are free. Without Pro you can clear 10 items a day. Pro removes that limit.
+• Scanning and reviewing are free. Without Pro you can clear 50 items a day. Pro removes that limit.
 • Yearly and monthly can start with a 7-day free trial when the App Store says you are eligible. Lifetime is a one-time unlock with no trial.
 • Nothing is deleted automatically. You review every item and confirm.
 • Fully on-device. Photos are never uploaded or analysed in the cloud.
@@ -92,7 +92,7 @@ Ai Klenzer finds recordings, large videos, similar photos, screenshots and Live 
 • Real free / total storage numbers
 
 ★ WHY DIFFERENT
-• Scanning is free. 10 items a day without Pro
+• Scanning is free. 50 items a day without Pro
 • 7-day trial on monthly and yearly when the store says you are eligible
 • You review everything before delete
 • 100% on-device, private
@@ -110,9 +110,9 @@ Ai Klenzer needs permission to read your photos and videos to find clutter. You 
 ### Data safety answers
 - Data collected: none by the app for purchases. Photos are not uploaded. No device identifiers, user ID, or tracking.
 - Data shared: none. Google processes the payment under its own policies.
-- Privacy policy URL: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
-- Terms URL: https://samayhuf-star.github.io/app-legal/klenzer/terms.html
-- Support URL: https://samayhuf-star.github.io/app-legal/klenzer/support.html
+- Privacy policy URL: https://klenzer.online/privacy
+- Terms URL: https://klenzer.online/terms
+- Support URL: https://klenzer.online/support
 
 ### Photo & Video permissions declaration (REQUIRED, high rejection risk)
 Play restricts `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`. In Play Console › App content › Photo and video permissions, declare:
@@ -129,11 +129,11 @@ Play restricts `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`. In Play Console › App
 - [x] Privacy manifest included (iOS). Data Safety / App Privacy: the app does not collect a user ID or purchase history on its own servers; photos are not collected.
 - [x] Not a thin web wrapper: native photo-library integration (Apple 4.2)
 - [x] Reminders and the scan-complete notification are local-only (no push/APNs)
-- [x] Hosted privacy, terms and support at https://samayhuf-star.github.io/app-legal/klenzer/ (set in `src/lib/config.ts`)
+- [x] Privacy, terms and support URLs in `src/lib/config.ts` point at https://klenzer.online/privacy, /terms and /support. Source HTML is `site/`, published by `.github/workflows/pages.yml`. On 14 Nov 2026 the domain was not returning HTTP 200 (DNS was not GitHub Pages).
 - [ ] Set the EAS remote app version to 1.1.1 before the next production build (`eas.json` uses `appVersionSource: remote`)
 - [ ] Capture screenshots on a real device/simulator (6.7" or 6.9" iPhone; iPad not required: supportsTablet=false; Android phone)
 - [ ] Android Photo/Video declaration + video (above)
 - [ ] Do not submit while build 27 is still in review unless that submission is withdrawn
 
 ## Version source
-`eas.json` sets `cli.appVersionSource` to `remote`, and the production profile sets `autoIncrement`. The `expo.version` in `app.json` is 1.1.1 so local and source builds show the intended release. The version and build number that ship are the remote EAS values. Set the remote version to **1.1.1** before `eas build`. Do not reuse build 25 from `ios.buildNumber` in `app.json`; builds 26 and 27 already exist, and the next production build should auto-increment from the remote counter.
+`eas.json` sets `cli.appVersionSource` to `remote`, and the production profile sets `autoIncrement`. The `expo.version` in `app.json` is 1.1.1. `ios.buildNumber` in the file is still `25` and is not the next store build. Before `eas build`, set the remote version to **1.1.1** and the remote iOS build number to **28 or higher** with `eas build:version:set`, because build 27 was uploaded outside EAS.

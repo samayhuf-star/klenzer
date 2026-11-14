@@ -20,9 +20,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const at = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m - 1, d, h, min, 0);
 
 describe('free daily allowance', () => {
-  it('is 10 items per day', () => {
-    assert.equal(FREE_DAILY_ACTIONS, 10);
-    assert.equal(remainingFree(null, at(2026, 11, 12)), 10);
+  it('is 50 items per day', () => {
+    assert.equal(FREE_DAILY_ACTIONS, 50);
+    assert.equal(remainingFree(null, at(2026, 11, 12)), 50);
   });
 
   it('counts items, not actions, across deletes, merges and Secret Album adds', () => {
@@ -30,20 +30,20 @@ describe('free daily allowance', () => {
     let a = consumeAllowance(null, 4, now); // a batch delete of 4 photos
     a = consumeAllowance(a, 2, now); // a merge that removed 2 contacts
     a = consumeAllowance(a, 1, now); // one photo added to Secret Album
-    assert.equal(remainingFree(a, now), 3);
+    assert.equal(remainingFree(a, now), 43);
   });
 
   it('never goes below zero', () => {
     const now = at(2026, 11, 12);
-    assert.equal(remainingFree(consumeAllowance(null, 50, now), now), 0);
+    assert.equal(remainingFree(consumeAllowance(null, 80, now), now), 0);
   });
 
   it('resets at local midnight', () => {
     const before = at(2026, 11, 12, 23, 59);
     const after = at(2026, 11, 13, 0, 0);
-    const used = consumeAllowance(null, 10, before);
+    const used = consumeAllowance(null, 50, before);
     assert.equal(remainingFree(used, before), 0);
-    assert.equal(remainingFree(used, after), 10);
+    assert.equal(remainingFree(used, after), 50);
     assert.equal(normalizeAllowance(used, after).day, '2026-11-13');
     assert.equal(consumeAllowance(used, 3, after).used, 3);
   });
@@ -57,7 +57,7 @@ describe('free daily allowance', () => {
     const a = consumeAllowance(null, 6, now);
     assert.deepEqual(parseAllowance(JSON.stringify(a)), a);
     assert.equal(parseAllowance('not json'), null);
-    assert.equal(remainingFree(parseAllowance('{"day":"2026-11-12","used":-4}'), now), 10);
+    assert.equal(remainingFree(parseAllowance('{"day":"2026-11-12","used":-4}'), now), 50);
   });
 });
 
@@ -94,7 +94,7 @@ describe('the gate', () => {
     const d = decideGate({ isPro: false, feature: 'delete', count: 2, remaining: 0 });
     assert.equal(d.freeNow, 0);
     assert.equal(d.needsPaywall, true);
-    assert.equal(crossLimitMessage(0, 2), 'You have used today’s 10 free items. Upgrade to clean all 2.');
+    assert.equal(crossLimitMessage(0, 2), 'You have used today’s 50 free items. Upgrade to clean all 2.');
   });
 
   it('writes remaining-count copy without ellipses', () => {

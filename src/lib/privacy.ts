@@ -1,4 +1,4 @@
-export const PRIVACY_UPDATED = '12 November 2026';
+export const PRIVACY_UPDATED = '14 November 2026';
 
 export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   {
@@ -7,7 +7,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'What Ai Klenzer accesses',
-    p: 'With your permission, Ai Klenzer reads your photo and video library on-device to detect duplicate or near-identical photos, screenshots, Live Photos and large videos, and to measure their file sizes. When you convert a Live Photo to a still, it also reads the still image, its date, location, favourite state and album membership so those can be copied onto the new still. It also reads your device’s total and free storage to show it on the home screen. That media is processed on the device only and is never uploaded.',
+    p: 'With your permission, Ai Klenzer reads your photo and video library on-device to find duplicate or near-identical photos, blurry photos, screenshots, Live Photos, recordings and large videos, and to measure their file sizes. If a photo is only in iCloud, the scan can use a small thumbnail on the device. When you convert a Live Photo to a still, it copies that photo’s existing date, location, favourite state and album membership onto the new still. It does not track where you are. It also reads your device’s total and free storage for the home screen. That media is processed on the device only and is never uploaded.',
   },
   {
     h: 'Contacts',
@@ -23,7 +23,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Purchases',
-    p: 'Scanning and reviewing your library is free. Without Ai Klenzer Pro you get 10 free items each day, shared across deleting photos and videos, merging contacts and adding photos to Secret Album, counted on the device only. Ai Klenzer Pro removes the limit and adds Convert Live Photo to still. It is sold as a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Apple or Google processes the payment and the app checks those store entitlements on the device. It does not create an account or send a name or email. You can restore a previous purchase from Settings or the Ai Klenzer Pro screen. Prices are shown in the app at the time of purchase and are not hard-coded.',
+    p: 'Scanning and reviewing your library is free. Without Ai Klenzer Pro you get 50 free items each day, shared across deleting photos and videos, merging contacts and adding photos to Secret Album, counted on the device only. Ai Klenzer Pro removes that limit and adds Convert Live Photo to still. Pro is a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Yearly and monthly show a 7-day free trial in the app only when the store says this account is eligible. The lifetime unlock has no trial. Payment is handled on the device by the Apple App Store (StoreKit) or Google Play Billing. Ai Klenzer does not use RevenueCat, and it does not collect a name, email, or payment card. You can restore a previous purchase from Settings or the Ai Klenzer Pro screen. Prices come from the store and are not hard-coded.',
   },
   {
     h: 'Deleting photos',

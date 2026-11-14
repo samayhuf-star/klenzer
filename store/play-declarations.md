@@ -16,7 +16,7 @@ Ai Klenzer's single purpose is to find duplicate photos, screenshots, Live Photo
 
 ## Data safety
 - Collects or shares user data: **No** from the app itself. Ai Klenzer Pro is sold through Google Play Billing; purchase status is checked on the device. Photos and videos are processed on-device only and are not collected or shared. Local notifications send nothing. No device identifiers, user ID, or tracking.
-- Privacy policy URL: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
+- Privacy policy URL: https://klenzer.online/privacy
 
 ## Other App content forms
 - Ads: **No**. Target audience: **18+**, not designed for children. News app / government / financial / health: **No**.

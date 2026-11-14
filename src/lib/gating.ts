@@ -11,7 +11,7 @@
  */
 
 /** Free items per local day, counted across deleted photos and videos, merged-away contacts and Secret Album adds. */
-export const FREE_DAILY_ACTIONS = 10;
+export const FREE_DAILY_ACTIONS = 50;
 
 export type ProFeature = 'delete' | 'merge' | 'vault' | 'compress' | 'convert';
 
