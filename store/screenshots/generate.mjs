@@ -34,7 +34,7 @@ const SHOTS = [
   { id: 'home', file: '01-scan-free-forever', caption: 'Scan free forever', ready: '41.2 GB' },
   // Absolute scroll keeps the storage ring below the island while the category bars stay on screen.
   { id: 'scanning', file: '02-leave-it-running', caption: 'Leave it running', ready: 'leave the app running', scrollTop: 128, pause: 1300 },
-  { id: 'results', file: '03-find-gbs', caption: 'Find GBs in seconds', ready: '4.7 GB', scroll: 'What we found', scrollOffset: 66 },
+  { id: 'results', file: '03-find-gbs', caption: 'Find GBs in seconds', ready: 'Large videos', scroll: 'What we found', scrollOffset: 72 },
   { id: 'duplicates', file: '04-keep-the-best', caption: 'Keep the best shot', ready: 'Best' },
   { id: 'control', file: '05-you-stay-in-control', caption: 'You stay in control', ready: "Don't Allow" },
   { id: 'privacy', file: '06-on-your-phone', caption: '100% on your phone', ready: 'never uploaded' },
@@ -387,6 +387,27 @@ async function frame(src, caption, W, H, outPath) {
     .toFile(outPath);
 }
 
+async function contactSheet(dir) {
+  const cellW = 430;
+  const cellH = Math.round(cellW * (2796 / 1290));
+  const cols = 3;
+  const pad = 28;
+  const W = cols * cellW + (cols + 1) * pad;
+  const H = 2 * cellH + 3 * pad;
+  const composites = [];
+  for (let i = 0; i < SHOTS.length; i++) {
+    const input = await sharp(join(dir, `${SHOTS[i].file}.png`)).resize(cellW, cellH, { fit: 'fill' }).png().toBuffer();
+    composites.push({
+      input,
+      left: pad + (i % cols) * (cellW + pad),
+      top: pad + Math.floor(i / cols) * (cellH + pad),
+    });
+  }
+  const out = join(HERE, 'contact-sheet.png');
+  await sharp({ create: { width: W, height: H, channels: 3, background: '#F4F7FF' } }).composite(composites).png().toFile(out);
+  console.log('contact sheet', out, `${W}x${H}`);
+}
+
 function installCaptionFont() {
   const dir = join(process.env.HOME || '/tmp', '.local/share/fonts');
   mkdirSync(dir, { recursive: true });
@@ -447,6 +468,7 @@ async function main() {
         console.log('framed', `${exp.w}x${exp.h}`, shot.file, `${meta.width}x${meta.height}`);
       }
     }
+    await contactSheet(join(HERE, 'app-store/6.7-inch'));
   } finally {
     stop();
     rmSync(PUBLIC, { recursive: true, force: true });
