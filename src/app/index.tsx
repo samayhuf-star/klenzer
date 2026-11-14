@@ -14,6 +14,7 @@ import { ScanPulse } from '../components/ScanPulse';
 import { KINDS } from '../lib/kinds';
 import { formatBytes } from '../lib/format';
 import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
+import { isIosUi, screenshotScene } from '../lib/screenshotMode';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
@@ -30,12 +31,14 @@ export default function Home() {
   );
   const usedPct = disk.total ? disk.used / disk.total : 0;
   const denied = access === 'denied';
+  const shot = screenshotScene();
 
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
   const phase = progress?.phase === 'measuring' ? 'Measuring file sizes' : 'Reading your library';
 
   return (
     <ScrollView
+      testID="home-scroll"
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32, paddingHorizontal: 20 }}
       showsVerticalScrollIndicator={false}>
@@ -49,7 +52,7 @@ export default function Home() {
         </PressableScale>
       </View>
 
-      <Animated.View entering={FadeInDown.duration(500)} style={[styles.card, styles.hero]}>
+      <Animated.View entering={shot ? undefined : FadeInDown.duration(500)} style={[styles.card, styles.hero]}>
         <Text style={styles.eyebrow}>THIS DEVICE</Text>
         <Ring size={188} stroke={16} progress={usedPct}>
           <CountUp value={disk.free} format={(n) => formatBytes(n)} style={styles.big} />
@@ -79,7 +82,7 @@ export default function Home() {
       )}
 
       {scanning ? (
-        <Animated.View entering={FadeInDown} style={[styles.card, { marginTop: 16, borderWidth: 1, borderColor: colors.blueSoft }]}>
+        <Animated.View entering={shot ? undefined : FadeInDown} style={[styles.card, { marginTop: 16, borderWidth: 1, borderColor: colors.blueSoft }]}>
           <View style={{ alignItems: 'center', marginBottom: 10 }}>
             <ScanPulse size={100} />
           </View>
@@ -144,7 +147,7 @@ export default function Home() {
       )}
 
       {result && !scanning && (
-        <Animated.View entering={FadeInDown.delay(100)} style={{ marginTop: 22, gap: 12 }}>
+        <Animated.View entering={shot ? undefined : FadeInDown.delay(100)} style={{ marginTop: 22, gap: 12 }}>
           <Text style={styles.section}>What we found</Text>
           <Category
             kind="duplicates"
@@ -176,7 +179,7 @@ export default function Home() {
             bytes={sum(result.largeVideos)}
             hint="Videos over 100 MB, biggest first"
           />
-          {Platform.OS === 'ios' && (
+          {isIosUi() && (
             <Category
               kind="live"
               icon={KINDS.live.icon}

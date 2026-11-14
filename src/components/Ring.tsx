@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors } from '../theme';
@@ -36,8 +36,11 @@ export function Ring({ size, stroke, progress, children }: Props) {
           fill="none"
           strokeDasharray={c}
           animatedProps={props}
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
+          // Web's SVG bridge turns `origin` into an invalid DOM prop and warns.
+          // A rotate transform starts the arc at 12 o'clock on both.
+          {...(Platform.OS === 'web'
+            ? { transform: `rotate(-90 ${size / 2} ${size / 2})` }
+            : { rotation: -90, origin: `${size / 2}, ${size / 2}` })}
         />
       </Svg>
       <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>{children}</View>
