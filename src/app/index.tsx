@@ -83,8 +83,17 @@ export default function Home() {
           <View style={{ alignItems: 'center', marginBottom: 10 }}>
             <ScanPulse size={100} />
           </View>
-          <Text style={[styles.cardTitle, { textAlign: 'center', color: colors.blue }]}>{phase}…</Text>
-          <View style={[styles.bar, { height: 12, marginTop: 12 }]}>
+          <Text
+            style={[styles.cardTitle, { textAlign: 'center', color: colors.blue }]}
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`${phase}, ${pct} percent complete`}>
+            {phase}…
+          </Text>
+          <View
+            style={[styles.bar, { height: 12, marginTop: 12 }]}
+            accessibilityRole="progressbar"
+            accessibilityValue={{ min: 0, max: 100, now: pct }}
+            accessibilityLabel="Scan progress">
             <View style={[styles.barFill, { width: `${Math.max(4, pct)}%`, backgroundColor: colors.blue }]} />
           </View>
           <Text style={[styles.sub, { textAlign: 'center', marginTop: 8, fontWeight: '600' }]}>
@@ -109,10 +118,19 @@ export default function Home() {
               );
             })}
           </View>
-          <Text style={{ fontSize: 13, color: colors.ink2, textAlign: 'center', marginTop: 14, lineHeight: 18 }}>
+          <Text
+            style={{ fontSize: 13, color: colors.ink2, textAlign: 'center', marginTop: 14, lineHeight: 18 }}
+            accessibilityLiveRegion="polite">
             You can leave the app running. We’ll notify you when the scan is complete.
           </Text>
-          <Button variant="ghost" label="Cancel scan" onPress={cancelScan} style={{ marginTop: 12 }} />
+          <Button
+            variant="ghost"
+            label="Cancel scan"
+            onPress={cancelScan}
+            style={{ marginTop: 12 }}
+            accessibilityLabel="Cancel scan"
+            accessibilityHint="Stops the current library scan"
+          />
         </Animated.View>
       ) : (
         <Button
@@ -120,6 +138,8 @@ export default function Home() {
           icon={<Ionicons name="sparkles" size={20} color="#fff" />}
           onPress={scan}
           style={{ marginTop: 18 }}
+          accessibilityLabel={result ? 'Scan library again' : 'Scan my photo library'}
+          accessibilityHint="Finds duplicates, screenshots, large videos and recordings on this device"
         />
       )}
 
