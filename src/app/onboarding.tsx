@@ -47,6 +47,7 @@ export default function Onboarding() {
       <View style={styles.cta}>
         <Button
           label={last ? 'Get started' : 'Continue'}
+          testID={last ? 'onboarding-start' : 'onboarding-continue'}
           onPress={() => (last ? finishOnboarding() : list.current?.scrollToIndex({ index: i + 1, animated: true }))}
         />
       </View>

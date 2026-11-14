@@ -69,7 +69,7 @@ const feature = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1024
   <circle cx="120" cy="520" r="300" fill="${MINT}" opacity="0.20"/>
   <g transform="translate(60 118) scale(0.26)"><rect x="40" y="40" width="944" height="944" rx="220" fill="url(#bg)"/>${mark()}</g>
   <text x="372" y="250" font-family="Helvetica, Arial, sans-serif" font-weight="800" font-size="104" fill="#fff" letter-spacing="-3">Klenzer</text>
-  <text x="374" y="318" font-family="Helvetica, Arial, sans-serif" font-weight="500" font-size="40" fill="#BFD0FF">Clean photo &amp; video clutter.</text>
+  <text x="374" y="318" font-family="Helvetica, Arial, sans-serif" font-weight="500" font-size="40" fill="#BFD0FF">Phone Storage Cleaner</text>
   <text x="374" y="368" font-family="Helvetica, Arial, sans-serif" font-weight="500" font-size="40" fill="#19E3B1">Private. On-device. You decide.</text>
 </svg>`);
 await sharp(feature).png().toFile(out('store/graphics/play-feature-graphic-1024x500.png'));

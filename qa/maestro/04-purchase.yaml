@@ -1,0 +1,14 @@
+# A StoreKit test purchase on CI is driven by XCUITest + SKTestSession.disableDialogs.
+# This flow is a local convenience when Xcode has the .storekit file loaded.
+appId: com.krosz.klenzer
+---
+- tapOn:
+    id: "plan-monthly"
+- tapOn:
+    id: "unlock"
+- tapOn:
+    id: "open-settings"
+    optional: true
+- tapOn: "Settings"
+- assertVisible: "Plan: Pro"
+- takeScreenshot: 04-settings-plan

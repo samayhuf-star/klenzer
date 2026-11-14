@@ -1,73 +1,63 @@
-# Klenzer
+# Ai Klenzer
 
-Private, on-device photo clutter cleaner for iOS and Android. Klenzer finds duplicate or near-identical photos, screenshots, Live Photos, and large videos, then lets you review and delete only what you choose. Nothing is uploaded.
+Private, on-device photo clutter cleaner for iOS and Android. Ai Klenzer finds duplicate and similar photos, screenshots, blurry shots, Live Photos, screen recordings, and large videos, then lets you review and delete only what you choose. Photos are never uploaded.
 
-This README is a draft (the GitHub repo `samayhuf-star/klenzer` has no root README.md). It is based on the public `main` branch plus a read-only Expo/store audit on 12 Nov 2026. It has not been committed or pushed.
+Scanning and reviewing are free. Without Ai Klenzer Pro you can clear 10 items a day, shared across deletes, contact merges, and Secret Album. Pro removes that limit. Yearly and monthly show a 7-day free trial when the store says the user is eligible.
 
-## Features (as implemented on `main`)
+App version in `app.json`: 1.1.1. EAS production builds take the version and build number from the remote source (`eas.json` `appVersionSource: remote`), so set 1.1.1 there before the next store build.
 
-- Duplicate and near-identical photo sets (keeps the largest file by default)
-- Screenshot and large-video review
-- Live Photos review
-- Temporary-file cleanup for Klenzer’s own cache
-- Real device free/total storage figures
-- Confirm-before-delete (system dialog); on iOS, items go to Recently Deleted
-- Optional local reminder notifications (no push server)
-- In-app privacy policy screen
+## Features
 
-Later EAS builds from branches such as `revenuecat-integration` and `feat/lifetime-paywall` add a RevenueCat paywall (entitlement id `klenzer_pro`, including a one-time lifetime unlock). Those changes are **not** on `main` as of this draft (`main` `package.json` has no RevenueCat dependency, and `store/listing.md` still says “free, no in-app purchases (v1)”). Confirm which branch you are shipping before writing store copy.
+- Exact duplicates and similar photos (native thumbnail analysis, including iCloud-only photos)
+- Screenshot, blurry-photo, Live Photo, screen-recording, and large-video review
+- Scan progress with a prominent percent, per-category bars, and a note that you can leave the app running
+- A local notification when the scan finishes, after the notification prompt is answered
+- The scan starts once full Photos access is granted
+- Swipe to Organize, Merge Contacts, and Secret Album
+- Confirm-before-delete (a single system dialog for the whole selection)
+- Optional local reminder (no push server)
+- Ai Klenzer Pro: yearly, monthly (7-day trial when eligible), or a one-time lifetime unlock
 
 ## Tech stack
 
 - Expo (SDK 57) + Expo Router + TypeScript
 - `expo-media-library` for on-device PhotoKit / Android media access
-- EAS Build profiles: `production`, `simulator`, `testflight` (plus development/preview in `eas.json`)
+- `expo-sqlite` for the scan cache; native thumbnail hashing for Duplicate, Similar, and Blurry
+- `expo-notifications` for local reminders and the scan-complete notification (no push server)
+- StoreKit 2 / Play Billing via `expo-iap` (no RevenueCat)
+- EAS Build profiles: `production`, `simulator`, `preview`, `development`
 
 ## Identifiers
 
 - Expo project: `@krosz/klenzer` (`c6034b7f-62d6-487e-aff1-f013636ae0b5`)
-- iOS bundle ID: `com.krosz.klenzer`
-- Android package: `com.krosz.klenzer`
+- iOS bundle ID / Android package: `com.krosz.klenzer`
+- Display name: Ai Klenzer
 - `supportsTablet`: false
 - `ITSAppUsesNonExemptEncryption`: false
-- Owner account: `krosz`
+- Store product IDs (prices come from the store’s localized displayPrice): `com.krosz.klenzer.yearly`, `com.krosz.klenzer.monthly`, `com.krosz.klenzer.lifetime`
+- App Store Connect app id used by EAS Submit: `6820685404`
 
 ## Run locally
 
 ```bash
-npm install
+npm ci
 npm run typecheck
 npx expo start
 ```
 
-Photo-library features need a real device (or a development/simulator build), not just Expo Go.
+Photo-library features and store purchases need a development or production build, not Expo Go.
 
-## Build and submit (EAS)
+Dev-only web screenshots (never active in production):
 
 ```bash
-npx eas-cli@latest login
-npx eas-cli@latest build --platform ios --profile production
-npx eas-cli@latest build --platform android --profile production
-# Only after a go-ahead and working store credentials:
-# npx eas-cli@latest submit --platform ios --latest
-# npx eas-cli@latest submit --platform android --latest
+EXPO_PUBLIC_DEMO=1 npx expo start --web
 ```
-
-iOS distribution certificate and an App Store provisioning profile are already on the Expo project, and an App Store Connect API key is attached for submissions. There is **no** Google Play service account key on the Expo account, so Android EAS Submit will not work until one is added with Play access. ASC app id used in prior iOS submissions: `6820685404`.
-
-## Paywall / RevenueCat
-
-- On `main`: none.
-- On later build branches: RevenueCat, entitlement `klenzer_pro`. Do not put API keys in this file. If you use EAS environment variables, keep values in Expo (not in git).
 
 ## Privacy and support
 
-- In-app policy + source HTML: `store/privacy-policy.html`
-- Configured public URL in `src/lib/config.ts`: `https://klenzer-privacy-krosz.vercel.app` — as of 12 Nov 2026 this URL returned HTTP 402 and is not usable as a store privacy policy. Re-host the policy and update `PRIVACY_URL` before submission.
-- Support: `samayhuf@gmail.com`
+- Privacy: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
+- Terms: https://samayhuf-star.github.io/app-legal/klenzer/terms.html
+- Support: https://samayhuf-star.github.io/app-legal/klenzer/support.html
+- Contact: samayhuf@gmail.com
 
-## Store status (public, 12 Nov 2026)
-
-- App Store Connect record exists (name “Klenzer - Clean Photo Clutter”). The public US and India App Store listings were **not** found (iTunes lookup count 0). ASC icon was still a placeholder asset. Review/draft/rejected state is unknown without App Store Connect.
-- Latest submitted iOS binary: 1.1.0 (12), EAS submission finished 11 Nov 2026. A newer iOS production build 1.0.0 (14) (RevenueCat branch) has not been submitted.
-- Google Play public listing: not found (HTTP 404). Finished Android production builds exist (latest 1.0.0 (5)); none have been submitted via EAS. Play Console draft/testing state is unknown.
+Do not run `eas build` or `eas submit` from a release-candidate branch until the remote version is set to 1.1.1 and build 27 has finished App Store review.
