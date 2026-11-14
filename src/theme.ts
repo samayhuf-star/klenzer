@@ -1,20 +1,20 @@
 export const colors = {
-  bg: '#F6F8FC',
+  bg: '#F4F7FF',
   card: '#FFFFFF',
   ink: '#0B1020',
   ink2: '#4A5470',
   ink3: '#8A93AD',
-  line: '#E4E9F4',
+  line: '#E0E7F5',
   mint: '#19E3B1',
-  blue: '#2F6BFF',
-  blueSoft: '#E7EEFF',
+  blue: '#2563EB',
+  blueSoft: '#DBEAFE',
   mintSoft: '#DDFBF2',
   danger: '#F2455C',
   dangerSoft: '#FFE9EC',
   amber: '#FF9F1C',
   amberSoft: '#FFF1DB',
-  violet: '#7A5CFF',
-  violetSoft: '#EEEAFF',
+  violet: '#6366F1',
+  violetSoft: '#E0E7FF',
   navy: '#0B1020',
 };
 
@@ -29,7 +29,7 @@ export const fonts = {
 export const radius = { sm: 12, md: 18, lg: 26, pill: 999 };
 
 export const shadow = {
-  shadowColor: '#1B2A59',
+  shadowColor: '#1E3A8A',
   shadowOpacity: 0.08,
   shadowRadius: 18,
   shadowOffset: { width: 0, height: 8 },
