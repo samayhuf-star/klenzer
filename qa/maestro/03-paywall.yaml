@@ -1,0 +1,14 @@
+# Prices only resolve on a simulator when a StoreKit Configuration is attached
+# (xcodebuild -storeKitConfigurationPath). Bare `maestro test` will not see them.
+appId: com.krosz.klenzer
+---
+- tapOn:
+    id: "open-paywall"
+- extendedWaitUntil:
+    visible:
+      id: "paywall-screen"
+    timeout: 8000
+- assertVisible: "19.99"
+- assertVisible: "3.99"
+- assertVisible: "29.99"
+- takeScreenshot: 03-paywall

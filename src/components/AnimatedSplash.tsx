@@ -38,7 +38,7 @@ export function AnimatedSplash({ ready, onDone }: { ready: boolean; onDone: () =
         <Sparkle size={14} color={colors.mint} delay={1300} style={{ top: 60, left: 6 }} />
       </View>
       <Animated.View style={[styles.wordWrap, wordStyle]}>
-        <Text style={styles.word}>Klenzer</Text>
+        <Text style={styles.word}>Ai Klenzer</Text>
         <Text style={styles.tag}>Clear the clutter. Keep the moments.</Text>
       </Animated.View>
     </Animated.View>
@@ -49,6 +49,6 @@ const styles = StyleSheet.create({
   root: { backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   center: { width: 200, height: 200, alignItems: 'center', justifyContent: 'center' },
   wordWrap: { position: 'absolute', bottom: '18%', alignItems: 'center', gap: 8 },
-  word: { color: '#fff', fontSize: 40, letterSpacing: -1, fontFamily: fonts.display },
+  word: { color: '#fff', fontSize: 34, letterSpacing: -1, fontFamily: fonts.display },
   tag: { color: '#9FB0E0', fontSize: 15, fontFamily: fonts.medium },
 });
