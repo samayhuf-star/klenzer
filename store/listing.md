@@ -88,3 +88,10 @@ Ai Klenzer finds recordings, large videos, similar photos, screenshots and Live 
 Nothing is deleted automatically. Android asks you to confirm.
 
 Questions? Contact support from Settings.
+
+## Legal URLs
+
+- Privacy policy: https://klenzer.online/privacy
+- Terms of Use: https://klenzer.online/terms
+- Support: https://klenzer.online/support
+- Support email: samayhuf@gmail.com

@@ -12,9 +12,11 @@ type Props = {
   busy?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 };
 
-export function Button({ label, onPress, variant = 'primary', icon, busy, disabled, style }: Props) {
+export function Button({ label, onPress, variant = 'primary', icon, busy, disabled, style, accessibilityLabel, accessibilityHint }: Props) {
   const textColor = variant === 'primary' || variant === 'danger' ? '#fff' : variant === 'light' ? colors.ink : colors.blue;
   const inner = (
     <View style={styles.row}>
@@ -23,7 +25,12 @@ export function Button({ label, onPress, variant = 'primary', icon, busy, disabl
     </View>
   );
   return (
-    <PressableScale onPress={onPress} disabled={disabled || busy} accessibilityLabel={label} style={[styles.wrap, style]}>
+    <PressableScale
+      onPress={onPress}
+      disabled={disabled || busy}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
+      style={[styles.wrap, style]}>
       {variant === 'primary' ? (
         <LinearGradient colors={[colors.blue, '#1BB6D8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
           {inner}

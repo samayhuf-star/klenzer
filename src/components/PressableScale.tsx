@@ -12,6 +12,7 @@ type Props = {
   disabled?: boolean;
   haptic?: boolean;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   accessibilityRole?: 'button' | 'link' | 'checkbox';
   accessibilityState?: { checked?: boolean; disabled?: boolean };
 };

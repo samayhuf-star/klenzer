@@ -62,9 +62,34 @@ iOS distribution certificate and an App Store provisioning profile are already o
 
 ## Privacy and support
 
-- In-app policy + source HTML: `store/privacy-policy.html`
-- Configured public URL in `src/lib/config.ts`: `https://klenzer-privacy-krosz.vercel.app` — as of 12 Nov 2026 this URL returned HTTP 402 and is not usable as a store privacy policy. Re-host the policy and update `PRIVACY_URL` before submission.
-- Support: `samayhuf@gmail.com`
+- In-app policy: `src/lib/privacy.ts` (last updated October 15, 2026). Source HTML: `store/privacy-policy.html`.
+- Published site (GitHub Pages, folder `/docs`, custom domain file `docs/CNAME`):
+  - Privacy: https://klenzer.online/privacy
+  - Terms: https://klenzer.online/terms
+  - Support: https://klenzer.online/support
+- App constants in `src/lib/config.ts`: `PRIVACY_URL`, `TERMS_URL`, `SUPPORT_URL`.
+- Support email: `samayhuf@gmail.com`
+
+### GitHub Pages and klenzer.online
+
+Pages publishes the `/docs` folder on `main`. After this branch is merged:
+
+1. GitHub → `samayhuf-star/klenzer` → Settings → Pages.
+2. Build and deployment → Source: **Deploy from a branch**.
+3. Branch: `main`, folder: `/docs`. Save.
+4. Custom domain: `klenzer.online`. Save. `docs/CNAME` already contains that hostname. Enforce HTTPS once the certificate is ready (can take up to 24 hours after DNS is correct).
+
+GoDaddy DNS for the apex and `www` (remove any parking A record or domain forwarding first):
+
+| Type | Host | Value |
+|---|---|---|
+| A | `@` | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
+| CNAME | `www` | `samayhuf-star.github.io` |
+
+`www` must point at `samayhuf-star.github.io`, not at the repository path. GitHub also accepts these AAAA records on `@`: `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`.
 
 ## Store status (public, 12 Nov 2026)
 
