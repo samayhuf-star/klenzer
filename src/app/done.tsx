@@ -58,7 +58,7 @@ export default function Done() {
                 ? `${count.toLocaleString()} ${count === 1 ? 'item was' : 'items were'} removed from your library.`
                 : 'Temporary files removed.'}
           </Text>
-          {lifetimeFreed > 0 && <CountUp value={lifetimeFreed} format={(n) => `${formatBytes(n)} freed with Klenzer so far`} style={styles.total} />}
+          {lifetimeFreed > 0 && <CountUp value={lifetimeFreed} format={(n) => `${formatBytes(n)} freed with Ai Klenzer so far`} style={styles.total} />}
         </Animated.View>
       </View>
       <PressableScale onPress={() => router.replace('/')} accessibilityLabel="Done" style={styles.doneBtn} testID="done-button">

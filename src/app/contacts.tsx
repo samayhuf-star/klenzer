@@ -73,7 +73,7 @@ export default function MergeContacts() {
     const groupsCount = new Set(work.map((w) => w.plan.keepId)).size;
     Alert.alert(
       groupsCount === 1 ? 'Merge these contacts?' : `Merge ${groupsCount} groups?`,
-      `${work.length === 1 ? '1 duplicate contact' : `${work.length} duplicate contacts`} will be removed after their numbers and emails are copied onto the contact that stays. This cannot be undone in Klenzer.`,
+      `${work.length === 1 ? '1 duplicate contact' : `${work.length} duplicate contacts`} will be removed after their numbers and emails are copied onto the contact that stays. This cannot be undone in Ai Klenzer.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -139,7 +139,7 @@ export default function MergeContacts() {
             <Ionicons name="people" size={30} color={colors.violet} />
           </View>
           <Text style={styles.emptyTitle}>Find duplicate contacts</Text>
-          <Text style={styles.emptyBody}>Klenzer looks for contacts with the same name, number or email and merges them on your phone. Contacts never leave your phone.</Text>
+          <Text style={styles.emptyBody}>Ai Klenzer looks for contacts with the same name, number or email and merges them on your phone. Contacts never leave your phone.</Text>
           <Button
             label={access === 'denied' && !canAsk ? 'Open Settings' : 'Allow contacts access'}
             onPress={() => (access === 'denied' && !canAsk ? Linking.openSettings() : void refresh(true))}

@@ -42,7 +42,7 @@ export function RecentlyDeletedSheet({
     } catch {}
     Alert.alert(
       'Open the Photos app',
-      'Klenzer cannot open Photos automatically on this device. In Photos, go to Albums, then Recently Deleted, then Select, then Delete All.',
+      'Ai Klenzer cannot open Photos automatically on this device. In Photos, go to Albums, then Recently Deleted, then Select, then Delete All.',
     );
   };
 

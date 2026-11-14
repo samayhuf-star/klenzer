@@ -41,7 +41,7 @@ export default function SwipeToOrganize() {
         <View style={styles.empty}>
           <Ionicons name="albums-outline" size={42} color={colors.blue} />
           <Text style={styles.emptyTitle}>Scan your library first</Text>
-          <Text style={styles.emptyBody}>Klenzer sorts your photos by month so you can swipe through them one at a time.</Text>
+          <Text style={styles.emptyBody}>Ai Klenzer sorts your photos by month so you can swipe through them one at a time.</Text>
           <Button label={scanning ? 'Scanning' : 'Scan now'} busy={scanning} onPress={() => void scan()} />
         </View>
       </View>

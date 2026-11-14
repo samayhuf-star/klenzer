@@ -17,7 +17,7 @@ export default function Settings() {
   const { access, openSettings, lifetimeFreed, reminders, setReminders, isPro } = useStore();
   const toggle = async (on: boolean) => {
     if ((await setReminders(on)) === 'blocked') {
-      Alert.alert('Notifications are off', 'Turn on notifications for Klenzer in Settings to get reminders.', [
+      Alert.alert('Notifications are off', 'Turn on notifications for Ai Klenzer in Settings to get reminders.', [
         { text: 'Not now', style: 'cancel' },
         { text: 'Open Settings', onPress: openSettings },
       ]);
@@ -25,7 +25,7 @@ export default function Settings() {
   };
   const doRestore = async () => {
     const r = await restore();
-    if (r === 'restored') Alert.alert('Restored', 'Klenzer is unlocked on this device.');
+    if (r === 'restored') Alert.alert('Restored', 'Ai Klenzer is unlocked on this device.');
     else if (r === 'none') Alert.alert('Nothing to restore', 'We couldn’t find a previous purchase on this account.');
     else if (r === 'error') Alert.alert('Restore didn’t finish', 'We couldn’t reach the store just now. Please try again in a moment.');
   };

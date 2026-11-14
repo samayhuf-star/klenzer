@@ -7,7 +7,7 @@ Demo mode is dev-only (`__DEV__` and `EXPO_PUBLIC_DEMO=1`). It is off in product
 | File | Screen |
 |---|---|
 | `01-home.png` | Home after a demo scan. Ai Klenzer name, blue storage card, Smart Clean, Photos / Videos / Contacts. |
-| `02-scanning.png` | Scan in progress: percent, per-category bars, leave-running note, Cancel. `?shot=scanning` forces this state in demo only. |
+| `02-scanning.png` | Scan in progress, large card only: percent, per-category bars, leave-running note, Cancel. `?shot=scanning` forces this state in demo only. |
 | `03-similar-photos.png` | Similar-photo review. Largest file kept, extras selected, 10 free items left. |
 | `04-swipe.png` | Swipe to Organize, month chips, keep / delete. |
 | `05-paywall-trial.png` | Paywall. Yearly selected, “7 days free, then $19.99/year, cancel anytime”. Monthly has the same trial. Lifetime does not. |

@@ -209,7 +209,7 @@ export default function Review() {
             <Text style={styles.barNote}>
               {Platform.OS === 'ios' || DEMO
                 ? 'Your iPhone will ask you to confirm before anything is deleted. Items go to Recently Deleted.'
-                : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}
+                : 'Android will ask you to confirm. Deleted items can’t be restored by Ai Klenzer.'}
             </Text>
             <FreeLeftNote style={{ fontSize: 12 }} />
           </>

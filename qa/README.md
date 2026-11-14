@@ -12,7 +12,7 @@ It runs on `macos-latest` for every push to `klenzer/v2` and on `workflow_dispat
 6. Drives four pass/fail gates with XCUITest (`xcodebuild test -storeKitConfigurationPath`):
    1. Launch shows no Apple ID or system prompt, and home appears in under 2 seconds.
    2. The scan shows its first results within 10 seconds and then finishes.
-   3. The paywall shows yearly $19.99, monthly $3.99 (auto-renew group "Klenzer Pro") and lifetime $29.99, from the `.storekit` file.
+   3. The paywall shows yearly $19.99, monthly $3.99 (auto-renew group "Ai Klenzer Pro") and lifetime $29.99, from the `.storekit` file.
    4. A test monthly purchase unlocks Pro.
 7. Uploads screenshots, the video and the logs as the `sim-qa-artifacts` artifact, and writes `$GITHUB_STEP_SUMMARY`.
 

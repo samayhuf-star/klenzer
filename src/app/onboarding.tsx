@@ -10,7 +10,7 @@ import { useStore } from '../lib/store';
 import { colors, fonts } from '../theme';
 
 const SLIDES = [
-  { icon: 'copy-outline', c: [colors.mint, colors.blue], title: 'Find the clutter', body: 'Klenzer spots duplicate and near-identical photos, old screenshots and huge videos hiding in your library.' },
+  { icon: 'copy-outline', c: [colors.mint, colors.blue], title: 'Find the clutter', body: 'Ai Klenzer spots duplicate and near-identical photos, old screenshots and huge videos hiding in your library.' },
   { icon: 'hand-left-outline', c: [colors.blue, colors.violet], title: 'You decide, always', body: 'Review everything before it goes. Nothing is deleted without your tap and your phone’s own confirmation.' },
   { icon: 'lock-closed-outline', c: [colors.violet, '#FF6BA8'], title: 'Private by design', body: 'Everything happens on your device. Your photos are never uploaded, shared or tracked. No account needed.' },
 ] as const;

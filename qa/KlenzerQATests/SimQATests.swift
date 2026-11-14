@@ -116,7 +116,7 @@ final class SimQATests: XCTestCase {
 
         // --- Step 3: paywall prices ---
         let pro = app.descendants(matching: .any)["open-paywall"]
-        XCTAssertTrue(pro.waitForExistence(timeout: 5), "PRO / Klenzer Pro button not found")
+        XCTAssertTrue(pro.waitForExistence(timeout: 5), "PRO / Ai Klenzer Pro button not found")
         let tPay = Date()
         pro.tap()
         let paywall = app.otherElements["paywall-screen"]

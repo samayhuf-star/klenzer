@@ -53,7 +53,8 @@ describe('home layout', () => {
     assert.doesNotMatch(home, /kind="photos"/);
     assert.doesNotMatch(home, /title="Videos"/);
     assert.doesNotMatch(home, /ScanProgress/);
-    assert.match(home, /<ScanBar/);
+    assert.doesNotMatch(home, /<ScanBar/);
+    assert.match(home, /testID="scan-card"/);
   });
   it('has the Photos, Videos and Contacts switcher and no Compress row', () => {
     assert.match(home, /<Segmented/);
@@ -62,10 +63,12 @@ describe('home layout', () => {
     }
     assert.doesNotMatch(home, /Want to save up extra space\?/);
   });
-  it('scan bar copy has no ellipsis character', () => {
-    const bar = src('src/components/ScanBar.tsx');
-    assert.match(bar, /'Scanning your library on this iPhone'/);
-    assert.doesNotMatch(bar, /\u2026/);
+  it('the large scan card is the only progress indicator and has no ellipsis', () => {
+    assert.match(home, /accessibilityRole="progressbar"/);
+    assert.match(home, /You can leave the app running/);
+    assert.match(home, /label="Cancel scan"/);
+    assert.doesNotMatch(home, /\u2026/);
+    assert.doesNotMatch(home, /Scanning your library on this iPhone/);
   });
 });
 

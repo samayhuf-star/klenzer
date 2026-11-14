@@ -7,7 +7,6 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 're
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
-import { ScanBar } from '../components/ScanBar';
 import { ScanPulse } from '../components/ScanPulse';
 import { Segmented } from '../components/Segmented';
 import { CountUp } from '../components/CountUp';
@@ -159,9 +158,7 @@ export default function Home() {
         </View>
 
         {showScanning && (
-          <>
-            <ScanBar percent={pct} reduceMotion={rm} />
-            <Animated.View entering={rm ? undefined : FadeInDown} style={styles.scanCard}>
+            <Animated.View entering={rm ? undefined : FadeInDown} style={styles.scanCard} testID="scan-card">
               <View style={{ alignItems: 'center', marginBottom: 6 }}>
                 <ScanPulse size={72} />
               </View>
@@ -210,7 +207,6 @@ export default function Home() {
                 accessibilityHint="Stops the current library scan"
               />
             </Animated.View>
-          </>
         )}
 
         {!!scanError && !scanning && (
@@ -220,12 +216,12 @@ export default function Home() {
         )}
 
         {denied && (
-          <Notice title="Photo access is off" body="Klenzer needs to read your photo library to find clutter. Photos never leave your device.">
+          <Notice title="Photo access is off" body="Ai Klenzer needs to read your photo library to find clutter. Photos never leave your device.">
             <Button variant="light" label={canAskAgain ? 'Allow access' : 'Open Settings'} onPress={canAskAgain ? () => void scan() : openSettings} />
           </Notice>
         )}
         {access === 'limited' && (
-          <Notice title="Limited photo access" body="Klenzer can only see the photos you selected, so results may be incomplete.">
+          <Notice title="Limited photo access" body="Ai Klenzer can only see the photos you selected, so results may be incomplete.">
             <Button variant="light" label="Choose more photos" onPress={manageLimited} />
           </Notice>
         )}

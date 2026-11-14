@@ -215,7 +215,7 @@ export default function SecretAlbum() {
 
   const offerDeleteOriginals = (count: number, assetIds: string[]) => {
     if (!assetIds.length) {
-      Alert.alert('Added to Secret Album', 'The originals are still in Photos. Klenzer could not link them to your library, so delete them in Photos if you want them gone.');
+      Alert.alert('Added to Secret Album', 'The originals are still in Photos. Ai Klenzer could not link them to your library, so delete them in Photos if you want them gone.');
       return;
     }
     Alert.alert(
@@ -244,7 +244,7 @@ export default function SecretAlbum() {
         ? locked
           ? `Too many tries. Try again in ${Math.ceil(locked / 1000)} s.`
           : 'Secret Album is locked.'
-        : `${PIN_MIN} to ${PIN_MAX} digits. Klenzer cannot recover a forgotten PIN.`;
+        : `${PIN_MIN} to ${PIN_MAX} digits. Ai Klenzer cannot recover a forgotten PIN.`;
     return (
       <View style={styles.root} testID="vault-lock">
         <ScreenHeader title="Secret Album" />
@@ -326,7 +326,7 @@ function AlbumGrid({ entries, thumbs, onOpen }: { entries: VaultEntry[]; thumbs:
       columnWrapperStyle={{ gap }}
       ItemSeparatorComponent={() => <View style={{ height: gap }} />}
       contentContainerStyle={{ padding: 20, paddingBottom: 190 }}
-      ListHeaderComponent={<Text style={styles.help}>Photos here are encrypted and stored only inside Klenzer. They never leave your phone.</Text>}
+      ListHeaderComponent={<Text style={styles.help}>Photos here are encrypted and stored only inside Ai Klenzer. They never leave your phone.</Text>}
       ListEmptyComponent={
         <View style={styles.emptyBox}>
           <Ionicons name="images-outline" size={36} color={colors.ink3} />
@@ -382,11 +382,11 @@ function Viewer({ entry, onClose, onRemoved }: { entry: VaultEntry | null; onClo
     setWorking(true);
     const ok = DEMO ? true : await exportToPhotos(entry);
     setWorking(false);
-    Alert.alert(ok ? 'Saved to Photos' : 'Could not save', ok ? 'A copy is back in your Photos library. It is still in Secret Album too.' : 'Klenzer needs permission to add photos to your library.');
+    Alert.alert(ok ? 'Saved to Photos' : 'Could not save', ok ? 'A copy is back in your Photos library. It is still in Secret Album too.' : 'Ai Klenzer needs permission to add photos to your library.');
   };
   const doRemove = () => {
     if (!entry) return;
-    Alert.alert('Remove from Secret Album?', 'The encrypted copy is deleted from Klenzer. Save it to Photos first if you want to keep it.', [
+    Alert.alert('Remove from Secret Album?', 'The encrypted copy is deleted from Ai Klenzer. Save it to Photos first if you want to keep it.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',

@@ -67,7 +67,7 @@ export default function Paywall() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       completeUnlock();
     } else if (r === 'pending') {
-      Alert.alert('Purchase pending', 'This purchase is waiting for approval. Klenzer will unlock once it is confirmed.');
+      Alert.alert('Purchase pending', 'This purchase is waiting for approval. Ai Klenzer will unlock once it is confirmed.');
     } else if (r === 'error') {
       Alert.alert('Purchase didn’t go through', 'You haven’t been charged. Please try again in a moment.');
     }
@@ -82,7 +82,7 @@ export default function Paywall() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       completeUnlock();
     } else if (r === 'none') {
-      Alert.alert('Nothing to restore', `We couldn’t find a previous Klenzer purchase on this ${ACCOUNT}.`);
+      Alert.alert('Nothing to restore', `We couldn’t find a previous Ai Klenzer purchase on this ${ACCOUNT}.`);
     } else if (r === 'error') {
       Alert.alert('Restore didn’t finish', `We couldn’t reach the ${STORE} just now. Please try again in a moment.`);
     }

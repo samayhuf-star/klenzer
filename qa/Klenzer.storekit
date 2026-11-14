@@ -29,7 +29,7 @@
     {
       "id" : "A11C0FEE-11FE-4B11-8E11-00000000GRP1",
       "localizations" : [],
-      "name" : "Klenzer Pro",
+      "name" : "Ai Klenzer Pro",
       "subscriptions" : [
         {
           "adHocOffers" : [],
@@ -45,7 +45,7 @@
           },
           "localizations" : [
             {
-              "description" : "Yearly access to Klenzer Pro.",
+              "description" : "Yearly access to Ai Klenzer Pro.",
               "displayName" : "Yearly",
               "locale" : "en_US"
             }
@@ -71,7 +71,7 @@
           },
           "localizations" : [
             {
-              "description" : "Monthly access to Klenzer Pro.",
+              "description" : "Monthly access to Ai Klenzer Pro.",
               "displayName" : "Monthly",
               "locale" : "en_US"
             }
