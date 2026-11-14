@@ -3,12 +3,14 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { PressableScale } from '../../components/PressableScale';
+import { SystemDeleteDialog } from '../../components/ScreenshotChrome';
 import { formatBytes, formatDate, formatDuration } from '../../lib/format';
 import { dupExtras, Item } from '../../lib/scanner';
+import { isIosUi, screenshotScene } from '../../lib/screenshotMode';
 import { useStore } from '../../lib/store';
 import { colors, fonts, radius } from '../../theme';
 
@@ -33,7 +35,13 @@ export default function Review() {
     [kind, groups, result],
   );
 
-  const [sel, setSel] = useState<Set<string>>(() => new Set(kind === 'duplicates' ? groups.flatMap((g) => dupExtras(g).map((i) => i.id)) : []));
+  const shot = screenshotScene();
+  const [sel, setSel] = useState<Set<string>>(() => {
+    if (kind === 'duplicates') return new Set(groups.flatMap((g) => dupExtras(g).map((i) => i.id)));
+    // Screenshot of the confirm step: the three largest videos are checked, one is left.
+    if (shot === 'control' && kind === 'videos') return new Set((result?.largeVideos ?? []).slice(0, 3).map((i) => i.id));
+    return new Set();
+  });
   const chosen = useMemo(() => flat.filter((i) => sel.has(i.id)), [flat, sel]);
   const bytes = chosen.reduce((n, i) => n + i.size, 0);
 
@@ -137,8 +145,9 @@ export default function Review() {
           label={chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Select items to delete'}
           onPress={doDelete}
         />
-        <Text style={styles.barNote}>{Platform.OS === 'ios' ? 'Your iPhone will ask you to confirm. Items go to Recently Deleted; Klenzer will take you to Photos to empty it.' : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}</Text>
+        <Text style={styles.barNote}>{isIosUi() ? 'Your iPhone will ask you to confirm. Items go to Recently Deleted; Klenzer will take you to Photos to empty it.' : 'Android will ask you to confirm. Deleted items can’t be restored by Klenzer.'}</Text>
       </View>
+      {shot === 'control' && chosen.length > 0 && <SystemDeleteDialog count={chosen.length} noun={kind === 'videos' ? 'video' : 'photo'} />}
     </View>
   );
 }

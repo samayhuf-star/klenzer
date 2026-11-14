@@ -41,6 +41,9 @@ yarn-error.*
 /android
 
 scripts/node_modules/
+store/screenshots/node_modules/
+store/screenshots/raw/
+public/shot-samples/
 
 .claude/
 .expo/

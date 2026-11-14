@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { Sparkle } from '../components/Sparkle';
+import { screenshotScene } from '../lib/screenshotMode';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../theme';
 
@@ -19,9 +20,13 @@ export default function Onboarding() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { finishOnboarding } = useStore();
-  const x = useSharedValue(0);
-  const [i, setI] = useState(0);
+  const start = screenshotScene() === 'privacy' ? SLIDES.length - 1 : 0;
+  const x = useSharedValue(start * width);
+  const [i, setI] = useState(start);
   const list = useRef<FlatList>(null);
+  useEffect(() => {
+    if (start > 0) list.current?.scrollToIndex({ index: start, animated: false });
+  }, [start]);
   const onScroll = useAnimatedScrollHandler((e) => (x.value = e.contentOffset.x));
   const last = i === SLIDES.length - 1;
 
@@ -36,6 +41,9 @@ export default function Onboarding() {
         keyExtractor={(s) => s.title}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        initialScrollIndex={start}
+        contentOffset={{ x: start * width, y: 0 }}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         onMomentumScrollEnd={(e) => setI(Math.round(e.nativeEvent.contentOffset.x / width))}
         renderItem={({ item, index }) => <Slide item={item} index={index} x={x} width={width} />}
       />

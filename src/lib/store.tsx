@@ -7,6 +7,8 @@ import { Kind } from './kinds';
 import { deleteItems, Item, Progress, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
 import { disableReminders, enableReminders, permissionState, remindersPref, scheduleReminders } from './reminders';
+import { buildFixture } from './screenshotFixture';
+import { screenshotsEnabled, screenshotScene, type ShotScene } from './screenshotMode';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
 
@@ -65,6 +67,12 @@ const toAccess = (p: MediaLibrary.PermissionResponse): Access =>
   p.status === 'granted' ? (p.accessPrivileges === 'limited' ? 'limited' : 'granted') : p.status === 'denied' ? 'denied' : 'unknown';
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  // Sample library for store screenshots. Production builds never set the flag.
+  if (screenshotsEnabled()) return <ShotProvider>{children}</ShotProvider>;
+  return <LiveProvider>{children}</LiveProvider>;
+}
+
+function LiveProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
   const [access, setAccess] = useState<Access>('unknown');
@@ -345,6 +353,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
     }),
     [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
+  );
+  return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
+}
+
+function ShotProvider({ children }: { children: ReactNode }) {
+  const [scene, setScene] = useState<ShotScene>(() => (typeof window === 'undefined' ? 'home' : screenshotScene() ?? 'home'));
+  useEffect(() => {
+    setScene(screenshotScene() ?? 'home');
+  }, []);
+  const fx = useMemo(() => buildFixture(scene), [scene]);
+  const value = useMemo<Ctx>(
+    () => ({
+      ready: true,
+      onboarded: scene !== 'privacy',
+      finishOnboarding: () => {},
+      access: 'granted',
+      canAskAgain: true,
+      requestAccess: async () => 'granted',
+      openSettings: () => {},
+      manageLimited: async () => {},
+      disk: fx.disk,
+      refreshDisk: () => {},
+      scanning: fx.scanning,
+      progress: fx.progress,
+      result: fx.result,
+      scan: async () => {},
+      cancelScan: () => {},
+      cleaning: null,
+      clean: async () => {},
+      tempSize: fx.tempSize,
+      pending: null,
+      dismissPending: () => {},
+      openPhotos: () => {},
+      reminders: false,
+      setReminders: async () => 'off',
+      lifetimeFreed: 0,
+      lifetimeItems: 0,
+      lastFreed: null,
+    }),
+    [scene, fx],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

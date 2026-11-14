@@ -14,6 +14,7 @@ import { ScanPulse } from '../components/ScanPulse';
 import { KINDS } from '../lib/kinds';
 import { formatBytes } from '../lib/format';
 import { dupExtraCount, dupExtras, dupReclaimable, sum } from '../lib/scanner';
+import { isIosUi, screenshotScene } from '../lib/screenshotMode';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
@@ -30,12 +31,17 @@ export default function Home() {
   );
   const usedPct = disk.total ? disk.used / disk.total : 0;
   const denied = access === 'denied';
+  const shot = screenshotScene();
+  const foundBytes = result
+    ? dupReclaimable(result.duplicates) + sum(result.screenshots) + sum(result.largeVideos) + (isIosUi() ? sum(result.livePhotos) : 0) + tempSize
+    : 0;
 
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
   const phase = progress?.phase === 'measuring' ? 'Measuring file sizes' : 'Reading your library';
 
   return (
     <ScrollView
+      testID="home-scroll"
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32, paddingHorizontal: 20 }}
       showsVerticalScrollIndicator={false}>
@@ -49,7 +55,7 @@ export default function Home() {
         </PressableScale>
       </View>
 
-      <Animated.View entering={FadeInDown.duration(500)} style={[styles.card, styles.hero]}>
+      <Animated.View entering={shot ? undefined : FadeInDown.duration(500)} style={[styles.card, styles.hero]}>
         <Text style={styles.eyebrow}>THIS DEVICE</Text>
         <Ring size={188} stroke={16} progress={usedPct}>
           <CountUp value={disk.free} format={(n) => formatBytes(n)} style={styles.big} />
@@ -79,7 +85,7 @@ export default function Home() {
       )}
 
       {scanning ? (
-        <Animated.View entering={FadeInDown} style={[styles.card, { marginTop: 16, borderWidth: 1, borderColor: colors.blueSoft }]}>
+        <Animated.View entering={shot ? undefined : FadeInDown} style={[styles.card, { marginTop: 16, borderWidth: 1, borderColor: colors.blueSoft }]}>
           <View style={{ alignItems: 'center', marginBottom: 10 }}>
             <ScanPulse size={100} />
           </View>
@@ -144,8 +150,15 @@ export default function Home() {
       )}
 
       {result && !scanning && (
-        <Animated.View entering={FadeInDown.delay(100)} style={{ marginTop: 22, gap: 12 }}>
+        <Animated.View entering={shot ? undefined : FadeInDown.delay(100)} style={{ marginTop: 22, gap: 12 }}>
           <Text style={styles.section}>What we found</Text>
+          {foundBytes > 0 && (
+            <View style={[styles.card, styles.found]} accessibilityLabel={`${formatBytes(foundBytes)} to review`}>
+              <Text style={styles.eyebrow}>TO REVIEW</Text>
+              <Text style={styles.foundBytes}>{formatBytes(foundBytes)}</Text>
+              <Text style={styles.foundHint}>Screen recordings, large videos and similar photos</Text>
+            </View>
+          )}
           <Category
             kind="duplicates"
             icon="copy"
@@ -176,7 +189,7 @@ export default function Home() {
             bytes={sum(result.largeVideos)}
             hint="Videos over 100 MB, biggest first"
           />
-          {Platform.OS === 'ios' && (
+          {isIosUi() && (
             <Category
               kind="live"
               icon={KINDS.live.icon}
@@ -283,6 +296,9 @@ const styles = StyleSheet.create({
   gear: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', ...shadow },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: 20, ...shadow },
   hero: { alignItems: 'center', gap: 18, paddingVertical: 24 },
+  found: { alignItems: 'center', gap: 2, paddingVertical: 22 },
+  foundBytes: { fontFamily: fonts.display, fontSize: 48, color: colors.ink, letterSpacing: -1.2 },
+  foundHint: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink3, textAlign: 'center', marginTop: 4 },
   eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.6, color: colors.ink3 },
   big: { fontFamily: fonts.display, fontSize: 34, color: colors.ink, letterSpacing: -1 },
   sub: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink3, marginTop: 2 },
