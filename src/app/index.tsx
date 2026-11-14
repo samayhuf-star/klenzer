@@ -42,7 +42,7 @@ export default function Home() {
       <View style={styles.header}>
         <View style={styles.brand}>
           <Image source={require('../../assets/logo.png')} style={{ width: 34, height: 34 }} />
-          <Text style={styles.brandText}>Klenzer</Text>
+          <Text style={styles.brandText}>Ai Klenzer</Text>
         </View>
         <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={styles.gear}>
           <Ionicons name="settings-outline" size={22} color={colors.ink} />
@@ -79,18 +79,40 @@ export default function Home() {
       )}
 
       {scanning ? (
-        <Animated.View entering={FadeInDown} style={[styles.card, { marginTop: 16 }]}>
-          <View style={{ alignItems: 'center', marginBottom: 6 }}>
-            <ScanPulse size={110} />
+        <Animated.View entering={FadeInDown} style={[styles.card, { marginTop: 16, borderWidth: 1, borderColor: colors.blueSoft }]}>
+          <View style={{ alignItems: 'center', marginBottom: 10 }}>
+            <ScanPulse size={100} />
           </View>
-          <Text style={[styles.cardTitle, { textAlign: 'center' }]}>{phase}…</Text>
-          <View style={styles.bar}>
-            <View style={[styles.barFill, { width: `${Math.max(4, pct)}%` }]} />
+          <Text style={[styles.cardTitle, { textAlign: 'center', color: colors.blue }]}>{phase}…</Text>
+          <View style={[styles.bar, { height: 12, marginTop: 12 }]}>
+            <View style={[styles.barFill, { width: `${Math.max(4, pct)}%`, backgroundColor: colors.blue }]} />
           </View>
-          <Text style={styles.sub}>
-            {progress?.done.toLocaleString()} of {progress?.total.toLocaleString()} · {pct}%
+          <Text style={[styles.sub, { textAlign: 'center', marginTop: 8, fontWeight: '600' }]}>
+            {pct}% complete
           </Text>
-          <Button variant="ghost" label="Cancel" onPress={cancelScan} style={{ marginTop: 14 }} />
+          <Text style={[styles.sub, { textAlign: 'center', marginTop: 4 }]}>
+            {progress?.done.toLocaleString()} of {progress?.total.toLocaleString()} items
+          </Text>
+          <View style={{ marginTop: 16, gap: 8 }}>
+            {['Duplicates', 'Screenshots', 'Large videos', 'Recordings'].map((label, i) => {
+              const catPct = Math.min(100, Math.max(8, pct - i * 8));
+              return (
+                <View key={label}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <Text style={{ fontSize: 12, color: colors.ink2 }}>{label}</Text>
+                    <Text style={{ fontSize: 12, color: colors.blue, fontWeight: '600' }}>{catPct}%</Text>
+                  </View>
+                  <View style={[styles.bar, { height: 6 }]}>
+                    <View style={[styles.barFill, { width: `${catPct}%`, backgroundColor: colors.blue }]} />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+          <Text style={{ fontSize: 13, color: colors.ink2, textAlign: 'center', marginTop: 14, lineHeight: 18 }}>
+            You can leave the app running. We’ll notify you when the scan is complete.
+          </Text>
+          <Button variant="ghost" label="Cancel scan" onPress={cancelScan} style={{ marginTop: 12 }} />
         </Animated.View>
       ) : (
         <Button
