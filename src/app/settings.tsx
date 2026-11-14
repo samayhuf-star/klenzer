@@ -2,17 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
+import * as WebBrowser from 'expo-web-browser';
 import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
-import { SUPPORT_EMAIL } from '../lib/config';
+import { SUPPORT_URL, TERMS_URL } from '../lib/config';
+import { manageSubscriptions, restore } from '../lib/purchases';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
-  const { access, openSettings, lifetimeFreed, reminders, setReminders } = useStore();
+  const { access, openSettings, lifetimeFreed, reminders, setReminders, isPro } = useStore();
   const toggle = async (on: boolean) => {
     if ((await setReminders(on)) === 'blocked') {
       Alert.alert('Notifications are off', 'Turn on notifications for Klenzer in Settings to get reminders.', [
@@ -21,7 +23,16 @@ export default function Settings() {
       ]);
     }
   };
+  const doRestore = async () => {
+    const r = await restore();
+    if (r === 'restored') Alert.alert('Restored', 'Klenzer is unlocked on this device.');
+    else if (r === 'none') Alert.alert('Nothing to restore', 'We couldn’t find a previous purchase on this account.');
+    else if (r === 'error') Alert.alert('Restore didn’t finish', 'We couldn’t reach the store just now. Please try again in a moment.');
+  };
   const accessLabel = access === 'granted' ? 'Full access' : access === 'limited' ? 'Limited' : access === 'denied' ? 'Off' : 'Not asked yet';
+  const openUrl = (url: string) => {
+    WebBrowser.openBrowserAsync(url).catch(() => Linking.openURL(url));
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -35,7 +46,15 @@ export default function Settings() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40, gap: 16 }}>
         <View style={styles.card}>
           <Row icon="images-outline" label="Photo access" value={accessLabel} onPress={openSettings} />
-          <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} />
+          {lifetimeFreed > 0 ? <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} /> : <Row icon="leaf-outline" label="Space freed" value="0 MB" />}
+          <Row icon="sparkles-outline" label={isPro ? 'Plan: Pro' : 'Plan: Free'} value={isPro ? undefined : 'Upgrade'} onPress={isPro ? undefined : () => router.push('/paywall')} chevron={!isPro} />
+          <Row
+            icon="refresh-outline"
+            label="Restore purchases"
+            onPress={doRestore}
+            chevron
+          />
+          {isPro ? <Row icon="card-outline" label="Manage subscription" onPress={() => void manageSubscriptions()} chevron /> : null}
           <View style={styles.row}>
             <Ionicons name="notifications-outline" size={22} color={colors.blue} />
             <Text style={styles.label}>Cleanup reminders</Text>
@@ -44,8 +63,9 @@ export default function Settings() {
         </View>
         <View style={styles.card}>
           <Row icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => router.push('/privacy')} chevron />
+          <Row icon="document-text-outline" label="Terms of Use" onPress={() => openUrl(TERMS_URL)} chevron />
+          <Row icon="help-circle-outline" label="Contact support" onPress={() => openUrl(SUPPORT_URL)} chevron />
           <Row icon="star-outline" label="Rate Klenzer" onPress={async () => (await StoreReview.hasAction()) && StoreReview.requestReview()} chevron />
-          <Row icon="mail-outline" label="Contact support" onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Klenzer%20support`)} chevron />
         </View>
         <View style={styles.card}>
           <Row icon="lock-closed-outline" label="Your photos stay on this device" />

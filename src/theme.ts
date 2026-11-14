@@ -1,3 +1,7 @@
+/**
+ * Ai Klenzer palette: light-blue background, deep navy ink, blue primary accent and mint/lime highlights.
+ * `blue` is the primary accent key.
+ */
 export const colors = {
   bg: '#F4F7FF',
   card: '#FFFFFF',
@@ -16,6 +20,15 @@ export const colors = {
   violet: '#6366F1',
   violetSoft: '#E0E7FF',
   navy: '#0B1020',
+  gold: '#C9A227',
+  goldSoft: '#F3E6B0',
+  track: '#DDE5F5',
+  lime: '#C8F25A',
+  limeSoft: '#F1FBD6',
+  coral: '#F2664B',
+  coralSoft: '#FDE7E1',
+  sky: '#2A8BC2',
+  skySoft: '#E1F0F8',
 };
 
 export const fonts = {
@@ -26,7 +39,7 @@ export const fonts = {
   display: 'Fraunces_700Bold',
 };
 
-export const radius = { sm: 12, md: 18, lg: 26, pill: 999 };
+export const radius = { sm: 10, md: 16, lg: 22, xl: 28, pill: 999 };
 
 export const shadow = {
   shadowColor: '#1E3A8A',

@@ -1,73 +1,65 @@
 # Klenzer
 
-Private, on-device photo clutter cleaner for iOS and Android. Klenzer finds duplicate or near-identical photos, screenshots, Live Photos, and large videos, then lets you review and delete only what you choose. Nothing is uploaded.
+Private, on-device photo clutter cleaner for iOS and Android. Klenzer finds duplicate and similar photos, screenshots, blurry shots, Live Photos, and large videos, then lets you review and delete only what you choose. Photos are never uploaded.
 
-This README is a draft (the GitHub repo `samayhuf-star/klenzer` has no root README.md). It is based on the public `main` branch plus a read-only Expo/store audit on 12 Nov 2026. It has not been committed or pushed.
+Scanning and reviewing are free. Deleting items and clearing Klenzer’s temporary files requires Klenzer Pro.
 
-## Features (as implemented on `main`)
+## Features
 
-- Duplicate and near-identical photo sets (keeps the largest file by default)
-- Screenshot and large-video review
-- Live Photos review
-- Temporary-file cleanup for Klenzer’s own cache
-- Real device free/total storage figures
-- Confirm-before-delete (system dialog); on iOS, items go to Recently Deleted
-- Optional local reminder notifications (no push server)
-- In-app privacy policy screen
+- Exact duplicates (same file size, dimensions, and capture time) and basic similar photos (dHash on small thumbnails)
+- Screenshot, blurry-photo, Live Photo, and large-video review
+- Incremental scans: an on-device SQLite cache keyed by asset id and modification date, so unchanged items are not remeasured
+- Split progress for Photos, Screenshots, and Videos — results appear as each category finishes
+- The Videos tab shares that same scan: large videos and duplicate videos fill in when the video pass finishes
+- Scan steps time out if a file hangs, so Home spinners always stop; an error banner lets you retry
+- Space freed only counts items this install actually deleted in Klenzer, and starts at 0
+- Confirm-before-delete (a single system dialog for the whole selection)
+- Optional local reminder every 3 days (no push server)
+- Klenzer Pro: a one-time lifetime unlock or an auto-renewing monthly subscription, restored from Settings
 
-Later EAS builds from branches such as `revenuecat-integration` and `feat/lifetime-paywall` add a RevenueCat paywall (entitlement id `klenzer_pro`, including a one-time lifetime unlock). Those changes are **not** on `main` as of this draft (`main` `package.json` has no RevenueCat dependency, and `store/listing.md` still says “free, no in-app purchases (v1)”). Confirm which branch you are shipping before writing store copy.
+## Reminders
+
+Reminders are local only: no server, no push token, and no remote push entitlement.
+
+- When the first scan starts, Klenzer may ask for notification permission. It never asks on launch.
+- When that scan finishes, a local notification with the default sound reports the real reclaimable size, for example: “Scan complete: 2.4 GB can be freed”. If nothing can be freed it says “Scan complete: your library looks clean”. The banner also appears if the app is in the foreground. If permission is denied, nothing is shown and the scan is unaffected.
+- If you turn them on, a notification is scheduled 3 days out with your current used and total storage, for example: “You've used 128.4 GB of 256 GB. Time to run Klenzer”.
+- Every time the app opens or returns to the foreground, that reminder is cancelled and rescheduled with fresh numbers.
+- Tapping the notification opens Klenzer and starts a scan.
+- The Settings toggle is persisted. Turning it off cancels all scheduled reminders.
 
 ## Tech stack
 
 - Expo (SDK 57) + Expo Router + TypeScript
 - `expo-media-library` for on-device PhotoKit / Android media access
-- EAS Build profiles: `production`, `simulator`, `testflight` (plus development/preview in `eas.json`)
+- `expo-sqlite` for the scan cache; `expo-image-manipulator` for thumbnail hashing
+- `expo-notifications` for local reminders and the scan-complete notification (no push server)
+- StoreKit 2 / Play Billing via `expo-iap` for products, purchases, restore, and entitlements (no RevenueCat)
 
 ## Identifiers
 
 - Expo project: `@krosz/klenzer` (`c6034b7f-62d6-487e-aff1-f013636ae0b5`)
-- iOS bundle ID: `com.krosz.klenzer`
-- Android package: `com.krosz.klenzer`
+- iOS bundle ID / Android package: `com.krosz.klenzer`
+- App version on this branch: 1.1.0
 - `supportsTablet`: false
-- `ITSAppUsesNonExemptEncryption`: false
-- Owner account: `krosz`
+- Store product IDs (loaded by ID from Apple or Google; prices come from the store’s localized displayPrice, never hard-coded): `com.krosz.klenzer.yearly` (auto-renew, default-selected, Best value), `com.krosz.klenzer.monthly` (auto-renew), `com.krosz.klenzer.lifetime` (non-consumable). Yearly and monthly are in the “Klenzer Pro” subscription group. If a product is missing from the store, the paywall shows the ones that load. Yearly and monthly each show a 7-day free trial when the store reports an eligible introductory offer (“7 days free, then <store price>/month” or “/year”, “cancel anytime”). Lifetime has no trial.
+- Pro is a verified lifetime purchase or an active yearly or monthly subscription, checked from StoreKit / Play entitlements on launch and when transactions update.
 
 ## Run locally
 
 ```bash
-npm install
+npm ci
 npm run typecheck
 npx expo start
 ```
 
-Photo-library features need a real device (or a development/simulator build), not just Expo Go.
-
-## Build and submit (EAS)
-
-```bash
-npx eas-cli@latest login
-npx eas-cli@latest build --platform ios --profile production
-npx eas-cli@latest build --platform android --profile production
-# Only after a go-ahead and working store credentials:
-# npx eas-cli@latest submit --platform ios --latest
-# npx eas-cli@latest submit --platform android --latest
-```
-
-iOS distribution certificate and an App Store provisioning profile are already on the Expo project, and an App Store Connect API key is attached for submissions. There is **no** Google Play service account key on the Expo account, so Android EAS Submit will not work until one is added with Play access. ASC app id used in prior iOS submissions: `6820685404`.
-
-## Paywall / RevenueCat
-
-- On `main`: none.
-- On later build branches: RevenueCat, entitlement `klenzer_pro`. Do not put API keys in this file. If you use EAS environment variables, keep values in Expo (not in git).
+Photo-library features and store purchases need a development or production build, not Expo Go (the scan cache, reminder, and IAP plugins are native).
 
 ## Privacy and support
 
-- In-app policy + source HTML: `store/privacy-policy.html`
-- Configured public URL in `src/lib/config.ts`: `https://klenzer-privacy-krosz.vercel.app` — as of 12 Nov 2026 this URL returned HTTP 402 and is not usable as a store privacy policy. Re-host the policy and update `PRIVACY_URL` before submission.
-- Support: `samayhuf@gmail.com`
+- Privacy: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html
+- Terms: https://samayhuf-star.github.io/app-legal/klenzer/terms.html
+- Support: https://samayhuf-star.github.io/app-legal/klenzer/support.html
+- Contact: samayhuf@gmail.com (no phone number)
 
-## Store status (public, 12 Nov 2026)
-
-- App Store Connect record exists (name “Klenzer - Clean Photo Clutter”). The public US and India App Store listings were **not** found (iTunes lookup count 0). ASC icon was still a placeholder asset. Review/draft/rejected state is unknown without App Store Connect.
-- Latest submitted iOS binary: 1.1.0 (12), EAS submission finished 11 Nov 2026. A newer iOS production build 1.0.0 (14) (RevenueCat branch) has not been submitted.
-- Google Play public listing: not found (HTTP 404). Finished Android production builds exist (latest 1.0.0 (5)); none have been submitted via EAS. Play Console draft/testing state is unknown.
+The in-app Privacy Policy screen matches that policy: photos stay on the device, scan cache (sizes and tiny hashes) stays on the device, and purchase status is handled by Apple or Google on the device. The app does not collect device identifiers, an account ID, or advertising attribution.

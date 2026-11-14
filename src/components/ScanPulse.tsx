@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { colors } from '../theme';
 
 function Wave({ delay, size, color }: { delay: number; size: number; color: string }) {
@@ -15,16 +15,26 @@ function Wave({ delay, size, color }: { delay: number; size: number; color: stri
 
 /** Expanding radar rings with a bobbing icon: used while scanning and cleaning. */
 export function ScanPulse({ size = 120, icon = 'sparkles', color = colors.blue }: { size?: number; icon?: string; color?: string }) {
+  const reduceMotion = useReducedMotion();
   const bob = useSharedValue(0);
   useEffect(() => {
+    if (reduceMotion) return;
     bob.value = withRepeat(withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [bob]);
-  const ico = useAnimatedStyle(() => ({ transform: [{ translateY: -4 + bob.value * 8 }, { scale: 0.95 + bob.value * 0.1 }] }));
+  }, [bob, reduceMotion]);
+  const ico = useAnimatedStyle(() => (
+    reduceMotion ? { transform: [{ scale: 1 }] } : { transform: [{ translateY: -4 + bob.value * 8 }, { scale: 0.95 + bob.value * 0.1 }] }
+  ));
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Wave delay={0} size={size} color={color} />
-      <Wave delay={650} size={size} color={color} />
-      <Wave delay={1300} size={size} color={color} />
+      {reduceMotion ? (
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: color, opacity: 0.45 }} />
+      ) : (
+        <>
+          <Wave delay={0} size={size} color={color} />
+          <Wave delay={650} size={size} color={color} />
+          <Wave delay={1300} size={size} color={color} />
+        </>
+      )}
       <Animated.View style={ico}>
         <Ionicons name={icon as never} size={size * 0.34} color={color} />
       </Animated.View>

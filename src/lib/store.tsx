@@ -1,12 +1,33 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as MediaLibrary from 'expo-media-library/legacy';
+import * as Notifications from 'expo-notifications';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform } from 'react-native';
+import { router } from 'expo-router';
+import { Alert, AppState, Linking, Platform } from 'react-native';
+import { formatBytes } from './format';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
-import { deleteItems, Item, Progress, ScanResult, scanLibrary } from './scanner';
+import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
-import { disableReminders, enableReminders, permissionState, remindersPref, scheduleReminders } from './reminders';
+import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders, askNotificationPermissionOnScanStart, notifyScanComplete } from './reminders';
+import { beginShortBackgroundTask, endShortBackgroundTask } from 'live-photo-convert';
+import { initIAP, onEntitlementChange, refreshEntitlements } from './purchases';
+import { withTimeout } from './scan-logic';
+import { reclaimableBytes } from './reclaim';
+import {
+  consumeAllowance,
+  crossLimitMessage,
+  decideGate,
+  normalizeAllowance,
+  parseAllowance,
+  remainingFree,
+  takeAcrossGroups,
+  type Allowance,
+  type GateVerb,
+  type ProFeature,
+} from './gating';
+import { DEMO, demoScanResult } from './demo';
+import { canScan, PHOTO_PERMISSION_REQUEST, shouldStartScanAfterAccessChange, toPhotoAccess } from './photo-access';
 
 type Access = 'unknown' | 'granted' | 'limited' | 'denied';
 
@@ -18,9 +39,17 @@ export type CleanRow = {
   status: 'pending' | 'active' | 'done' | 'cancelled';
   note?: string;
 };
-export type Cleaning = { rows: CleanRow[]; phase: 'working' | 'finished' | 'cancelled' | 'error'; freed: number };
+export type Cleaning = { rows: CleanRow[]; phase: 'working' | 'finished' | 'cancelled' | 'error'; freed: number; mode?: 'delete' | 'convert' };
+export type LastFreed = { bytes: number; count: number; toRecentlyDeleted?: boolean; action?: 'delete' | 'convert' };
 export type CleanPlan = { kind: Kind; items: Item[] }[];
-type Pending = { bytes: number; baselineFree: number };
+
+export type CategoryScanMap = Record<ScanCategory, CategoryProgress>;
+
+const idleCats = (): CategoryScanMap => ({
+  photos: { category: 'photos', status: 'idle', done: 0, total: 0 },
+  screenshots: { category: 'screenshots', status: 'idle', done: 0, total: 0 },
+  videos: { category: 'videos', status: 'idle', done: 0, total: 0 },
+});
 
 type Ctx = {
   ready: boolean;
@@ -35,34 +64,50 @@ type Ctx = {
   refreshDisk: () => void;
   scanning: boolean;
   progress: Progress | null;
+  scanCats: CategoryScanMap;
   result: ScanResult | null;
   scan: () => Promise<void>;
   cancelScan: () => void;
   cleaning: Cleaning | null;
-  clean: (plan: CleanPlan) => Promise<void>;
+  /** Runs a clean and resolves with how many gated items completed (media deleted, plus 1 if temporary files were cleared). */
+  clean: (plan: CleanPlan) => Promise<number>;
+  /** Entry point for every Fix / Clear button: opens the paywall first unless Klenzer is unlocked. */
+  startClean: (plan: CleanPlan) => void;
+  /** Called by the paywall once the user has paid: continues the clean they asked for. */
+  completeUnlock: () => void;
+  isPro: boolean;
   tempSize: number;
-  pending: Pending | null;
-  dismissPending: () => void;
-  openPhotos: () => void;
   reminders: boolean;
   setReminders: (on: boolean) => Promise<'on' | 'off' | 'blocked'>;
-  /** Space Klenzer has actually given back (on iOS: only once Recently Deleted is emptied). */
+  /** Cumulative size of items this install actually deleted through Klenzer. Starts at 0. */
   lifetimeFreed: number;
+  scanError: string | null;
   /** Every photo, video and temp file Klenzer has removed, so the total moves even when sizes are unknown. */
   lifetimeItems: number;
-  lastFreed: { bytes: number; count: number } | null;
+  lastFreed: LastFreed | null;
+  hideRdSheet: boolean;
+  setHideRdSheet: (hide: boolean) => void;
+  startConvert: (items: Item[], videoBytes?: number) => void;
+  /** Free items left today for non-Pro users (deletes, merges and Secret Album adds share one count). */
+  freeLeft: number;
+  /**
+   * The one gate for every other Pro action (merging contacts, adding to the Secret Album, Compress).
+   * Pro runs everything. Free users run up to their daily allowance; the rest goes to the paywall,
+   * which continues the full action after a purchase. `run` resolves with how many items completed.
+   */
+  runGated: <T>(feature: ProFeature, items: T[], run: (items: T[]) => Promise<number>, verb?: GateVerb) => void;
 };
 
-const KEYS = { onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v1', items: 'klenzer.items.v1', pending: 'klenzer.pending.v1' };
+const KEYS = { allowance: 'klenzer.allowance.v1', onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1', hideRdSheet: 'klenzer.rdSheet.hide.v1', convertPending: 'klenzer.convert.pending.v1' };
 
-// Apple has no public link to Recently Deleted. Photos does handle this internal route (iOS 16+, behind Face ID);
-// if a future iOS drops it we fall back to opening Photos itself.
-const RECENTLY_DELETED_URL = 'photos-navigation://album?name=recently-deleted';
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
 
-const toAccess = (p: MediaLibrary.PermissionResponse): Access =>
-  p.status === 'granted' ? (p.accessPrivileges === 'limited' ? 'limited' : 'granted') : p.status === 'denied' ? 'denied' : 'unknown';
+const toAccess = (p: MediaLibrary.PermissionResponse): Access => toPhotoAccess(p);
+// Always read-write (writeOnly=false). Never add-only: add-only blocks the scan and makes iOS show
+// the "additional access" sheet later.
+const readPhotoPermission = () => MediaLibrary.getPermissionsAsync(PHOTO_PERMISSION_REQUEST.writeOnly, PHOTO_PERMISSION_REQUEST.granular);
+const askPhotoPermission = () => MediaLibrary.requestPermissionsAsync(PHOTO_PERMISSION_REQUEST.writeOnly, PHOTO_PERMISSION_REQUEST.granular);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -72,53 +117,115 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [disk, setDisk] = useState<DiskInfo>(() => getDiskInfoSync());
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [scanCats, setScanCats] = useState<CategoryScanMap>(idleCats);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [lifetimeFreed, setLifetimeFreed] = useState(0);
   const [lifetimeItems, setLifetimeItems] = useState(0);
-  const [lastFreed, setLastFreed] = useState<{ bytes: number; count: number } | null>(null);
+  const [lastFreed, setLastFreed] = useState<LastFreed | null>(null);
+  const [hideRdSheet, setHideRdSheetState] = useState(false);
   const [cleaning, setCleaning] = useState<Cleaning | null>(null);
   const [tempSize, setTempSize] = useState(0);
-  const [pending, setPending] = useState<Pending | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [reminders, setRemindersState] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [allowance, setAllowance] = useState<Allowance>(() => normalizeAllowance(null, new Date()));
+  const allowanceRef = useRef(allowance);
+  const [dayTick, setDayTick] = useState(0);
+  const afterUnlockAction = useRef<(() => void) | null>(null);
+  const afterUnlock = useRef<CleanPlan | null>(null);
+  const afterUnlockConvert = useRef<{ items: Item[]; videoBytes: number } | null>(null);
   const signal = useRef({ cancelled: false });
+  const handledNotif = useRef<string | null>(null);
+  const scanningRef = useRef(false);
+  const scanIncomplete = useRef(false);
+  const progressRef = useRef<Progress | null>(null);
+  const accessRef = useRef<Access>('unknown');
+  // A scan the user asked for that is waiting on Photos access. Started as soon as access arrives.
+  const pendingScan = useRef(false);
+  const accessRequest = useRef<Promise<Access> | null>(null);
+  // The latest scan() call wins after its permission awaits, so a tap and the AppState restart never run two scans.
+  const scanToken = useRef(0);
 
   useEffect(() => {
     (async () => {
       try {
-        const [o, f, it, pd] = await Promise.all([
+        const [o, f, it, hide] = await Promise.all([
           AsyncStorage.getItem(KEYS.onboarded),
           AsyncStorage.getItem(KEYS.freed),
           AsyncStorage.getItem(KEYS.items),
-          AsyncStorage.getItem(KEYS.pending),
+          AsyncStorage.getItem(KEYS.hideRdSheet),
         ]);
-        setOnboarded(o === '1');
+        setOnboarded(o === '1' || DEMO);
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
-        if (pd) setPending(JSON.parse(pd));
-      } catch {}
-      try {
-        setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
-      } catch {}
-      try {
-        const p = await MediaLibrary.getPermissionsAsync(false, ['photo', 'video']);
-        setAccess(toAccess(p));
-        setCanAskAgain(p.canAskAgain);
+        setHideRdSheetState(hide === '1');
+        const stored = normalizeAllowance(parseAllowance(await AsyncStorage.getItem(KEYS.allowance)), new Date());
+        allowanceRef.current = stored;
+        setAllowance(stored);
+        if (DEMO) setResult(demoScanResult());
+        scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';
       } catch {}
       setReady(true);
+      // IAP, permissions and reminders must not hold the splash or first render.
+      void (async () => {
+        try {
+          const ok = await withTimeout(initIAP(), 4000, false);
+          if (ok) setIsPro(await withTimeout(refreshEntitlements(), 4000, false));
+        } catch {}
+        try {
+          setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
+        } catch {}
+        try {
+          const p = await readPhotoPermission();
+          accessRef.current = toAccess(p);
+          setAccess(accessRef.current);
+          setCanAskAgain(p.canAskAgain);
+        } catch {}
+      })();
     })();
   }, []);
+
+  // Keep the unlocked state live: a purchase, a restore, or a refund all arrive here.
+  useEffect(() => onEntitlementChange(setIsPro), []);
 
   const finishOnboarding = useCallback(() => {
     setOnboarded(true);
     AsyncStorage.setItem(KEYS.onboarded, '1').catch(() => {});
   }, []);
 
+  // One read-write request at a time: repeated taps share the same system prompt.
   const requestAccess = useCallback(async () => {
-    const p = await MediaLibrary.requestPermissionsAsync(false, ['photo', 'video']);
-    const a = toAccess(p);
-    setAccess(a);
-    setCanAskAgain(p.canAskAgain);
-    return a;
+    if (accessRequest.current) return accessRequest.current;
+    const run = (async (): Promise<Access> => {
+      try {
+        const p = await askPhotoPermission();
+        const a = toAccess(p);
+        accessRef.current = a;
+        setAccess(a);
+        setCanAskAgain(p.canAskAgain);
+        return a;
+      } catch {
+        return accessRef.current;
+      } finally {
+        accessRequest.current = null;
+      }
+    })();
+    accessRequest.current = run;
+    return run;
+  }, []);
+
+  /** Re-read the live permission (it can change in the Photos sheet or in Settings while Klenzer runs). */
+  const refreshAccess = useCallback(async (): Promise<Access> => {
+    try {
+      const p = await readPhotoPermission();
+      const a = toAccess(p);
+      accessRef.current = a;
+      setAccess(a);
+      setCanAskAgain(p.canAskAgain);
+      return a;
+    } catch {
+      return accessRef.current;
+    }
   }, []);
 
   // Disk reads are async on iOS; ignore any answer that arrives after a newer one was requested.
@@ -147,24 +254,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Recently Deleted was emptied: that space is now really free, so it joins the lifetime total.
-  // Read through a ref so a double-fired effect can't count the same bytes twice.
-  const pendingRef = useRef<Pending | null>(null);
   useEffect(() => {
-    pendingRef.current = pending;
-  }, [pending]);
-  const settlePending = useCallback(() => {
-    const p = pendingRef.current;
-    if (!p) return;
-    pendingRef.current = null;
-    addFreed(p.bytes);
-    setPending(null);
-    AsyncStorage.removeItem(KEYS.pending).catch(() => {});
-  }, [addFreed]);
-
-  // The OS updates free space lazily, so re-read it whenever the app comes back to the foreground
-  // (e.g. after the user empties Recently Deleted in Photos) and keep polling for a while after a clean.
-  useEffect(() => {
+    // Initial and foreground disk refresh; the setter is inside refreshDisk.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshDisk();
     const sub = AppState.addEventListener('change', (s) => s === 'active' && refreshDisk());
     return () => sub.remove();
@@ -178,18 +270,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, 1500);
   }, [refreshDisk]);
 
-  // Recently Deleted is emptied outside the app; notice it when free space has actually grown.
+  // Cancel and reschedule the 3-day local reminder with fresh used/total on open and foreground.
+  const reminderInfo = useRef({ used: 0, total: 0 });
   useEffect(() => {
-    if (pending && disk.free - pending.baselineFree >= pending.bytes * 0.5) settlePending();
-  }, [disk.free, pending, settlePending]);
-
-  // Every time the user opens the app, push all reminders back so active users aren't nagged.
+    reminderInfo.current = { used: disk.used, total: disk.total };
+  }, [disk.used, disk.total]);
   useEffect(() => {
     if (!ready) return;
-    scheduleReminders({ pendingBytes: pending?.bytes });
-    const sub = AppState.addEventListener('change', (st) => st === 'active' && scheduleReminders({ pendingBytes: pending?.bytes }));
+    const plan = () => scheduleReminders({ usedBytes: reminderInfo.current.used, totalBytes: reminderInfo.current.total });
+    plan();
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && plan());
     return () => sub.remove();
-  }, [ready, pending?.bytes]);
+  }, [ready, disk.used, disk.total]);
 
   const setReminders = useCallback(async (on: boolean) => {
     if (!on) {
@@ -197,56 +289,160 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRemindersState(false);
       return 'off' as const;
     }
-    const ok = await enableReminders(pending?.bytes);
+    const ok = await enableReminders({ usedBytes: disk.used, totalBytes: disk.total });
     setRemindersState(ok);
     return ok ? ('on' as const) : ('blocked' as const);
-  }, [pending?.bytes]);
+  }, [disk.used, disk.total]);
 
-  const dismissPending = useCallback(() => {
-    settlePending();
-    refreshDisk();
-  }, [settlePending, refreshDisk]);
-
-  const openPhotos = useCallback(async () => {
-    // Apple gives apps no way to empty Recently Deleted, so hand the user straight to that album in Photos.
-    if (Platform.OS !== 'ios') {
-      Linking.openURL('content://media/internal/images/media').catch(() => Linking.openSettings());
-      return;
-    }
-    for (const url of [RECENTLY_DELETED_URL, 'photos-redirect://']) {
+  // Right after the first scan the user has just seen how much space is wasted, so that is the moment to offer reminders.
+  const askAboutReminders = useCallback(
+    async (reclaim: number) => {
       try {
-        await Linking.openURL(url);
-        return;
+        if (await remindersAsked()) return;
+        await markRemindersAsked();
+        if ((await permissionState()) === 'denied') return;
+        const body = reclaim > 0 ? `We found ${formatBytes(reclaim)} you can clear. Want a gentle reminder every few days?` : 'Want a gentle reminder every few days to check your storage?';
+        Alert.alert('Remind me to clean up?', body, [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Yes, remind me', onPress: () => void setReminders(true) },
+        ]);
       } catch {}
-    }
-    Linking.openSettings();
-  }, []);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [disk.used, disk.total],
+  );
 
-  const scan = useCallback(async () => {
-    let a = access;
-    if (a === 'unknown' || a === 'denied') a = await requestAccess();
-    if (a !== 'granted' && a !== 'limited') return;
+  const markScanIncomplete = (on: boolean) => {
+    scanIncomplete.current = on;
+    if (on) AsyncStorage.setItem(KEYS.scanIncomplete, '1').catch(() => {});
+    else AsyncStorage.removeItem(KEYS.scanIncomplete).catch(() => {});
+  };
+
+  const scan = useCallback(async (opts: { resume?: boolean } = {}) => {
+    if (scanningRef.current) return;
+    const token = ++scanToken.current;
+    pendingScan.current = true;
+    // Read the live state first; the value from launch can be stale (Settings, Photos sheet, QA pre-grant).
+    let a = await refreshAccess();
+    // The first scan is the one place Klenzer asks for Photos, and it asks for full read-write access.
+    if (!canScan(a)) a = await requestAccess();
+    // The sheet can also resolve through the AppState listener below, which may have started the scan already.
+    if (scanningRef.current || token !== scanToken.current) return;
+    if (!canScan(a)) return; // stays pending: the AppState listener starts it if access is granted later
+    pendingScan.current = false;
     signal.current = { cancelled: false };
+    setScanError(null);
+    scanningRef.current = true;
     setScanning(true);
-    setProgress({ phase: 'reading', done: 0, total: 0 });
+    if (!opts.resume) {
+      setProgress({ phase: 'reading', done: 0, total: 0, percent: 0 });
+      progressRef.current = { phase: 'reading', done: 0, total: 0, percent: 0 };
+    }
+    setScanCats({
+      photos: { category: 'photos', status: 'running', done: 0, total: 0 },
+      screenshots: { category: 'screenshots', status: 'running', done: 0, total: 0 },
+      videos: { category: 'videos', status: 'running', done: 0, total: 0 },
+    });
+    markScanIncomplete(true);
+    // Ask only when a scan starts, never on launch. A denial must not stop the scan.
+    // The completion notification waits for this answer, so a scan that ends while the prompt is up still notifies.
+    const notifAsk = askNotificationPermissionOnScanStart().catch(() => false);
+    beginShortBackgroundTask();
+    const finishCats = () =>
+      setScanCats((c) => ({
+        photos: { ...c.photos, status: 'done' },
+        screenshots: { ...c.screenshots, status: 'done' },
+        videos: { ...c.videos, status: 'done' },
+      }));
     try {
-      const r = await scanLibrary(setProgress, signal.current);
-      if (!signal.current.cancelled) setResult(r);
+      const r = await scanLibrary(
+        {
+          onProgress: (p) => {
+            progressRef.current = p;
+            setProgress(p);
+          },
+          onCategory: (p) => setScanCats((prev) => ({ ...prev, [p.category]: p })),
+          onPartial: (partial) => setResult({ ...partial }),
+          onError: (message) => setScanError(message),
+        },
+        signal.current,
+        { initialPercent: opts.resume ? (progressRef.current?.percent ?? 0) : 0 },
+      );
+      if (!signal.current.cancelled) {
+        setResult(r);
+        markScanIncomplete(false);
+        const reclaim = reclaimableBytes(r, tempBytes());
+        AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
+        // Fires on completion (processed + skipped == total), in the foreground or within the background task window.
+        void notifAsk.then(() => notifyScanComplete(reclaim));
+        if (!opts.resume) askAboutReminders(reclaim);
+      }
+    } catch (e) {
+      setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');
+      finishCats();
     } finally {
+      endShortBackgroundTask();
+      finishCats();
+      scanningRef.current = false;
       setScanning(false);
       setProgress(null);
       refreshDisk();
     }
-  }, [access, requestAccess, refreshDisk]);
+  }, [refreshAccess, requestAccess, refreshDisk, askAboutReminders]);
+
+  const scanRef = useRef(scan);
+  useEffect(() => {
+    scanRef.current = scan;
+  }, [scan]);
+
+  // If a scan was in progress when the app left the foreground, resume from the SQLite cache
+  // without wiping results. A short iOS background task may let the current scan finish, but we do not promise background processing.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st !== 'active') return;
+      if (scanningRef.current) return;
+      void (async () => {
+        const prev = accessRef.current;
+        const next = await refreshAccess();
+        if (scanningRef.current) return;
+        // Access granted in the Photos sheet or in Settings: start the scan the user already asked for.
+        if (shouldStartScanAfterAccessChange({ prev, next, pendingScan: pendingScan.current, scanning: scanningRef.current })) {
+          void scanRef.current();
+          return;
+        }
+        if (scanIncomplete.current && canScan(next)) void scanRef.current({ resume: true });
+      })();
+    });
+    return () => sub.remove();
+  }, [refreshAccess]);
+
+  // Tapping a reminder opens the app and starts a scan. Never request notification permission here.
+  useEffect(() => {
+    if (!ready || !onboarded) return;
+    const handle = (response: Notifications.NotificationResponse | null) => {
+      if (!response) return;
+      if (!isScanNotification(response.notification.request.content.data)) return;
+      const id = `${response.notification.request.identifier}:${String(response.notification.date)}`;
+      if (handledNotif.current === id) return;
+      handledNotif.current = id;
+      void Notifications.clearLastNotificationResponseAsync?.();
+      void scanRef.current();
+    };
+    Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener(handle);
+    return () => sub.remove();
+  }, [ready, onboarded]);
 
   const cancelScan = useCallback(() => {
+    pendingScan.current = false;
     signal.current.cancelled = true;
+    markScanIncomplete(false);
   }, []);
 
   const patch = (fn: (rows: CleanRow[]) => CleanRow[], extra: Partial<Cleaning> = {}) =>
     setCleaning((c) => (c ? { ...c, ...extra, rows: fn(c.rows) } : c));
 
-  const clean = useCallback(async (plan: CleanPlan) => {
+  const clean = useCallback(async (plan: CleanPlan): Promise<number> => {
     const rows: CleanRow[] = plan.map(({ kind, items }) => ({
       kind,
       count: kind === 'temp' ? 0 : items.length,
@@ -275,7 +471,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const media = plan.filter((p) => p.kind !== 'temp');
       const all = media.flatMap((p) => p.items);
       if (all.length) {
-        patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'active', note: 'Waiting for your confirmation…' })));
+        patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'active', note: 'Waiting for your confirmation' })));
         const ok = await deleteItems(all);
         if (!ok) {
           patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'cancelled', note: 'Cancelled. Nothing was deleted.' })), {
@@ -284,13 +480,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           });
           addFreed(freedNow); // temporary files were still cleared
           refreshDisk();
-          return;
+          return ti >= 0 ? 1 : 0;
         }
         const gone = new Set(all.map((i) => i.id));
         const mediaBytes = all.reduce((n, i) => n + i.size, 0);
         freed += mediaBytes;
         freedNow += mediaBytes;
-        // Rows complete one after another so the user can see each subcategory finish.
         for (let i = 0; i < media.length; i++) {
           patch((r) => r.map((x) => (x.kind === media[i].kind ? { ...x, status: 'done', done: x.count, note: undefined } : x)));
           await new Promise((res) => setTimeout(res, 350));
@@ -303,34 +498,232 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               videoCount: r.videoCount - all.filter((i) => i.isVideo).length,
               screenshots: r.screenshots.filter((i) => !gone.has(i.id)),
               largeVideos: r.largeVideos.filter((i) => !gone.has(i.id)),
+              shortVideos: (r.shortVideos ?? []).filter((i) => !gone.has(i.id)),
+              screenRecordings: (r.screenRecordings ?? []).filter((i) => !gone.has(i.id)),
               livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
+              blurry: r.blurry.filter((i) => !gone.has(i.id)),
+              photos: (r.photos ?? []).filter((i) => !gone.has(i.id)),
               duplicates: r.duplicates
+                .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
+                .filter((g) => g.items.length > 1),
+              similar: r.similar
+                .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
+                .filter((g) => g.items.length > 1),
+              duplicateVideos: r.duplicateVideos
                 .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
                 .filter((g) => g.items.length > 1),
             },
         );
-        if (Platform.OS === 'ios' && mediaBytes > 0) {
-          // Photos keeps these in Recently Deleted for 30 days, so the space isn't free yet.
-          freedNow -= mediaBytes;
-          const baselineFree = pending?.baselineFree ?? (await getDiskInfo()).free;
-          const next = { bytes: mediaBytes + (pending?.bytes ?? 0), baselineFree };
-          setPending(next);
-          AsyncStorage.setItem(KEYS.pending, JSON.stringify(next)).catch(() => {});
-        }
       }
 
       const count = plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0);
-      setLastFreed({ bytes: freed, count });
+      setLastFreed({ bytes: freed, count, toRecentlyDeleted: Platform.OS === 'ios' && all.length > 0, action: 'delete' });
       addFreed(freedNow);
       addItems(count);
       patch((r) => r, { phase: 'finished', freed });
       refreshDisk();
       pollDisk();
+      return all.length + (ti >= 0 ? 1 : 0);
     } catch {
       patch((r) => r, { phase: 'error', freed });
       refreshDisk();
+      return 0;
     }
-  }, [pending, refreshDisk, pollDisk, addFreed, addItems]);
+  }, [refreshDisk, pollDisk, addFreed, addItems]);
+
+
+  const setHideRdSheet = useCallback((hide: boolean) => {
+    setHideRdSheetState(hide);
+    AsyncStorage.setItem(KEYS.hideRdSheet, hide ? '1' : '0').catch(() => {});
+  }, []);
+
+  const convertLive = useCallback(async (items: Item[], videoBytes = 0) => {
+    const { convertToStills } = await import('live-photo-convert');
+    const count = items.length;
+    const estimate = videoBytes > 0 ? videoBytes : items.reduce((n, i) => n + i.size, 0);
+    setCleaning({
+      rows: [{ kind: 'live', count, bytes: estimate, done: 0, status: 'active', note: 'Originals go to Recently Deleted. Space is freed after you empty it, or after 30 days.' }],
+      phase: 'working',
+      freed: 0,
+      mode: 'convert',
+    });
+    try {
+      const outcome = await convertToStills(items.map((i) => i.id));
+      const doneIds = new Set(outcome.convertedIds);
+      if (outcome.pendingIds.length) {
+        await AsyncStorage.setItem(KEYS.convertPending, JSON.stringify(outcome.pendingIds));
+      } else {
+        await AsyncStorage.removeItem(KEYS.convertPending);
+      }
+      if (doneIds.size === 0) {
+        const cancelled = outcome.pendingIds.length > 0;
+        setCleaning({
+          rows: [{ kind: 'live', count, bytes: estimate, done: 0, status: cancelled ? 'cancelled' : 'done', note: cancelled ? 'You cancelled the confirmation.' : 'Nothing was converted.' }],
+          phase: cancelled ? 'cancelled' : 'error',
+          freed: 0,
+          mode: 'convert',
+        });
+        return;
+      }
+      const gone = doneIds;
+      const saved = outcome.videoBytesSaved || items.filter((i) => gone.has(i.id)).reduce((n, i) => n + i.size, 0);
+      setResult(
+        (r) =>
+          r && {
+            ...r,
+            livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
+            photos: (r.photos ?? []).map((i) => (gone.has(i.id) ? { ...i, isLive: false } : i)).sort((a, b) => b.size - a.size),
+            duplicates: r.duplicates.map((g) => ({ ...g, items: g.items.map((i) => (gone.has(i.id) ? { ...i, isLive: false } : i)) })),
+            similar: r.similar.map((g) => ({ ...g, items: g.items.map((i) => (gone.has(i.id) ? { ...i, isLive: false } : i)) })),
+          },
+      );
+      setLastFreed({ bytes: saved, count: doneIds.size, toRecentlyDeleted: Platform.OS === 'ios', action: 'convert' });
+      setCleaning({
+        rows: [{ kind: 'live', count: doneIds.size, bytes: saved, done: doneIds.size, status: 'done' }],
+        phase: 'finished',
+        freed: saved,
+        mode: 'convert',
+      });
+      refreshDisk();
+      pollDisk();
+    } catch {
+      setCleaning({
+        rows: [{ kind: 'live', count, bytes: estimate, done: 0, status: 'cancelled', note: 'Nothing was converted.' }],
+        phase: 'error',
+        freed: 0,
+        mode: 'convert',
+      });
+    }
+  }, [refreshDisk, pollDisk]);
+
+  // Klenzer scans for free; clearing is the paid part. Every Fix / Clear button comes through here.
+  const isProRef = useRef(false);
+  useEffect(() => {
+    isProRef.current = isPro;
+  }, [isPro]);
+
+  // Free daily allowance: one shared count of items, reset at local midnight. Pro is unlimited.
+  const spendFree = useCallback((items: number) => {
+    if (items <= 0 || isProRef.current) return;
+    const next = consumeAllowance(allowanceRef.current, items, new Date());
+    allowanceRef.current = next;
+    setAllowance(next);
+    AsyncStorage.setItem(KEYS.allowance, JSON.stringify(next)).catch(() => {});
+  }, []);
+  const freeLeftNow = () => remainingFree(allowanceRef.current, new Date());
+  // Re-read the day on foreground and at the next local midnight so the count resets on screen too.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && setDayTick((n) => n + 1));
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1).getTime();
+    const t = setTimeout(() => setDayTick((n) => n + 1), Math.max(1000, midnight - now.getTime()));
+    return () => {
+      sub.remove();
+      clearTimeout(t);
+    };
+  }, [dayTick]);
+  // dayTick forces a re-read of the clock after midnight or a return to the app.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const freeLeft = useMemo(() => remainingFree(allowance, new Date()), [allowance, dayTick]);
+
+  /** Shown when a free batch would cross the daily limit: run the free part now, or upgrade for all of it. */
+  const askCrossLimit = (freeNow: number, total: number, verb: GateVerb, runFree: () => void, upgrade: () => void) => {
+    const label = verb === 'merge' ? 'Merge' : verb === 'add' ? 'Add' : 'Clean';
+    const buttons: { text: string; style?: 'cancel'; onPress?: () => void }[] = [{ text: 'Not now', style: 'cancel' }];
+    if (freeNow > 0) buttons.push({ text: `${label} ${freeNow.toLocaleString('en-US')} free`, onPress: runFree });
+    buttons.push({ text: 'Upgrade', onPress: upgrade });
+    Alert.alert(freeNow > 0 ? 'Daily free limit' : 'Free items used up', crossLimitMessage(freeNow, total, verb), buttons);
+  };
+
+  const runGated = useCallback(
+    <T,>(feature: ProFeature, items: T[], run: (items: T[]) => Promise<number>, verb: GateVerb = 'clean') => {
+      if (!items.length) return;
+      const d = decideGate({ isPro: isProRef.current, feature, count: items.length, remaining: freeLeftNow() });
+      const go = (subset: T[], counts: boolean) => {
+        void run(subset).then((done) => counts && spendFree(done)).catch(() => {});
+      };
+      if (!d.needsPaywall) return go(items, d.countsAgainstAllowance);
+      const upgrade = () => {
+        afterUnlock.current = null;
+        afterUnlockConvert.current = null;
+        afterUnlockAction.current = () => go(items, false);
+        router.push('/paywall');
+      };
+      if (!d.countsAgainstAllowance) return upgrade();
+      askCrossLimit(d.freeNow, items.length, verb, () => go(items.slice(0, d.freeNow), true), upgrade);
+    },
+    [spendFree],
+  );
+
+  const startClean = useCallback(
+    (plan: CleanPlan) => {
+      const hasTemp = plan.some((p) => p.kind === 'temp');
+      const mediaCount = plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0);
+      // Temporary files count as one item.
+      const total = mediaCount + (hasTemp ? 1 : 0);
+      const run = (p: CleanPlan, counts: boolean) => {
+        router.push('/cleaning');
+        void clean(p).then((done) => counts && spendFree(done));
+      };
+      const d = decideGate({ isPro: isProRef.current, feature: 'delete', count: total, remaining: freeLeftNow() });
+      if (!d.needsPaywall) return run(plan, d.countsAgainstAllowance);
+      const upgrade = () => {
+        afterUnlock.current = plan;
+        afterUnlockConvert.current = null;
+        afterUnlockAction.current = null;
+        router.push('/paywall');
+      };
+      const freePlan = takeAcrossGroups(plan, d.freeNow - (hasTemp ? 1 : 0), (g) => g.kind === 'temp');
+      askCrossLimit(d.freeNow, mediaCount || total, 'clean', () => run(freePlan, true), upgrade);
+    },
+    [clean, spendFree],
+  );
+
+  const startConvert = useCallback(
+    (items: Item[], videoBytes = 0) => {
+      if (!items.length) return;
+      if (Platform.OS !== 'ios') {
+        Alert.alert('Available on iPhone', 'Convert to still uses Apple’s Live Photos and is available on iPhone.');
+        return;
+      }
+      if (access === 'limited' || access === 'denied' || access === 'unknown') {
+        Alert.alert('Full photo access needed', 'Converting a Live Photo to a still needs access to your whole library so the still can keep its album and details.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Allow access', onPress: () => void requestAccess() },
+        ]);
+        return;
+      }
+      // Convert Live Photos is Pro only: no free daily allowance.
+      if (!decideGate({ isPro: isProRef.current, feature: 'convert', count: items.length, remaining: 0 }).needsPaywall) {
+        router.push('/cleaning');
+        void convertLive(items, videoBytes);
+        return;
+      }
+      afterUnlockConvert.current = { items, videoBytes };
+      afterUnlock.current = null;
+      afterUnlockAction.current = null;
+      router.push('/paywall');
+    },
+    [access, requestAccess, convertLive],
+  );
+  const completeUnlock = useCallback(() => {
+    const plan = afterUnlock.current;
+    afterUnlock.current = null;
+    const convert = afterUnlockConvert.current;
+    afterUnlockConvert.current = null;
+    const action = afterUnlockAction.current;
+    afterUnlockAction.current = null;
+    if (action) {
+      if (router.canGoBack()) router.back();
+      setTimeout(action, 250);
+    } else if (convert) {
+      router.replace('/cleaning');
+      void convertLive(convert.items, convert.videoBytes);
+    } else if (plan) {
+      router.replace('/cleaning');
+      void clean(plan);
+    } else if (router.canGoBack()) router.back();
+  }, [clean, convertLive]);
 
   const manageLimited = useCallback(async () => {
     try {
@@ -342,9 +735,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed,
+      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, result, scan, cancelScan, cleaning, clean, tempSize, pending, dismissPending, openPhotos, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
