@@ -1,0 +1,7 @@
+NSContactsUsageDescription => Klenzer finds and merges duplicate contacts on your device. Contacts never leave your phone.
+NSFaceIDUsageDescription => Klenzer uses Face ID to unlock your Secret Album. Face data stays with iOS and is never shared with Klenzer.
+NSLocalNetworkUsageDescription => Expo Dev Launcher uses the local network to discover and connect to development servers running on your computer.
+NSLocationWhenInUseUsageDescription => Klenzer copies a Live Photo’s existing location onto the still photo when you convert it. The location stays on your device.
+NSPhotoLibraryAddUsageDescription => Klenzer saves a still photo when you convert a Live Photo, and saves a photo back to your library when you export it from Secret Album. Nothing is uploaded.
+NSPhotoLibraryUsageDescription => Klenzer reads your photo library on-device to find duplicates, screenshots, Live Photos and large videos, to convert a Live Photo to a still when you ask, and to move photos you pick into Secret Album. Nothing is uploaded, and nothing is deleted until you confirm.
+ITSAppUsesNonExemptEncryption False

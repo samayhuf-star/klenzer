@@ -1,0 +1,58 @@
+{
+ "Team (Expo)": 404,
+ "Internal list": 422,
+ "build": {
+  "version": "26",
+  "processingState": "VALID",
+  "usesNonExemptEncryption": false,
+  "expired": false
+ },
+ "groups_on_build": [
+  [
+   "71fb37c4-fa11-49a0-94a8-20f9ce8223d0",
+   "Team (Expo) \u2014 all builds (deprecated)",
+   true
+  ],
+  [
+   "7f7672c0-37f5-4ef1-a4a8-cc1b8db74c0f",
+   "Krosz Personal Group",
+   true
+  ],
+  [
+   "df2bc14e-10ac-4e5a-9186-1b46cdaf947a",
+   "Internal list",
+   true
+  ]
+ ],
+ "whatsNew": "NOT RUN by QA. Build 26: new Klenzer home design (storage ca",
+ "beta_detail": {
+  "autoNotifyEnabled": true,
+  "internalBuildState": "IN_BETA_TESTING",
+  "externalBuildState": "READY_FOR_BETA_SUBMISSION"
+ },
+ "tester_status": 200,
+ "tester": {
+  "id": "aa1763bd-bf7c-432d-8e2f-5b27fa5e3baa",
+  "email": "samayvashisht@icloud.com",
+  "inviteType": "EMAIL",
+  "state": "INSTALLED"
+ },
+ "tester_groups": [
+  [
+   "df2bc14e-10ac-4e5a-9186-1b46cdaf947a"
+  ],
+  [
+   "1b0304f4-7907-4661-bd96-e8cbe61a5c49"
+  ]
+ ],
+ "tester_groups_named": [
+  [
+   "df2bc14e-10ac-4e5a-9186-1b46cdaf947a",
+   "Internal list"
+  ],
+  [
+   "1b0304f4-7907-4661-bd96-e8cbe61a5c49",
+   "Team (Expo)"
+  ]
+ ]
+}

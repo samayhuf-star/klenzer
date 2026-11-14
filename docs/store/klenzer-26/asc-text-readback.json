@@ -1,0 +1,25 @@
+{
+ "writes": [
+  [
+   "loc",
+   200,
+   "ok"
+  ],
+  [
+   "review",
+   200,
+   "ok"
+  ]
+ ],
+ "readback": {
+  "desc_match": true,
+  "promo": "Clear look-alike photos, blurry shots, old screenshots and big videos. Merge duplicate contacts and keep private photos in Secret Album. All on your iPhone.",
+  "keywords": "duplicate,similar,photo cleaner,screenshots,videos,storage,merge contacts,secret album,blurry,swipe",
+  "desc_has_compress": false,
+  "desc_has_revenuecat": false,
+  "notes_match": true,
+  "contactLastName": "Vashsht",
+  "contactFirstName": "Samay"
+ },
+ "description_live": "Your photo library fills up with things you never meant to keep: the same shot taken five times, blurry photos, old screenshots, a forgotten 2 GB video. Klenzer finds them on your iPhone, shows them to you, and lets you clear only what you choose.\n\nCLEAN UP PHOTOS\n• Similar photos: groups near-identical shots, keeps the largest file by default, and lets you change your pick.\n• Duplicates: finds photos with the same size and capture time.\n• Blurry photos: spots photos that are out of focus.\n• Screenshots: every screenshot in one place, so you can clear the ones you no longer need.\n• Live Photos: review photos that also store a short video, and convert a Live Photo to a still photo (Klenzer Pro). The still keeps its date, location, favourite and albums.\n\nCLEAN UP VIDEOS\n• Duplicate videos, short recordings, screen recordings and videos over 100 MB.\n\nSWIPE TO ORGANIZE\nGo through your gallery month by month. Swipe left to mark a photo for deletion, right to keep it, then confirm once.\n\nMERGE CONTACTS\nFinds contacts with the same name, phone number or email. Preview the result, then merge: missing phone numbers and email addresses are copied onto the contact that stays, and the duplicates are removed. Other details such as addresses and notes are not copied.\n\nSECRET ALBUM\nMove photos into an encrypted album that lives only on your iPhone, unlocked with Face ID or a PIN. Secret Album holds photos only.\n\nYOU STAY IN CONTROL\nNothing is deleted automatically. You review every item and your iPhone asks you to confirm. Deleted photos go to Recently Deleted, so you can change your mind.\n\nPRIVATE BY DESIGN\nPhotos, videos and contacts are processed on your iPhone and never uploaded. No account, no tracking, no ads and no analytics.\n\nFREE AND PRO\nScanning and reviewing are free, with 10 free items a day for deleting, merging contacts and adding to Secret Album. Klenzer Pro removes the daily limit and adds Convert to still. Pro is available as a monthly or yearly auto-renewing subscription or a one-time lifetime purchase. Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel them in your App Store account settings. Prices are shown in the app.\n\nGOOD TO KNOW\nKlenzer cleans photos, videos and contacts. It cannot clear other apps' data or system files. Photos stored only in iCloud are not measured. To free space after deleting, empty Recently Deleted in the Photos app. iOS doesn't let apps do this, so Klenzer shows how much is waiting and opens Photos for you.\n\nOptional reminders: if you turn them on, Klenzer schedules a local reminder every few days with your storage numbers. Nothing is sent to us.\n\nTerms of Use: https://samayhuf-star.github.io/app-legal/klenzer/terms.html\nPrivacy Policy: https://samayhuf-star.github.io/app-legal/klenzer/privacy.html"
+}

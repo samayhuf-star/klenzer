@@ -1,0 +1,152 @@
+▶ contact normalisation
+  ✔ normalises names: case, accents, punctuation, honorifics and word order (1.832776ms)
+  ✔ normalises phones to the last 10 digits and ignores short codes (0.322216ms)
+  ✔ normalises emails (0.20429ms)
+✔ contact normalisation (4.088366ms)
+▶ duplicate detection
+  ✔ groups by name, by phone and by email, transitively (13.251329ms)
+  ✔ leaves unique contacts alone (0.289607ms)
+✔ duplicate detection (13.786982ms)
+▶ merge planning
+  ✔ keeps the best name, unions phones and emails without duplicates, and removes the rest (1.06716ms)
+  ✔ breaks name ties by the contact with more details (0.25965ms)
+  ✔ prefers properly cased names (0.173616ms)
+  ✔ counts each removed contact as one free item (0.289909ms)
+  ✔ refuses a group of one (0.827882ms)
+✔ merge planning (2.947477ms)
+▶ free daily allowance
+  ✔ is 10 items per day (0.879888ms)
+  ✔ counts items, not actions, across deletes, merges and Secret Album adds (0.195923ms)
+  ✔ never goes below zero (1.817338ms)
+  ✔ resets at local midnight (0.23861ms)
+  ✔ uses the local calendar day (0.129114ms)
+  ✔ survives storage round trips and bad data (0.83388ms)
+✔ free daily allowance (5.751016ms)
+▶ the gate
+  ✔ lets Pro run everything without counting (0.463443ms)
+  ✔ runs a free batch that fits the allowance and counts it (0.229249ms)
+  ✔ splits a batch that crosses the limit: free remainder now, paywall for the rest (33.489059ms)
+  ✔ applies the same shared count to merges and Secret Album adds (0.41685ms)
+  ✔ keeps Compress and Convert Live Photos Pro only, with no allowance (0.177092ms)
+  ✔ sends a free user with nothing left straight to the upgrade prompt (0.149831ms)
+  ✔ writes remaining-count copy without ellipses (0.202269ms)
+  ✔ takes the free part of a clean plan across rows and keeps temporary files (0.371458ms)
+  ✔ routes every delete, merge, Secret Album add and convert through decideGate in the store (0.746709ms)
+✔ the gate (37.506505ms)
+▶ video categories
+  ✔ detects iOS screen recordings by file name (1.017301ms)
+  ✔ splits short recordings and screen recordings, largest first (1.781043ms)
+✔ video categories (4.099852ms)
+▶ home layout
+  ✔ has no All Photos or All Videos tiles and no circular percent scanner (0.383298ms)
+  ✔ has the Photos, Videos and Contacts switcher and no Compress row (0.2631ms)
+  ✔ scan bar copy has no ellipsis character (0.238772ms)
+✔ home layout (1.233832ms)
+▶ paywall copy
+  ✔ shows one unavailable message, not the same line twice, with a Retry (0.37332ms)
+  ✔ never mentions Google Play on iOS (0.20538ms)
+  ✔ stays silent when Restore is cancelled and never renders raw errors (0.268399ms)
+  ✔ fetches subs as subs and the lifetime as in-app, after connecting, with retries (0.263013ms)
+✔ paywall copy (1.580214ms)
+▶ IAP startup must not prompt for Apple ID
+  ✔ initIAP only connects and listens — no sync, restore, or getAvailablePurchases (1.130549ms)
+  ✔ refreshEntitlements uses current entitlements only — no sync or restore (0.37627ms)
+  ✔ sync and restore run only from restore(), when the user taps Restore Purchases (2.35065ms)
+  ✔ store boot marks ready before any IAP work and never calls sync or restore (0.480635ms)
+  ✔ the purchase-update listener path does not call getAvailablePurchases, sync, or restore (0.564036ms)
+  ✔ the root layout does not keep a splash up for IAP, fonts, or an animated delay (0.162969ms)
+✔ IAP startup must not prompt for Apple ID (6.340728ms)
+▶ user-facing copy has no ellipsis
+  ✔ fails if any string literal in src/ contains … or ... (17.274297ms)
+✔ user-facing copy has no ellipsis (18.090239ms)
+▶ paywall store debug line
+  ✔ is not rendered in the shipping paywall (1.251827ms)
+  ✔ still fetches subs and in-app in separate try blocks (0.469269ms)
+✔ paywall store debug line (3.231505ms)
+▶ Compress is removed from 1.1.0
+  ✔ has no reachable Compress tile, tab or coming soon copy on Home (0.527559ms)
+✔ Compress is removed from 1.1.0 (0.736329ms)
+▶ Recently Deleted sheet copy
+  ✔ has no ellipses and does not claim a deep link to Recently Deleted (1.063425ms)
+✔ Recently Deleted sheet copy (2.058896ms)
+▶ classification
+  ✔ detects screenshots by filename and subtype (0.597054ms)
+✔ classification (1.473614ms)
+▶ exact grouping
+  ✔ groups photos that share size, dimensions and the same creation second (1.400393ms)
+  ✔ groups videos by size, dimensions, duration and creation second (0.249234ms)
+✔ exact grouping (1.893504ms)
+▶ similar grouping
+  ✔ clusters near-identical dHashes in the same prefix bucket (0.430322ms)
+✔ similar grouping (0.582574ms)
+▶ buildScanResult
+  ✔ counts screenshots, a large video, and duplicate videos for the Home cards (1.197939ms)
+  ✔ includes Live Photos on the Photos card, still sorted largest first (0.323737ms)
+✔ buildScanResult (1.785968ms)
+stress: 3150 photos, 112 videos, 11ms
+▶ timeouts
+  ✔ returns the fallback when a promise never settles (40.55507ms)
+  ✔ returns the resolved value when it arrives in time (0.28059ms)
+✔ timeouts (41.228597ms)
+▶ scan stages stream counts and stop Home spinners
+  ✔ fills cards as each category finishes and stops every spinner at the end (0.389857ms)
+✔ scan stages stream counts and stop Home spinners (0.468926ms)
+▶ stress grouping
+  ✔ groups a large seeded library without leaving stray extras (12.173416ms)
+✔ stress grouping (12.288338ms)
+▶ product catalog
+  ✔ lists yearly, monthly and lifetime, with yearly first and badged Best value (0.412621ms)
+  ✔ defaults to yearly when it loaded, otherwise the first plan that loaded (0.134774ms)
+✔ product catalog (0.693978ms)
+▶ filename exact grouping
+  ✔ groups copies that share a filename and dimensions even when the clock differs (0.182047ms)
+✔ filename exact grouping (0.239315ms)
+▶ marketed capacity rounding
+  ✔ rounds a reported total up to the smallest marketed size at or above it (0.190423ms)
+  ✔ shows reported free bytes, not rounded-total minus used, in the storage headline (0.120939ms)
+✔ marketed capacity rounding (0.390373ms)
+▶ exact candidates vs confirmed sizes
+  ✔ lists cheap-key matches as candidates but does not emit groups until sizes are confirmed (0.241845ms)
+✔ exact candidates vs confirmed sizes (0.284987ms)
+▶ scan progress copy
+  ✔ formats the looking-through line with thousands separators and a live percent (0.313649ms)
+✔ scan progress copy (0.364581ms)
+▶ weighted scan percent
+  ✔ is monotonic across stages and never jumps backward when a new stage starts at 0 (0.830799ms)
+  ✔ counts a reached stage with no work as complete so progress does not stall (0.129892ms)
+  ✔ does not treat an unknown (0/0, not complete) stage as finished (0.101625ms)
+✔ weighted scan percent (2.001477ms)
+▶ scanLibrary streaming path
+  ✔ emits the first Duplicate within 10s and progress at least every 2s on a 30k library (42640.934241ms)
+✔ scanLibrary streaming path (42641.579698ms)
+▶ Swipe to Organize
+  ✔ groups by month, newest month first, oldest photo first inside a month (1.444439ms)
+  ✔ marks left for deletion and right to keep, and moves to the next card (0.33178ms)
+  ✔ undoes the last swipe only (0.171218ms)
+  ✔ replaces an earlier decision when an item is swiped again (0.153826ms)
+  ✔ builds one delete batch across months and reports progress per month (0.300446ms)
+  ✔ forgets deleted ids so undo cannot bring them back (0.272499ms)
+  ✔ chunks large batches (0.151919ms)
+✔ Swipe to Organize (5.053582ms)
+▶ short and screen recording classification
+  ✔ treats clips at or under the limit as short, but not screen recordings (0.738039ms)
+  ✔ spots iOS screen recordings by name (0.184811ms)
+✔ short and screen recording classification (2.828681ms)
+▶ Secret Album rules
+  ✔ accepts 4 to 6 digit PINs only (0.281423ms)
+  ✔ locks out after repeated wrong PINs, doubling each time (0.235144ms)
+  ✔ compares hashes in constant time (0.12247ms)
+  ✔ keeps an index of encrypted items (1.000867ms)
+  ✔ encrypts with expo-crypto AES-GCM, keeps the key in secure storage, and never stores the PIN itself (0.337738ms)
+✔ Secret Album rules (2.387039ms)
+▶ demo data
+  ✔ only turns on in development with EXPO_PUBLIC_DEMO=1 (0.208756ms)
+✔ demo data (0.360259ms)
+ℹ tests 81
+ℹ suites 31
+ℹ pass 81
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42960.875375

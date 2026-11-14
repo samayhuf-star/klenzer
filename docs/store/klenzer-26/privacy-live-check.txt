@@ -1,0 +1,28 @@
+Thu Nov 12 22:08:47 +06 2026
+URL https://samayhuf-star.github.io/app-legal/klenzer/privacy.html  HTTP 200
+Effective 12 November 2026. Publisher: Samay Vashsht.
+<h2>The short version</h2>
+<h2>Photos and videos</h2>
+<h2>Contacts</h2>
+<h2>Secret Album and Face ID</h2>
+<h2>Free daily limit</h2>
+<h2>What is stored on your device</h2>
+<h2>Reminders</h2>
+<h2>Purchases</h2>
+<h2>Analytics, advertising and tracking</h2>
+<h2>Permissions</h2>
+<h2>Sharing</h2>
+<h2>Retention and deletion</h2>
+<h2>Children</h2>
+<h2>Changes</h2>
+<h2>Contact</h2>
+does not use any analytics, advertising, crash-reporting or third-party purchase SDK.
+Contacts access is optional and is requested only when you open Merge Contacts.
+Secret Album holds photos only.
+Face ID is optional and is used only to unlock Secret Album.
+you get 10 free items each day, shared across deleting photos and videos, merging contacts and adding photos to Secret Album.
+Contacts access is optional and only requested when you open Merge Contacts.
+Face ID is optional and only used to unlock Secret Album.
+RevenueCat count: /tmp/live-privacy.html:0 /tmp/live-terms.html:0 /tmp/live-support.html:0 
+Compress count: /tmp/live-privacy.html:0 /tmp/live-terms.html:0 /tmp/live-support.html:0 
+Names/emails: /tmp/live-privacy.html:samayhuf@gmail.com /tmp/live-support.html:samayhuf@gmail.com /tmp/live-terms.html:samayhuf@gmail.com 

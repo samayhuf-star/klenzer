@@ -1,0 +1,127 @@
+{
+ "versions": [
+  [
+   "ae1fd46c-a8c2-427f-a487-0da13e20c39c",
+   "1.1.0",
+   "PREPARE_FOR_SUBMISSION"
+  ]
+ ],
+ "included_builds": [
+  [
+   "ea8b96b3-ab1c-49dd-8d43-3b15537035db",
+   "15"
+  ]
+ ],
+ "ver": "ae1fd46c-a8c2-427f-a487-0da13e20c39c",
+ "vloc": [
+  {
+   "id": "b7019074-6dba-42cb-a16e-3fd9ba214bad",
+   "description": "Your camera roll is full of things you never meant to keep: the same photo taken three times, screenshots from months ago, a 2 GB video you forgot about. Klenzer finds them, shows them to you, and lets you clear them in a few taps.\n\nWHAT KLENZER DOES\n• Duplicates & near-identical photos: finds sets of photos taken at the same moment with the same dimensions, keeps the largest file by default, and lets you change your pick.\n• Screenshots: see every screenshot, biggest first, and clear the ones you no longer need.\n• Large videos: surface videos over 100 MB so you can reclaim the most space with the fewest taps.\n• Live Photos: review photos that also store a short video clip and clear the ones you don't need.\n• Temporary files: clear Klenzer's own temporary files in one tap.\n• Quick clean: clear duplicates and temporary files together, with live progress as each step finishes.\n• Real storage numbers: see your device's actual free and total space, straight from the system.\n\nYOU STAY IN CONTROL\nNothing is ever deleted automatically. You review every item, choose what goes, and your iPhone asks you to confirm. Deleted items land in Recently Deleted, so you can change your mind.\n\nPRIVATE BY DESIGN\nYour photos are never uploaded, shared or analysed in the cloud. There is no account, no tracking and no ads. Purchase status for Klenzer Pro is handled by the store and RevenueCat using an anonymous ID.\n\nGOOD TO KNOW\nKlenzer cleans photos and videos, which are usually the biggest users of space. It does not and cannot clear other apps' data or system files. Photos stored only in iCloud are not measured. To free space after deleting, empty Recently Deleted in the Photos app: iOS doesn't allow apps to do this, so Klenzer shows how much is waiting there and opens Photos for you.\n\nOptional reminders: if you turn them on, Klenzer sends a few occasional notifications (at most five over about six weeks). They are scheduled on your device; nothing is sent to us.\n\nKlenzer needs access to your photo library to work. You can allow full access or just selected photos.\n\nQuestions? Contact us from Settings › Contact support.",
+   "locale": "en-US",
+   "keywords": "duplicate,similar,screenshots,videos,storage,space,free up,declutter,gallery,large files,organizer",
+   "marketingUrl": null,
+   "promotionalText": "Find duplicate photos, old screenshots and huge videos in seconds. Review everything, delete only what you choose. 100% on-device and private.",
+   "supportUrl": "https://samayhuf-star.github.io/app-legal/klenzer/support.html",
+   "whatsNew": null
+  }
+ ],
+ "review": [
+  200,
+  "e99443ac-a605-4b67-874d-a14492e060a4",
+  {
+   "contactFirstName": "Samay",
+   "contactLastName": "Vashisht",
+   "contactPhone": "[phone redacted]",
+   "contactEmail": "samayhuf@gmail.com",
+   "demoAccountName": null,
+   "demoAccountPassword": null,
+   "demoAccountRequired": false,
+   "notes": "Klenzer is a native app (Expo/React Native) that uses PhotoKit via expo-media-library to scan the user's library on-device. No login required; no demo account needed. To test, allow Photos access and tap \"Scan my library\". Deletion uses the system confirmation dialog (PHPhotoLibrary performChanges). No data is transmitted off device. Photo access purpose is stated in NSPhotoLibraryUsageDescription. The app can optionally schedule local (on-device) reminder notifications if the user enables them in Settings or on the success screen; no push server or remote notifications are used."
+  }
+ ],
+ "appInfos": [
+  [
+   "6af1a0db-4f30-4457-a971-128d45318be7",
+   "PREPARE_FOR_SUBMISSION",
+   "FOUR_PLUS"
+  ]
+ ],
+ "age": [
+  [
+   "6af1a0db-4f30-4457-a971-128d45318be7",
+   200,
+   "6af1a0db-4f30-4457-a971-128d45318be7",
+   {
+    "advertising": false,
+    "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+    "contests": "NONE",
+    "gambling": false,
+    "gamblingSimulated": "NONE",
+    "gunsOrOtherWeapons": "NONE",
+    "healthOrWellnessTopics": false,
+    "kidsAgeBand": null,
+    "lootBox": false,
+    "medicalOrTreatmentInformation": "NONE",
+    "messagingAndChat": false,
+    "parentalControls": false,
+    "profanityOrCrudeHumor": "NONE",
+    "ageAssurance": false,
+    "sexualContentGraphicAndNudity": "NONE",
+    "sexualContentOrNudity": "NONE",
+    "socialMedia": false,
+    "socialMediaAgeRestricted": false,
+    "horrorOrFearThemes": "NONE",
+    "matureOrSuggestiveThemes": "NONE",
+    "unrestrictedWebAccess": false,
+    "userGeneratedContent": false,
+    "violenceCartoonOrFantasy": "NONE",
+    "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+    "violenceRealistic": "NONE",
+    "ageRatingOverride": "NONE",
+    "ageRatingOverrideV2": "NONE",
+    "koreaAgeRatingOverride": "NONE",
+    "gracRatingClassificationNumber": null,
+    "developerAgeRatingInfoUrl": null
+   }
+  ]
+ ],
+ "infoloc": [
+  [
+   {
+    "id": "abcbe24b-3f12-4d80-8cd6-2dd4a800cbcb",
+    "locale": "en-US",
+    "name": "Klenzer: Phone Storage Cleaner",
+    "subtitle": "Duplicate & Screenshot Cleaner",
+    "privacyPolicyUrl": "https://samayhuf-star.github.io/app-legal/klenzer/privacy.html",
+    "privacyChoicesUrl": null,
+    "privacyPolicyText": null
+   }
+  ]
+ ],
+ "builds": [
+  [
+   "c98575aa-3d26-4d78-b6d0-8ed87db91579",
+   "25",
+   "VALID",
+   "2026-11-12T06:31:33-08:00"
+  ],
+  [
+   "bb215fab-0d4c-4ede-a2b5-8c3cfef0525e",
+   "24",
+   "VALID",
+   "2026-11-12T05:00:18-08:00"
+  ],
+  [
+   "4875cea0-c7b3-4330-8a52-625608ac886a",
+   "23",
+   "VALID",
+   "2026-11-12T03:52:52-08:00"
+  ],
+  [
+   "49d7c57f-fbcb-43e3-9f70-5946efa03d19",
+   "22",
+   "VALID",
+   "2026-11-12T03:18:57-08:00"
+  ]
+ ]
+}

@@ -1,0 +1,5 @@
+status 200
+[('71fb37c4', 'Team (Expo) — all builds (deprecated)'), ('7f7672c0', 'Krosz Personal Group'), ('df2bc14e', 'Internal list'), ('1b0304f4', 'Team (Expo)')]
+team expo builds ['26', '25']
+{'autoNotifyEnabled': True, 'internalBuildState': 'IN_BETA_TESTING', 'externalBuildState': 'READY_FOR_BETA_SUBMISSION'}
+[('aa1763bd-bf7c-432d-8e2f-5b27fa5e3baa', 'INSTALLED', 'EMAIL')]
