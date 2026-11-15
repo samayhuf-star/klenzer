@@ -174,7 +174,7 @@ export default function MergeContacts() {
             return (
               <PressableScale onPress={() => setPreview(g)} style={styles.group} accessibilityLabel={`Group of ${g.contacts.length} contacts, ${plan?.name ?? ''}`}>
                 <View style={styles.groupTop}>
-                  <Text style={styles.groupName} numberOfLines={1}>{plan?.name || 'No name'}</Text>
+                  <Text style={styles.groupName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{plan?.name || 'No name'}</Text>
                   <Text style={styles.groupCount}>{g.contacts.length}</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
                 </View>

@@ -261,6 +261,44 @@ export const dupExtras = (g: DuplicateGroup) => g.items.slice(1);
 export const dupReclaimable = (groups: DuplicateGroup[]) => groups.reduce((n, g) => n + sum(dupExtras(g)), 0);
 export const dupExtraCount = (groups: DuplicateGroup[]) => groups.reduce((n, g) => n + g.items.length - 1, 0);
 
+/**
+ * Bytes shown on the home category cards, added together.
+ * The storage card's "Ready to review" figure must use this same total:
+ * similar extras, duplicate extras, blurry, screenshots, Live Photos,
+ * duplicate / short / screen / large videos. No other source.
+ */
+export function readyToReviewBytes(r: ScanResult | null | undefined): number {
+  if (!r) return 0;
+  return (
+    dupReclaimable(r.duplicates) +
+    dupReclaimable(r.similar) +
+    dupReclaimable(r.duplicateVideos) +
+    sum(r.blurry) +
+    sum(r.screenshots) +
+    sum(r.livePhotos) +
+    sum(r.largeVideos) +
+    sum(r.shortVideos ?? []) +
+    sum(r.screenRecordings ?? [])
+  );
+}
+
+/** True when any category card has items, even if their sizes are still unknown. */
+export function hasReviewableItems(r: ScanResult | null | undefined): boolean {
+  if (!r) return false;
+  return (
+    dupExtraCount(r.duplicates) +
+      dupExtraCount(r.similar) +
+      dupExtraCount(r.duplicateVideos) +
+      r.blurry.length +
+      r.screenshots.length +
+      r.livePhotos.length +
+      r.largeVideos.length +
+      (r.shortVideos?.length ?? 0) +
+      (r.screenRecordings?.length ?? 0) >
+    0
+  );
+}
+
 /** Build the categorized result after items have sizes (and optional hashes). Used by the scanner and by tests. */
 export function buildScanResult(input: {
   photoCount: number;

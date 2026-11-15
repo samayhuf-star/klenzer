@@ -66,9 +66,11 @@ export function scanLookingLine(total: number, percent: number): string {
   return `Looking through ${formatCount(total)} photos · ${pct}%`;
 }
 
-/** Never says None yet while the scan is still checking this group. */
+/** Never says None yet while the scan is still checking this group. A 0% category says Scanning, not a fake 1%. */
 export function tileNote(bytes: number, count: number, spinning: boolean, pct: number): string {
   if (bytes > 0) return formatBytes(bytes);
   if (count) return 'items';
-  return spinning ? `Scanning ${Math.max(1, Math.min(99, Math.round(pct)))}%` : 'None yet';
+  if (!spinning) return 'None yet';
+  const p = Math.max(0, Math.min(99, Math.round(Number.isFinite(pct) ? pct : 0)));
+  return p > 0 ? `Scanning ${p}%` : 'Scanning';
 }

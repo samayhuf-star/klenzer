@@ -135,7 +135,7 @@ export default function SwipeToOrganize() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Button
           variant="danger"
-          label={allBatch.length ? `Delete ${allBatch.length.toLocaleString()} · ${formatBytes(allBytes)}` : 'Swipe left to mark photos'}
+          label={allBatch.length ? `Delete ${allBatch.length.toLocaleString()} ${allBatch.length === 1 ? 'item' : 'items'}` : 'Swipe left to mark photos'}
           disabled={!allBatch.length}
           onPress={doDelete}
           testID="swipe-commit"

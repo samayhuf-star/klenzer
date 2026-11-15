@@ -30,10 +30,19 @@ export default function Cleaning() {
 
   const rows = cleaning?.rows ?? [];
   const finishedRows = rows.filter((r) => r.status === 'done').length;
+  const calmCancel = phase === 'cancelled' && !converting;
   const headline =
     converting
       ? (phase === 'cancelled' ? 'Nothing was converted' : phase === 'error' ? 'Something went wrong' : phase === 'finished' ? 'Converted!' : 'Converting to stills')
       : phase === 'cancelled' ? 'Nothing was deleted' : phase === 'error' ? 'Something went wrong' : phase === 'finished' ? 'Cleaned!' : 'Cleaning your device';
+  const hint =
+    phase === 'working'
+      ? `${finishedRows} of ${rows.length} finished`
+      : phase === 'cancelled'
+        ? (converting ? 'You cancelled the confirmation.' : 'You cancelled the delete. Your photos are untouched.')
+        : phase === 'error'
+          ? 'Nothing was removed.'
+          : '';
 
   return (
     <LinearGradient colors={['#0B1020', '#12307A']} style={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 20 }]}>
@@ -42,21 +51,23 @@ export default function Cleaning() {
           <ScanPulse size={150} icon={converting ? "aperture" : "trash"} color={colors.mint} />
         ) : (
           <Animated.View entering={FadeInUp} style={{ height: 150, justifyContent: 'center' }}>
-            <Ionicons name={phase === 'finished' ? 'checkmark-circle' : 'alert-circle'} size={96} color={phase === 'finished' ? colors.mint : colors.amber} />
+            <Ionicons
+              name={phase === 'finished' ? 'checkmark-circle' : calmCancel ? 'remove-circle-outline' : 'alert-circle'}
+              size={96}
+              color={phase === 'finished' ? colors.mint : calmCancel ? '#C9D4F0' : colors.amber}
+            />
           </Animated.View>
         )}
         <Text style={styles.title}>{headline}</Text>
         {(cleaning?.freed ?? 0) > 0 || phase === 'working' ? (
           <CountUp value={rows.reduce((n, r) => n + (r.status === 'done' ? r.bytes : 0), 0)} format={(n) => converting ? `${formatBytes(n)} to Recently Deleted` : `${formatBytes(n)} cleared`} duration={500} style={styles.sub} />
         ) : null}
-        <Text style={styles.hint}>
-          {phase === 'working' ? `${finishedRows} of ${rows.length} finished` : phase === 'cancelled' ? 'You cancelled the confirmation.' : phase === 'error' ? 'Nothing was removed.' : ''}
-        </Text>
+        <Text style={styles.hint}>{hint}</Text>
       </View>
 
       <View style={{ gap: 10, marginTop: 28 }}>
         {rows.map((r, i) => (
-          <Row key={r.kind} row={r} index={i} />
+          <Row key={r.kind} row={r} index={i} calmCancel={calmCancel} />
         ))}
       </View>
 
@@ -66,10 +77,11 @@ export default function Cleaning() {
   );
 }
 
-function Row({ row, index }: { row: CleanRow; index: number }) {
+function Row({ row, index, calmCancel }: { row: CleanRow; index: number; calmCancel: boolean }) {
   const k = KINDS[row.kind];
   const pct = row.status === 'done' ? 1 : row.count ? row.done / row.count : row.status === 'active' ? 0.1 : 0;
   const bar = useAnimatedStyle(() => ({ width: withTiming(`${Math.round(pct * 100)}%`, { duration: 350 }) }), [pct]);
+  const calmRow = calmCancel && row.status === 'cancelled';
   return (
     <Animated.View entering={FadeInDown.delay(index * 120)} layout={LinearTransition} style={styles.row}>
       <View style={[styles.icon, { backgroundColor: k.soft }]}>
@@ -77,14 +89,14 @@ function Row({ row, index }: { row: CleanRow; index: number }) {
       </View>
       <View style={{ flex: 1, gap: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-          <Text style={styles.rowTitle} numberOfLines={1}>{k.title}</Text>
+          <Text style={styles.rowTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{k.title}</Text>
           <Text style={styles.rowMeta}>
             {row.kind === 'temp' && row.status !== 'done' ? '' : `${row.count.toLocaleString()} items · `}
             {row.bytes > 0 ? formatBytes(row.bytes) : ''}
           </Text>
         </View>
         <View style={styles.track}>
-          <Animated.View style={[styles.fill, { backgroundColor: row.status === 'cancelled' ? colors.amber : colors.mint }, bar]} />
+          <Animated.View style={[styles.fill, { backgroundColor: row.status === 'cancelled' && !calmRow ? colors.amber : colors.mint }, bar]} />
         </View>
         {row.note ? <Text style={styles.note}>{row.note}</Text> : null}
       </View>
@@ -96,7 +108,7 @@ function Row({ row, index }: { row: CleanRow; index: number }) {
         ) : row.status === 'active' ? (
           <ActivityIndicator color="#fff" />
         ) : row.status === 'cancelled' ? (
-          <Ionicons name="close-circle" size={24} color={colors.amber} />
+          <Ionicons name={calmRow ? 'remove-circle-outline' : 'close-circle'} size={24} color={calmRow ? '#C9D4F0' : colors.amber} />
         ) : (
           <Ionicons name="ellipse-outline" size={22} color="#6E7FB0" />
         )}

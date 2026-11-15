@@ -50,7 +50,7 @@ export default function Done() {
         </Animated.View>
         <Animated.View entering={reduceMotion ? undefined : FadeInUp.delay(450)} style={{ alignItems: 'center', marginTop: 32 }}>
           <Text style={styles.kicker}>ALL DONE</Text>
-          {bytes > 0 ? <CountUp value={bytes} format={(n) => lastFreed?.action === 'convert' ? `${formatBytes(n)} ready to free` : `${formatBytes(n)} cleared`} style={styles.big} /> : <Text style={styles.big}>{count} items cleared</Text>}
+          {bytes > 0 ? <CountUp value={bytes} format={(n) => lastFreed?.action === 'convert' ? `${formatBytes(n)} ready to free` : `${formatBytes(n)} cleared`} style={styles.big} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} /> : <Text style={styles.big} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{count} items cleared</Text>}
           <Text style={styles.sub}>
             {lastFreed?.action === 'convert'
               ? (count === 1 ? '1 Live Photo was converted to a still.' : `${count.toLocaleString()} Live Photos were converted to stills.`)

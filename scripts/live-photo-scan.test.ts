@@ -62,7 +62,7 @@ describe('Live Photos in Duplicate and Blurry', () => {
 describe('category tile note', () => {
   it('never says None yet while the scan is still running', () => {
     assert.equal(tileNote(0, 0, true, 37), 'Scanning 37%');
-    assert.equal(tileNote(0, 0, true, 0), 'Scanning 1%');
+    assert.equal(tileNote(0, 0, true, 0), 'Scanning');
     assert.equal(tileNote(0, 0, false, 100), 'None yet');
     assert.equal(tileNote(0, 3, true, 50), 'items');
   });

@@ -2,25 +2,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { APP_SHORT_NAME } from './config';
-import { formatBytes } from './format';
+import { nextReminderDates, REMINDER_COUNT, REMINDER_TITLE, reminderBody, shouldScheduleReminders } from './reminder-plan';
 import { scanCompleteBody } from './scan-complete';
 export { scanCompleteBody };
 
 /**
  * Local, on-device reminders only: no push server, no tokens, no data leaves the phone.
- * Opt-in, scheduled with a 3-day interval, and rewritten every time the app opens or
- * returns to the foreground so the used/total figures stay current.
+ * On by default. A local notification every 3 days at 8:00 AM, rewritten whenever the
+ * app opens so the size stays current. Buying Pro does not cancel them. The Settings
+ * toggle always can. Notification permission is requested by the caller, never from here
+ * on a cold launch.
  */
 const KEY = 'klenzer.reminders.v1';
 const ASKED_KEY = 'klenzer.reminders.asked.v1';
 const CHANNEL = 'reminders';
 const SCAN_COMPLETE_CHANNEL = 'scan-complete';
-const INTERVAL_SECONDS = 3 * 24 * 60 * 60;
 export const SCAN_NOTIFICATION_ACTION = 'scan';
+export const REMINDER_ACTION = 'reminder';
 
 export type ReminderInfo = {
-  usedBytes?: number;
-  totalBytes?: number;
+  /** Bytes the last scan found ready to review. Omitted or 0 uses the generic line. */
+  reclaimBytes?: number;
+  /**
+   * Passed through so a future copy change can branch on purchase status.
+   * 1.1.1 keeps the schedule after Pro; only the toggle and permission cancel it.
+   */
+  isPro?: boolean;
 };
 
 Notifications.setNotificationHandler({
@@ -32,11 +39,12 @@ export function isScanNotification(data: unknown): boolean {
   return (data as { action?: string }).action === SCAN_NOTIFICATION_ACTION;
 }
 
+/** Unset means on. Only an explicit 'off' from the Settings toggle disables reminders. */
 export async function remindersPref(): Promise<boolean> {
   try {
-    return (await AsyncStorage.getItem(KEY)) === 'on';
+    return (await AsyncStorage.getItem(KEY)) !== 'off';
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -55,33 +63,35 @@ export async function permissionState(): Promise<'granted' | 'denied' | 'undeter
   }
 }
 
-/** Clears and re-plans the 3-day reminder with fresh disk numbers (call on each app open / foreground). */
+/**
+ * Clears and re-plans the 8:00 AM reminders (call on each app open / foreground).
+ * Does not ask for permission. Does not delete photos.
+ */
 export async function scheduleReminders(opts: ReminderInfo = {}): Promise<void> {
   try {
+    const enabled = await remindersPref();
+    const granted = (await permissionState()) === 'granted';
     await Notifications.cancelAllScheduledNotificationsAsync();
-    if (!(await remindersPref()) || (await permissionState()) !== 'granted') return;
+    if (!shouldScheduleReminders({ enabled, permissionGranted: granted, isPro: opts.isPro })) return;
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Reminders', importance: Notifications.AndroidImportance.DEFAULT });
     }
-    const used = opts.usedBytes ?? 0;
-    const total = opts.totalBytes ?? 0;
-    const body =
-      used > 0 && total > 0
-        ? `You've used ${formatBytes(used)} of ${formatBytes(total, 0)}. Time to run ${APP_SHORT_NAME}`
-        : `Time to run ${APP_SHORT_NAME}`;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: APP_SHORT_NAME,
-        body,
-        data: { action: SCAN_NOTIFICATION_ACTION },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: INTERVAL_SECONDS,
-        repeats: true,
-        channelId: Platform.OS === 'android' ? CHANNEL : undefined,
-      },
-    });
+    const body = reminderBody(opts.reclaimBytes ?? 0);
+    const dates = nextReminderDates(new Date(), REMINDER_COUNT);
+    for (const date of dates) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: REMINDER_TITLE,
+          body,
+          data: { action: REMINDER_ACTION },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date,
+          channelId: Platform.OS === 'android' ? CHANNEL : undefined,
+        },
+      });
+    }
   } catch {}
 }
 
@@ -99,16 +109,20 @@ export async function markRemindersAsked(): Promise<void> {
   } catch {}
 }
 
-/** Asks the OS for permission (first call shows the system prompt). Returns whether reminders are now on. */
+/**
+ * Records that the user wants reminders, then asks the OS if it has not been asked yet.
+ * Returns whether the system will actually deliver them. The preference stays on either way
+ * so the Settings switch matches the choice; a denial is reported to the caller.
+ */
 export async function enableReminders(info: ReminderInfo = {}): Promise<boolean> {
   try {
+    await savePref(true);
     let state = await permissionState();
     if (state === 'undetermined') {
       const r = await Notifications.requestPermissionsAsync();
       state = r.granted ? 'granted' : 'denied';
     }
     if (state !== 'granted') return false;
-    await savePref(true);
     await scheduleReminders(info);
     return true;
   } catch {

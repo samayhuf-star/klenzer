@@ -1,17 +1,8 @@
-import { dupReclaimable, ScanResult, sum } from './scanner';
+import { readyToReviewBytes, type ScanResult } from './scan-logic';
 
 /** Library clutter a completed (or partial) scan has actually measured, excluding Klenzer's own cache. */
 export function scanReclaimableBytes(r: ScanResult | null): number {
-  if (!r) return 0;
-  return (
-    dupReclaimable(r.duplicates) +
-    dupReclaimable(r.similar) +
-    dupReclaimable(r.duplicateVideos) +
-    sum(r.screenshots) +
-    sum(r.largeVideos) +
-    sum(r.livePhotos) +
-    sum(r.blurry)
-  );
+  return readyToReviewBytes(r);
 }
 
 /** Everything a scan found that Klenzer could clear, in bytes. Used for reminders. */

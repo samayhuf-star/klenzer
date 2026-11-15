@@ -25,6 +25,7 @@ const COPY = {
   shortVideos: { title: 'Short recordings', help: 'Clips of 10 seconds or less, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   screenRecordings: { title: 'Screen recordings', help: 'Recordings of your screen, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   videoDuplicates: { title: 'Duplicate videos', help: 'Videos with the same size, dimensions and capture time. We keep the largest file in each set; tap any video to change what’s selected.' },
+  smart: { title: 'Smart Clean', help: 'Extra copies only. The largest file in each duplicate or similar set stays. Deselect anything you want to keep, then tap Delete. Nothing is removed until you confirm here and on the next screen.' },
 } as const;
 type Kind = keyof typeof COPY;
 const GROUPED: Kind[] = ['duplicates', 'similar', 'videoDuplicates'];
@@ -39,9 +40,22 @@ export default function Review() {
   const groups: DuplicateGroup[] = useMemo(() => {
     if (kind === 'similar') return result?.similar ?? [];
     if (kind === 'videoDuplicates') return result?.duplicateVideos ?? [];
+    if (kind === 'smart') return [];
     return result?.duplicates ?? [];
   }, [kind, result]);
+  const smartFlat = useMemo(() => {
+    if (kind !== 'smart') return [] as Item[];
+    const seen = new Set<string>();
+    const out: Item[] = [];
+    for (const item of [...(result?.duplicates ?? []).flatMap(dupExtras), ...(result?.similar ?? []).flatMap(dupExtras)]) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      out.push(item);
+    }
+    return out;
+  }, [kind, result]);
   const flat: Item[] = useMemo(() => {
+    if (kind === 'smart') return smartFlat;
     if (kind === 'duplicates' || kind === 'similar' || kind === 'videoDuplicates') return groups.flatMap((g) => g.items);
     if (kind === 'screenshots') return result?.screenshots ?? [];
     if (kind === 'blurry') return result?.blurry ?? [];
@@ -50,10 +64,10 @@ export default function Review() {
     if (kind === 'shortVideos') return result?.shortVideos ?? [];
     if (kind === 'screenRecordings') return result?.screenRecordings ?? [];
     return result?.largeVideos ?? [];
-  }, [kind, groups, result]);
+  }, [kind, groups, result, smartFlat]);
 
   const [sel, setSel] = useState<Set<string>>(
-    () => new Set(GROUPED.includes(kind) ? groups.flatMap((g) => dupExtras(g).map((i) => i.id)) : []),
+    () => new Set(kind === 'smart' ? smartFlat.map((i) => i.id) : GROUPED.includes(kind) ? groups.flatMap((g) => dupExtras(g).map((i) => i.id)) : []),
   );
   const chosen = useMemo(() => flat.filter((i) => sel.has(i.id)), [flat, sel]);
   const bytes = chosen.reduce((n, i) => n + i.size, 0);
@@ -90,6 +104,18 @@ export default function Review() {
   };
 
   const doDelete = async () => {
+    if (kind === 'smart') {
+      if (!chosen.length) return;
+      const dupIds = new Set((result?.duplicates ?? []).flatMap((g) => dupExtras(g).map((i) => i.id)));
+      const dupItems = chosen.filter((i) => dupIds.has(i.id));
+      const simItems = chosen.filter((i) => !dupIds.has(i.id));
+      const plan = [
+        ...(dupItems.length ? [{ kind: 'duplicates' as const, items: dupItems }] : []),
+        ...(simItems.length ? [{ kind: 'similar' as const, items: simItems }] : []),
+      ];
+      if (plan.length) startClean(plan);
+      return;
+    }
     const wipesGroup = GROUPED.includes(kind) && groups.some((g) => g.items.every((i) => sel.has(i.id)));
     const go = () => startClean([{ kind, items: chosen }]);
     if (wipesGroup) {
@@ -126,7 +152,7 @@ export default function Review() {
         <PressableScale onPress={() => router.back()} accessibilityLabel="Back" style={styles.back}>
           <Ionicons name="chevron-back" size={24} color={colors.ink} />
         </PressableScale>
-        <Text style={styles.title} numberOfLines={1}>{COPY[kind].title}</Text>
+        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{COPY[kind].title}</Text>
         <View style={styles.side} />
       </View>
 
@@ -173,7 +199,7 @@ export default function Review() {
               accessibilityLabel={chosen.length ? 'Convert to still' : 'Select items to convert'}
               testID="convert-to-still"
               style={[styles.deleteBtn, chosen.length === 0 && { opacity: 0.45 }]}>
-              <Text style={styles.deleteText}>
+              <Text style={styles.deleteText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
                 {chosen.length
                   ? `Convert to still${chosenVideoBytes ? ` · ${formatBytes(chosenVideoBytes)}` : ` · ${chosen.length.toLocaleString()}`}`
                   : 'Select items to convert'}
@@ -185,8 +211,8 @@ export default function Review() {
               accessibilityLabel={chosen.length ? `Delete ${chosen.length}` : 'Select items to delete'}
               testID="delete-live"
               style={[styles.secondaryBtn, chosen.length === 0 && { opacity: 0.45 }]}>
-              <Text style={styles.secondaryText}>
-                {chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Delete'}
+              <Text style={styles.secondaryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
+                {chosen.length ? `Delete ${chosen.length.toLocaleString()} ${chosen.length === 1 ? 'item' : 'items'}` : 'Delete'}
               </Text>
             </PressableScale>
             <Text style={styles.barNote}>
@@ -202,11 +228,12 @@ export default function Review() {
               disabled={chosen.length === 0}
               accessibilityLabel={chosen.length ? `Delete ${chosen.length}` : 'Select items to delete'}
               style={[styles.deleteBtn, chosen.length === 0 && { opacity: 0.45 }]}>
-              <Text style={styles.deleteText}>
-                {chosen.length ? `Delete ${chosen.length.toLocaleString()}${bytes ? ` · ${formatBytes(bytes)}` : ''}` : 'Select items to delete'}
+              <Text style={styles.deleteText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
+                {chosen.length ? `Delete ${chosen.length.toLocaleString()} ${chosen.length === 1 ? 'item' : 'items'}` : 'Select items to delete'}
               </Text>
             </PressableScale>
             <Text style={styles.barNote}>
+              {chosen.length && bytes ? `${formatBytes(bytes)} selected. ` : ''}
               {Platform.OS === 'ios' || DEMO
                 ? 'Your iPhone will ask you to confirm before anything is deleted. Items go to Recently Deleted.'
                 : 'Android will ask you to confirm. Deleted items can’t be restored by Ai Klenzer.'}
@@ -270,8 +297,8 @@ const styles = StyleSheet.create({
   metaText: { fontFamily: fonts.semi, fontSize: 11, color: '#fff' },
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, backgroundColor: colors.bg, gap: 8 },
   deleteBtn: { height: 52, borderRadius: 999, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center', shadowColor: colors.blue, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  deleteText: { fontFamily: fonts.bold, fontSize: 16.5, color: '#fff' },
+  deleteText: { fontFamily: fonts.bold, fontSize: 16.5, color: '#fff', textAlign: 'center', width: '100%', paddingHorizontal: 12 },
   secondaryBtn: { height: 52, borderRadius: 999, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  secondaryText: { fontFamily: fonts.bold, fontSize: 16.5, color: colors.ink },
+  secondaryText: { fontFamily: fonts.bold, fontSize: 16.5, color: colors.ink, textAlign: 'center', width: '100%', paddingHorizontal: 12 },
   barNote: { fontFamily: fonts.body, fontSize: 12, color: colors.ink3, textAlign: 'center' },
 });

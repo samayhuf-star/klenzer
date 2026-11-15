@@ -1,6 +1,7 @@
 import { File } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { isScanAnalyzeSupported, scanAnalyze, scanThumb } from 'live-photo-convert';
+import { isPhotoDeleteCancelled } from './delete-cancel';
 import { analyzeForScan } from './icloud-thumb';
 import { analyzeThumb } from './image-hash';
 import { getCached, pruneCache, putCached } from './scan-cache';
@@ -154,5 +155,11 @@ export async function scanLibrary(
 
 export async function deleteItems(items: Item[]): Promise<boolean> {
   if (!items.length) return false;
-  return MediaLibrary.deleteAssetsAsync(items.map((i) => i.id));
+  try {
+    return await MediaLibrary.deleteAssetsAsync(items.map((i) => i.id));
+  } catch (error) {
+    // Don't Allow rejects the promise (PHPhotosError 3072). Some OS versions resolve false instead.
+    if (isPhotoDeleteCancelled(error)) return false;
+    throw error;
+  }
 }

@@ -48,8 +48,10 @@ export function Segmented<T extends string>({
               Haptics.selectionAsync().catch(() => {});
               onChange(o.value);
             }}>
-            {o.icon && <Ionicons name={o.icon} size={15} color={on ? colors.lime : colors.ink2} />}
-            <Text style={[styles.label, on && styles.labelOn]}>{o.label}</Text>
+            {o.icon && segW >= 112 ? <Ionicons name={o.icon} size={15} color={on ? colors.lime : colors.ink2} /> : null}
+            <Text style={[styles.label, on && styles.labelOn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.25}>
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -60,7 +62,7 @@ export function Segmented<T extends string>({
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 999, padding: 5, height: 50, borderWidth: 1, borderColor: colors.line },
   thumb: { position: 'absolute', top: 5, bottom: 5, left: 5, borderRadius: 999, backgroundColor: colors.navy },
-  seg: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  label: { fontFamily: fonts.semi, fontSize: 14, color: colors.ink2 },
+  seg: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 4 },
+  label: { flexShrink: 1, fontFamily: fonts.semi, fontSize: 14, color: colors.ink2, textAlign: 'center' },
   labelOn: { color: '#FFFFFF' },
 });

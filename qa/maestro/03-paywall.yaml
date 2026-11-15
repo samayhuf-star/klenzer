@@ -9,6 +9,25 @@ appId: com.krosz.klenzer
       id: "paywall-screen"
     timeout: 8000
 - assertVisible: "19.99"
+- scrollUntilVisible:
+    element:
+      id: "plan-monthly"
+    direction: DOWN
+    timeout: 8000
 - assertVisible: "3.99"
+- scrollUntilVisible:
+    element:
+      id: "plan-lifetime"
+    direction: DOWN
+    timeout: 8000
 - assertVisible: "29.99"
+- assertVisible:
+    id: "unlock"
+- scrollUntilVisible:
+    element: "Restore purchase"
+    direction: DOWN
+    timeout: 8000
+- assertVisible: "Terms"
+- assertVisible: "Privacy"
+- assertVisible: "Support"
 - takeScreenshot: 03-paywall
