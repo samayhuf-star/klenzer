@@ -2,7 +2,7 @@
 
 Private, on-device photo clutter cleaner for iOS and Android. Ai Klenzer finds duplicate and similar photos, screenshots, blurry shots, Live Photos, screen recordings, and large videos, then lets you review and delete only what you choose. Photos are never uploaded.
 
-Scanning and reviewing are free. Without Ai Klenzer Pro you can clear 50 items a day, shared across deletes, contact merges, and Secret Album. Pro removes that limit. Yearly and monthly show a 7-day free trial when the store says the user is eligible.
+Scanning and reviewing are free. Without Ai Klenzer Pro you can clear 50 items a day, shared across deletes, contact merges, and Secret Album. Pro removes that limit. Monthly shows a free trial when the store says the user is eligible.
 
 App version in `app.json`: 1.1.1. EAS production builds take the version and build number from the remote source (`eas.json` `appVersionSource: remote`), so set 1.1.1 there before the next store build.
 
@@ -16,7 +16,7 @@ App version in `app.json`: 1.1.1. EAS production builds take the version and bui
 - Swipe to Organize, Merge Contacts, and Secret Album
 - Confirm-before-delete (a single system dialog for the whole selection)
 - Optional local reminder (no push server)
-- Ai Klenzer Pro: yearly, monthly (7-day trial when eligible), or a one-time lifetime unlock
+- Ai Klenzer Pro: monthly (free trial when eligible) or a one-time lifetime unlock
 
 ## Tech stack
 
@@ -34,7 +34,7 @@ App version in `app.json`: 1.1.1. EAS production builds take the version and bui
 - Display name: Ai Klenzer
 - `supportsTablet`: false
 - `ITSAppUsesNonExemptEncryption`: false
-- Store product IDs (prices come from the store’s localized displayPrice): `com.krosz.klenzer.yearly`, `com.krosz.klenzer.monthly`, `com.krosz.klenzer.lifetime`
+- Store product IDs (prices come from the store’s localized displayPrice): `com.krosz.klenzer.lifetime`, `com.krosz.klenzer.monthly`
 - App Store Connect app id used by EAS Submit: `6820685404`
 
 ## Run locally

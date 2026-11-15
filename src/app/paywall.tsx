@@ -37,7 +37,7 @@ export default function Paywall() {
   const { result, completeUnlock } = useStore();
   const reclaim = scanReclaimableBytes(result);
   const [offers, setOffers] = useState<PlansLoad | null>(null);
-  const [sel, setSel] = useState<Plan['kind']>('yearly');
+  const [sel, setSel] = useState<Plan['kind']>('lifetime');
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
 

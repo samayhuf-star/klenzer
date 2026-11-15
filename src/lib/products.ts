@@ -15,12 +15,11 @@ export type ProductDef = {
 
 export const PRODUCT_CATALOG: ProductDef[] = [
   {
-    id: 'com.krosz.klenzer.yearly',
-    kind: 'yearly',
-    type: 'subs',
-    title: 'Yearly',
-    hint: 'Billed once a year. Cancel any time.',
-    badge: 'BEST VALUE',
+    id: 'com.krosz.klenzer.lifetime',
+    kind: 'lifetime',
+    type: 'in-app',
+    title: 'Lifetime',
+    hint: 'Pay once, clean forever.',
   },
   {
     id: 'com.krosz.klenzer.monthly',
@@ -28,13 +27,6 @@ export const PRODUCT_CATALOG: ProductDef[] = [
     type: 'subs',
     title: 'Monthly',
     hint: 'Cancel any time.',
-  },
-  {
-    id: 'com.krosz.klenzer.lifetime',
-    kind: 'lifetime',
-    type: 'in-app',
-    title: 'Lifetime',
-    hint: 'Pay once, clean forever.',
   },
 ];
 
