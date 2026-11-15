@@ -1,0 +1,15 @@
+appId: com.krosz.klenzer
+---
+# Dismiss a StoreKit sign-in sheet if init() raises one. Leave every other alert alone.
+- runFlow:
+    when:
+      visible: "Sign in to Apple Account"
+    commands:
+      - takeScreenshot:
+          path: apple-id-prompt
+      - tapOn:
+          text: "^Cancel$"
+          optional: true
+      - tapOn:
+          text: "^Not Now$"
+          optional: true

@@ -1,0 +1,38 @@
+appId: com.krosz.klenzer
+---
+# Check 3. Photos were revoked with simctl before this launch. Get started must not scan.
+- launchApp
+- takeScreenshot:
+    path: 39-denied-launch
+- runFlow: sub/dismiss-apple.yaml
+- runFlow:
+    when:
+      visible: "Find the clutter"
+    commands:
+      - tapOn:
+          id: "onboarding-continue"
+      - extendedWaitUntil:
+          visible: "You decide, always"
+          timeout: 15000
+      - tapOn:
+          id: "onboarding-continue"
+      - extendedWaitUntil:
+          visible: "Get started"
+          timeout: 15000
+      - takeScreenshot:
+          path: 48-denied-before-permission
+      - tapOn:
+          id: "onboarding-start"
+- runFlow:
+    when:
+      visible: "Don.t Allow"
+    commands:
+      - takeScreenshot:
+          path: 49-denied-dialog
+      - tapOn:
+          text: "^Don.t Allow$"
+- extendedWaitUntil:
+    visible: "Photo access is off"
+    timeout: 30000
+- takeScreenshot:
+    path: 40-permission-denied

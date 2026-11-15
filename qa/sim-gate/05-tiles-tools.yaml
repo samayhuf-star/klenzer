@@ -1,0 +1,197 @@
+appId: com.krosz.klenzer
+---
+# Check 8. Every Clean up section and every tool. Empty tiles are tapped and left on screen.
+- launchApp
+- runFlow: sub/dismiss-apple.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 45000
+- tapOn:
+    id: "home-switch-photos"
+- swipe:
+    start: "50%,72%"
+    end: "50%,40%"
+    duration: 400
+- takeScreenshot:
+    path: 21-photos-tiles
+
+- runFlow:
+    when:
+      visible: "Similar, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Similar, .*"
+      - extendedWaitUntil:
+          visible: "Near-identical photos"
+          timeout: 15000
+      - takeScreenshot:
+          path: 22-similar
+      - tapOn:
+          text: "^Back$"
+
+- runFlow:
+    when:
+      visible: "Duplicate, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Duplicate, .*"
+      - extendedWaitUntil:
+          visible: "same size and capture time"
+          timeout: 15000
+      - takeScreenshot:
+          path: 23-duplicates
+      - tapOn:
+          text: "^Back$"
+
+- runFlow:
+    when:
+      visible: "Blurry, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Blurry, .*"
+      - extendedWaitUntil:
+          visible: "out of focus"
+          timeout: 15000
+      - takeScreenshot:
+          path: 24-blurry
+      - tapOn:
+          text: "^Back$"
+
+- runFlow:
+    when:
+      visible: "Screenshots, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Screenshots, .*"
+      - extendedWaitUntil:
+          visible: "Nothing is selected by default"
+          timeout: 15000
+      - takeScreenshot:
+          path: 25-screenshots
+      - tapOn:
+          text: "^Back$"
+
+- runFlow:
+    when:
+      visible: "Live Photos, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Live Photos, .*"
+      - takeScreenshot:
+          path: 42-live-photos
+      - tapOn:
+          text: "^Back$"
+
+- tapOn:
+    id: "home-switch-videos"
+- extendedWaitUntil:
+    visible: "Short Recordings"
+    timeout: 10000
+- takeScreenshot:
+    path: 26-videos-tiles
+
+- runFlow:
+    when:
+      visible: "Short Recordings, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Short Recordings, .*"
+      - extendedWaitUntil:
+          visible: "10 seconds or less"
+          timeout: 15000
+      - takeScreenshot:
+          path: 27-short-recordings
+      - tapOn:
+          text: "^Back$"
+
+- runFlow:
+    when:
+      visible: "Screen Recordings, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Screen Recordings, .*"
+      - extendedWaitUntil:
+          visible: "Recordings of your screen"
+          timeout: 15000
+      - takeScreenshot:
+          path: 28-screen-recordings
+      - tapOn:
+          text: "^Back$"
+
+- runFlow:
+    when:
+      visible: "Duplicate, [1-9].*"
+    commands:
+      - tapOn:
+          text: "Duplicate, .*"
+      - takeScreenshot:
+          path: 29-duplicate-videos
+      - tapOn:
+          text: "^Back$"
+          optional: true
+
+- tapOn:
+    text: "Large videos, .*"
+    optional: true
+- takeScreenshot:
+    path: 41-large-videos-tap
+- tapOn:
+    text: "^Back$"
+    optional: true
+
+- tapOn:
+    id: "home-switch-contacts"
+- takeScreenshot:
+    path: 30-contacts-tab
+- tapOn:
+    id: "open-contacts"
+- takeScreenshot:
+    path: 31-contacts
+- runFlow:
+    when:
+      visible: "Would Like to Access Your Contacts|Access Your Contacts"
+    commands:
+      - takeScreenshot:
+          path: 43-contacts-permission
+      - tapOn:
+          text: "^Don.t Allow$"
+          optional: true
+- takeScreenshot:
+    path: 44-contacts-after
+- tapOn:
+    text: "^Back$"
+    optional: true
+
+- tapOn:
+    id: "home-switch-photos"
+- scrollUntilVisible:
+    element:
+      id: "open-swipe"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "open-swipe"
+- extendedWaitUntil:
+    visible: "Swipe to Organize"
+    timeout: 15000
+- takeScreenshot:
+    path: 32-swipe
+- tapOn:
+    text: "^Back$"
+
+- scrollUntilVisible:
+    element:
+      id: "open-secret-album"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "open-secret-album"
+- extendedWaitUntil:
+    visible: "Secret Album"
+    timeout: 15000
+- takeScreenshot:
+    path: 33-secret-album
+- tapOn:
+    text: "^Back$"
+    optional: true

@@ -1,0 +1,25 @@
+appId: com.krosz.klenzer
+---
+# Check 9. The Pro button opens the paywall. StoreKit prices are not attached to a Maestro launch.
+- launchApp
+- runFlow: sub/dismiss-apple.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 45000
+- tapOn:
+    id: "open-paywall"
+- extendedWaitUntil:
+    visible:
+      id: "paywall-screen"
+    timeout: 20000
+- takeScreenshot:
+    path: 34-paywall
+- extendedWaitUntil:
+    visible: "Unlock Ai Klenzer|Plans didn.t load|Retry"
+    timeout: 20000
+- takeScreenshot:
+    path: 35-paywall-settled
+- tapOn:
+    text: "^Close$"
+    optional: true

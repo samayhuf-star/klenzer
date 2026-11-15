@@ -1,0 +1,63 @@
+appId: com.krosz.klenzer
+---
+# Checks 5, 6 and 11. Cold start must not scan; Scan library is tapped only if the first pass did not finish.
+- launchApp
+- runFlow: sub/dismiss-apple.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 45000
+- runFlow:
+    when:
+      visible: "Would Like to Send You Notifications"
+    commands:
+      - takeScreenshot:
+          path: 07-notification-at-scan-start
+      - tapOn:
+          text: "^Don.t Allow$"
+- runFlow:
+    when:
+      visible: "Scan library"
+    commands:
+      - tapOn:
+          id: "smart-clean"
+      - takeScreenshot:
+          path: 08-scan-progress
+- runFlow:
+    when:
+      visible: "Would Like to Send You Notifications"
+    commands:
+      - takeScreenshot:
+          path: 07-notification-at-scan-start
+      - tapOn:
+          text: "^Don.t Allow$"
+- runFlow:
+    when:
+      visible: "% complete"
+    commands:
+      - takeScreenshot:
+          path: 09-scan-percent
+- takeScreenshot:
+    path: 11-home-top
+- extendedWaitUntil:
+    visible:
+      id: "rescan"
+    timeout: 180000
+- takeScreenshot:
+    path: 10-home-after-scan
+- swipe:
+    start: "50%,72%"
+    end: "50%,42%"
+    duration: 500
+- takeScreenshot:
+    path: 12-cleanup-tabs
+- swipe:
+    start: "50%,70%"
+    end: "50%,30%"
+    duration: 500
+- takeScreenshot:
+    path: 13-home-scrolled
+- swipe:
+    start: "50%,30%"
+    end: "50%,80%"
+    duration: 500

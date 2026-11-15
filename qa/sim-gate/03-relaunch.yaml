@@ -1,0 +1,14 @@
+appId: com.krosz.klenzer
+---
+# Check 4. A cold start after a finished scan shows the saved result and Rescan, and does not scan.
+- stopApp
+- launchApp
+- takeScreenshot:
+    path: 14-relaunch-immediate
+- runFlow: sub/dismiss-apple.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 45000
+- takeScreenshot:
+    path: 15-relaunch-settled

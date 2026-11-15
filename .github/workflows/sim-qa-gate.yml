@@ -1,0 +1,142 @@
+# Simulator QA for PR #7. Push to qa/sim-gate-pr7, or run it by hand.
+# Builds a Release simulator app on the GitHub macOS runner. No EAS build.
+name: iOS Simulator QA gate
+
+on:
+  push:
+    branches:
+      - qa/sim-gate-pr7
+  workflow_dispatch:
+
+concurrency:
+  group: sim-qa-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sim-qa-gate:
+    name: ${{ matrix.slug }}
+    runs-on: macos-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - slug: iphone-se
+            prefer: iPhone SE (3rd generation)
+          - slug: iphone-pro-max
+            prefer: iPhone 16 Pro Max|iPhone 17 Pro Max
+    env:
+      BUNDLE_ID: com.krosz.klenzer
+      EXPO_NO_TELEMETRY: "1"
+      CI: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode
+        run: xcodebuild -version
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Install ImageMagick, ffmpeg, exiftool, and Maestro
+        run: |
+          set -euo pipefail
+          export HOMEBREW_NO_AUTO_UPDATE=1
+          export HOMEBREW_NO_ANALYTICS=1
+          brew install imagemagick ffmpeg exiftool
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          if [ -d /opt/homebrew/bin ]; then echo /opt/homebrew/bin >> "$GITHUB_PATH"; fi
+          "$HOME/.maestro/bin/maestro" --version
+          java -version
+
+      - name: List runtimes and create the simulator
+        id: sim
+        env:
+          DEVICE_PREFER: ${{ matrix.prefer }}
+        run: python3 qa/sim-gate/prepare-sim.py
+
+      - name: Seed the photo library, then shut the simulator down
+        run: |
+          set -euo pipefail
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          bash qa/sim-gate/generate-media.sh "$RUNNER_TEMP/media"
+          files=()
+          while IFS= read -r -d '' f; do
+            files+=("$f")
+          done < <(find "$RUNNER_TEMP/media" -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.mp4' \) -print0)
+          echo "seeding ${#files[@]} files"
+          if ! xcrun simctl addmedia "$UDID" "${files[@]}"; then
+            for f in "${files[@]}"; do
+              xcrun simctl addmedia "$UDID" "$f"
+            done
+          fi
+          xcrun simctl shutdown "$UDID"
+          df -h /
+
+      - name: Expo prebuild (iOS)
+        run: npx expo prebuild --platform ios --non-interactive --no-install
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+
+      - name: Build the Release simulator app
+        run: |
+          set -euo pipefail
+          echo "export NODE_BINARY=$(command -v node)" >> ios/.xcode.env.local
+          WS="$(ls -d ios/*.xcworkspace | head -n 1)"
+          SCHEME="$(basename "$WS" .xcworkspace)"
+          echo "workspace=$WS scheme=$SCHEME"
+          mkdir -p "$RUNNER_TEMP/build-logs"
+          xcodebuild build \
+            -workspace "$WS" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DEBUG_INFORMATION_FORMAT=dwarf \
+            -jobs 2 \
+            | tee "$RUNNER_TEMP/build-logs/xcodebuild.log"
+          APP="$(find "$RUNNER_TEMP/DerivedData/Build/Products" -type d -name '*.app' -path '*iphonesimulator*' ! -path '*Tests*' | head -n 1)"
+          echo "APP=$APP"
+          if [ -z "$APP" ]; then
+            echo "simulator .app was not produced" >&2
+            exit 1
+          fi
+          if ! find "$APP" \( -name 'main.jsbundle' -o -name '*.hbc' \) | grep -q .; then
+            echo "JS bundle was not embedded; the app would need Metro" >&2
+            find "$APP" -maxdepth 3 -type f | head -80
+            exit 1
+          fi
+          plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist"
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          mkdir -p "qa/sim-gate/out/klenzer/${FOLDER}"
+          cp "$RUNNER_TEMP/build-logs/xcodebuild.log" "qa/sim-gate/out/klenzer/${FOLDER}/xcodebuild.log"
+
+      - name: Boot, install, and run Maestro
+        run: bash qa/sim-gate/run-gate.sh
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: klenzer-${{ steps.sim.outputs.folder }}
+          if-no-files-found: warn
+          path: qa/sim-gate/out/**

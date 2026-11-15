@@ -1,0 +1,57 @@
+appId: com.krosz.klenzer
+---
+# Check 7. Review grid, deselect, Delete N items, then cancel the system prompt.
+- launchApp
+- runFlow: sub/dismiss-apple.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 45000
+- runFlow:
+    when:
+      visible: "Cancel scan"
+    commands:
+      - extendedWaitUntil:
+          notVisible: "Cancel scan"
+          timeout: 180000
+- tapOn:
+    id: "smart-clean"
+- takeScreenshot:
+    path: 16-smart-clean
+- runFlow:
+    when:
+      visible: "Nothing to clean yet"
+    commands:
+      - takeScreenshot:
+          path: 45-nothing-to-clean
+      - tapOn:
+          text: "^OK$"
+          optional: true
+- runFlow:
+    when:
+      visible: "Delete [0-9].*item"
+    commands:
+      - takeScreenshot:
+          path: 17-review-grid
+      - tapOn:
+          point: "18%,48%"
+      - takeScreenshot:
+          path: 18-deselected
+      - tapOn:
+          text: "Delete [0-9][0-9,]* items?"
+      - takeScreenshot:
+          path: 19-system-prompt
+      - tapOn:
+          text: "^Don.t Allow$"
+          optional: true
+      - tapOn:
+          text: "^Cancel$"
+          optional: true
+      - tapOn:
+          text: "^Not now$"
+          optional: true
+      - takeScreenshot:
+          path: 20-after-cancel
+- tapOn:
+    text: "^Back$"
+    optional: true

@@ -1,0 +1,57 @@
+appId: com.krosz.klenzer
+---
+# Checks 1 and 2, plus the first look at scan progress and the notification prompt.
+- launchApp
+- takeScreenshot:
+    path: 01-fresh-launch
+- runFlow: sub/dismiss-apple.yaml
+- extendedWaitUntil:
+    visible: "Find the clutter"
+    timeout: 45000
+- takeScreenshot:
+    path: 02-onboarding-find
+- tapOn:
+    id: "onboarding-continue"
+- extendedWaitUntil:
+    visible: "You decide, always"
+    timeout: 15000
+- takeScreenshot:
+    path: 03-onboarding-decide
+- tapOn:
+    id: "onboarding-continue"
+- extendedWaitUntil:
+    visible: "Private by design"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "Get started"
+    timeout: 15000
+- takeScreenshot:
+    path: 04-onboarding-private
+- tapOn:
+    id: "onboarding-start"
+- extendedWaitUntil:
+    visible: "Allow Full Access|Allow Access to All Photos|Allow All Photos|Select Photos|Would Like to Access|Reading your library|Photo access is off"
+    timeout: 20000
+- takeScreenshot:
+    path: 05-photo-permission
+- tapOn:
+    text: "^Allow Full Access$"
+    optional: true
+- tapOn:
+    text: "^Allow Access to All Photos$"
+    optional: true
+- tapOn:
+    text: "^Allow All Photos$"
+    optional: true
+- takeScreenshot:
+    path: 06-after-photo-allow
+- runFlow:
+    when:
+      visible: "Would Like to Send You Notifications"
+    commands:
+      - takeScreenshot:
+          path: 07-notification-at-scan-start
+      - tapOn:
+          text: "^Don.t Allow$"
+- takeScreenshot:
+    path: 08-scan-progress

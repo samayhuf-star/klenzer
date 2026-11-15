@@ -1,0 +1,46 @@
+appId: com.krosz.klenzer
+---
+# Check 10. Cleanup reminders switch. Notification permission is asked at scan start;
+# turning the switch back on after a denial shows the in-app explanation.
+- launchApp
+- runFlow: sub/dismiss-apple.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 45000
+- tapOn:
+    id: "open-settings"
+- extendedWaitUntil:
+    visible: "Cleanup reminders"
+    timeout: 15000
+- takeScreenshot:
+    path: 36-settings
+- tapOn:
+    point: "${SWITCH_POINT}"
+- takeScreenshot:
+    path: 37-reminders-off
+- tapOn:
+    point: "${SWITCH_POINT}"
+- takeScreenshot:
+    path: 38-reminders-on
+- runFlow:
+    when:
+      visible: "Would Like to Send You Notifications"
+    commands:
+      - takeScreenshot:
+          path: 46-notification-from-toggle
+      - tapOn:
+          text: "^Don.t Allow$"
+          optional: true
+- runFlow:
+    when:
+      visible: "Notifications are off"
+    commands:
+      - takeScreenshot:
+          path: 47-notifications-off-alert
+      - tapOn:
+          text: "^Not now$"
+          optional: true
+- tapOn:
+    text: "^Back$"
+    optional: true
