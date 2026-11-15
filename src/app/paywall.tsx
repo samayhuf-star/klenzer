@@ -26,7 +26,7 @@ const RENEW_NOTE = IS_IOS
   ? 'Renews automatically until you cancel in Settings, under your Apple ID subscriptions.'
   : 'Renews automatically until you cancel in your Google Play subscriptions.';
 
-const PERKS = ['Clear duplicates, screenshots and big videos in one tap', 'Scanning always stays free', 'Your photos never leave your phone'];
+const PERKS = ['Review duplicates, screenshots and big videos, then delete only what you choose', 'Scanning always stays free', 'Your photos never leave your phone'];
 
 export default function Paywall() {
   const insets = useSafeAreaInsets();
@@ -89,7 +89,7 @@ export default function Paywall() {
     // 'cancelled': the user closed the sign-in prompt, so stay silent.
   };
 
-  const headline = reclaim > 0 ? `Free ${formatBytes(reclaim)} now` : 'Unlock Ai Klenzer';
+  const headline = reclaim > 0 ? `${formatBytes(reclaim)} ready to review` : 'Unlock Ai Klenzer';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="paywall-screen">
@@ -97,9 +97,9 @@ export default function Paywall() {
         <PressableScale onPress={close} accessibilityLabel="Close" style={styles.close}>
           <Ionicons name="close" size={22} color="#fff" />
         </PressableScale>
-        <Text style={styles.title}>{headline}</Text>
+        <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>{headline}</Text>
         <Text style={styles.sub}>
-          {reclaim > 0 ? 'That is what Ai Klenzer found on your phone. Unlock once and clear it in a tap.' : 'Scanning is free. Unlock Ai Klenzer to clear what it finds.'}
+          {reclaim > 0 ? 'That is what is ready to review. Pro clears more than 50 items a day. You still choose every item.' : 'Scanning is free. Pro clears more than 50 items a day.'}
         </Text>
       </LinearGradient>
 
@@ -131,7 +131,7 @@ export default function Paywall() {
               <PlanCard key={p.kind} plan={p} selected={chosen?.kind === p.kind} onPress={() => setSel(p.kind)} />
             ))}
             <Button
-              label={busy ? 'Please wait' : reclaim > 0 ? `Unlock & free ${formatBytes(reclaim)}` : 'Unlock Ai Klenzer'}
+              label={busy ? 'Please wait' : 'Unlock Ai Klenzer'}
               icon={<Ionicons name="sparkles" size={20} color="#fff" />}
               onPress={purchase}
               busy={busy}
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   close: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
   offerTag: { alignSelf: 'flex-start', backgroundColor: colors.amber, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5, marginBottom: 10 },
   offerTagText: { fontFamily: fonts.bold, fontSize: 11.5, letterSpacing: 1.2, color: '#3A2300' },
-  title: { fontFamily: fonts.display, fontSize: 38, color: '#fff', letterSpacing: -1, marginTop: 6 },
+  title: { fontFamily: fonts.display, fontSize: 34, color: '#fff', letterSpacing: -1, marginTop: 6, width: '100%' },
   sub: { fontFamily: fonts.body, fontSize: 15.5, lineHeight: 22, color: '#C8D3F2', marginTop: 8 },
   perks: { backgroundColor: colors.card, borderRadius: radius.md, padding: 16, gap: 12, ...shadow },
   perk: { flexDirection: 'row', alignItems: 'center', gap: 10 },

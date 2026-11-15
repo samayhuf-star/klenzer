@@ -2,10 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleProp, Text, TextStyle } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
-type Props = { value: number; format: (n: number) => string; style?: StyleProp<TextStyle>; duration?: number };
+type Props = {
+  value: number;
+  format: (n: number) => string;
+  style?: StyleProp<TextStyle>;
+  duration?: number;
+  numberOfLines?: number;
+  adjustsFontSizeToFit?: boolean;
+  minimumFontScale?: number;
+};
 
 /** Counts from the previously shown value to the new one, so live updates glide instead of restarting at zero. */
-export function CountUp({ value, format, style, duration = 1200 }: Props) {
+export function CountUp({ value, format, style, duration = 1200, numberOfLines, adjustsFontSizeToFit, minimumFontScale }: Props) {
   const reduceMotion = useReducedMotion();
   const [n, setN] = useState(0);
   const from = useRef(0);
@@ -27,5 +35,9 @@ export function CountUp({ value, format, style, duration = 1200 }: Props) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [value, duration, reduceMotion]);
-  return <Text style={style}>{format(reduceMotion ? value : n)}</Text>;
+  return (
+    <Text style={style} numberOfLines={numberOfLines} adjustsFontSizeToFit={adjustsFontSizeToFit} minimumFontScale={minimumFontScale} maxFontSizeMultiplier={1.35}>
+      {format(reduceMotion ? value : n)}
+    </Text>
+  );
 }

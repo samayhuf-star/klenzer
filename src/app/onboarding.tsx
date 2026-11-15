@@ -6,6 +6,7 @@ import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedScrollHan
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { Sparkle } from '../components/Sparkle';
+import { canScan } from '../lib/photo-access';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../theme';
 
@@ -18,12 +19,25 @@ const SLIDES = [
 export default function Onboarding() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { finishOnboarding } = useStore();
+  const { finishOnboarding, requestAccess, scan } = useStore();
   const x = useSharedValue(0);
   const [i, setI] = useState(0);
+  const [busy, setBusy] = useState(false);
   const list = useRef<FlatList>(null);
   const onScroll = useAnimatedScrollHandler((e) => (x.value = e.contentOffset.x));
   const last = i === SLIDES.length - 1;
+  const start = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      // The photo prompt is part of Get started. A grant is the one launch that may scan.
+      const access = await requestAccess();
+      finishOnboarding();
+      if (canScan(access)) void scan();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom + 16 }]}>
@@ -47,8 +61,9 @@ export default function Onboarding() {
       <View style={styles.cta}>
         <Button
           label={last ? 'Get started' : 'Continue'}
+          busy={last && busy}
           testID={last ? 'onboarding-start' : 'onboarding-continue'}
-          onPress={() => (last ? finishOnboarding() : list.current?.scrollToIndex({ index: i + 1, animated: true }))}
+          onPress={() => (last ? void start() : list.current?.scrollToIndex({ index: i + 1, animated: true }))}
         />
       </View>
     </View>
@@ -80,7 +95,7 @@ function Slide({ item, index, x, width }: { item: (typeof SLIDES)[number]; index
         <Sparkle size={34} color={item.c[0]} delay={0} style={{ top: -10, right: -6 }} />
         <Sparkle size={22} color={item.c[1]} delay={500} style={{ bottom: 6, left: -14 }} />
       </Animated.View>
-      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.title} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.7}>{item.title}</Text>
       <Text style={styles.body}>{item.body}</Text>
     </View>
   );
@@ -90,8 +105,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   artWrap: { width: 200, height: 200, marginBottom: 44 },
   art: { flex: 1, borderRadius: 56, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fonts.display, fontSize: 36, color: colors.ink, letterSpacing: -0.8, textAlign: 'center' },
-  body: { fontFamily: fonts.body, fontSize: 17, lineHeight: 25, color: colors.ink2, textAlign: 'center', marginTop: 14, maxWidth: 340 },
+  title: { fontFamily: fonts.display, fontSize: 34, color: colors.ink, letterSpacing: -0.8, textAlign: 'center', width: '100%' },
+  body: { fontFamily: fonts.body, fontSize: 17, lineHeight: 25, color: colors.ink2, textAlign: 'center', marginTop: 14, maxWidth: 340, width: '100%' },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: 22 },
   dot: { height: 8, borderRadius: 4, backgroundColor: colors.blue },
   cta: { paddingHorizontal: 24 },

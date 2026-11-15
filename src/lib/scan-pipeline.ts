@@ -10,6 +10,7 @@ import {
   type ScanResult,
   withTimeout,
 } from './scan-logic';
+import { alignDisplayedProgress } from './scan-progress';
 
 export type ScanCategory = 'photos' | 'screenshots' | 'videos';
 
@@ -30,6 +31,9 @@ export type Progress = {
   percent?: number;
   /** Stable library size for the “Looking through N photos” line. */
   libraryTotal?: number;
+  /** Items read so far. Used while phase is "reading", separate from the overall done/total. */
+  readDone?: number;
+  readTotal?: number;
   /** Duplicate/Similar/Blurry analysis accounting: every still is processed or skipped exactly once. */
   analysis?: AnalysisCount;
   /** True only on the final tick, when processed + skipped == total for every stage. */
@@ -210,10 +214,19 @@ export async function scanLibraryWithIO(
     hashing: { done: 0, total: 0, reached: false },
     blur: { done: 0, total: 0, reached: false },
   };
-  let latest: Progress = { phase: 'reading', done: 0, total: 0, label: 'Reading your library', percent: 0 };
+  let latest: Progress = { phase: 'reading', done: 0, total: 1, label: 'Reading your library', percent: 0 };
   const pushProgress = (p: Progress, force = false) => {
-    percentFloor = weightedScanPercent(stages, percentFloor);
-    const next = { ...p, percent: percentFloor, libraryTotal: p.libraryTotal ?? latest.libraryTotal };
+    // When the caller passes a real done/total, the percent is that ratio and nothing else.
+    // Weighted stage math stays available for tests, but it is not shown next to a different count.
+    const aligned = p.total > 0 ? alignDisplayedProgress(p.done, p.total) : null;
+    if (!aligned) percentFloor = weightedScanPercent(stages, percentFloor);
+    const next: Progress = {
+      ...p,
+      done: aligned ? aligned.done : p.done,
+      total: aligned ? aligned.total : p.total,
+      percent: aligned ? aligned.percent : percentFloor,
+      libraryTotal: p.libraryTotal ?? latest.libraryTotal,
+    };
     latest = next;
     const t = now();
     if (force || t - lastProgress >= 250) {
@@ -257,7 +270,7 @@ export async function scanLibraryWithIO(
     onCategory({ category: 'photos', status: 'running', done: 0, total: 0 });
     onCategory({ category: 'screenshots', status: 'running', done: 0, total: 0 });
     onCategory({ category: 'videos', status: 'running', done: 0, total: 0 });
-    pushProgress({ phase: 'reading', done: 0, total: 0, label: 'Reading your library' }, true);
+    pushProgress({ phase: 'reading', done: 0, total: 1, readDone: 0, readTotal: 0, label: 'Reading your library' }, true);
 
     const seen = new Set<string>();
     const photoItems: Item[] = [];
@@ -288,12 +301,17 @@ export async function scanLibraryWithIO(
       }
       stages.reading.done = seen.size;
       stages.reading.total = total || seen.size;
+      const libraryNow = total || seen.size;
+      // done/total stay 0/1 so the overall percent does not hit 100% when reading finishes
+      // and then drop once sizing starts. The label and readDone/readTotal carry the real count.
       pushProgress({
         phase: 'reading',
-        done: seen.size,
-        total: total || seen.size,
-        libraryTotal: total || seen.size,
-        label: `Reading ${seen.size.toLocaleString()} of ${(total || seen.size).toLocaleString()}`,
+        done: 0,
+        total: 1,
+        readDone: seen.size,
+        readTotal: libraryNow,
+        libraryTotal: libraryNow,
+        label: `Reading ${seen.size.toLocaleString()} of ${libraryNow.toLocaleString()}`,
       });
       if (!page.hasNextPage || seen.size >= MAX_ASSETS) break;
       after = page.endCursor;
@@ -370,6 +388,9 @@ export async function scanLibraryWithIO(
     ];
     const sizeQueue = [...candidateQueue, ...restQueue];
     const measured = new Set<string>();
+    let shotSized = 0;
+    let videoSized = 0;
+    let stillSized = 0;
     let shotsDone = false;
     let videosDone = false;
     stages.reading.done = stages.reading.total = Math.max(stages.reading.total, seen.size);
@@ -378,29 +399,55 @@ export async function scanLibraryWithIO(
     stages.sizing.total = sizeQueue.length;
     stages.sizing.done = 0;
 
+    const accounted = new Set<string>();
+
+    const publishCats = () => {
+      if (!shotsDone) {
+        const finished = screenshots.length === 0 || shotSized >= screenshots.length;
+        if (finished) shotsDone = true;
+        onCategory({ category: 'screenshots', status: finished ? 'done' : 'running', done: shotSized, total: screenshots.length });
+      }
+      if (!videosDone) {
+        const finished = videos.length === 0 || videoSized >= videos.length;
+        if (finished) videosDone = true;
+        onCategory({ category: 'videos', status: finished ? 'done' : 'running', done: videoSized, total: videos.length });
+      }
+      // Duplicates and similar follow stills being measured, which is a different queue
+      // from screenshots and from videos, so the three bars do not share one percent.
+      onCategory({ category: 'photos', status: 'running', done: stillSized, total: stills.length });
+    };
+
+    let lastCats = 0;
     const reportProgress = (force = false, category?: ScanCategory) => {
+      stages.sizing.done = measured.size;
+      // One unit per asset for its file size, plus one unit per still for the similar/blur pass.
+      // The headline percent is this ratio, and the count line uses the same numbers.
+      const workTotal = sizeQueue.length + stills.length;
+      const workDone = measured.size + accounted.size;
+      const label =
+        measured.size < sizeQueue.length
+          ? 'Measuring file sizes'
+          : !stages.hashing.complete
+            ? 'Comparing similar photos'
+            : 'Checking for blurry photos';
       pushProgress({
         phase: 'analyzing',
-        done: measured.size,
-        total: sizeQueue.length,
+        done: workDone,
+        total: Math.max(workTotal, 1),
         category,
         libraryTotal,
+        label,
       }, force);
+      const t = now();
+      if (force || t - lastCats >= 250) {
+        lastCats = t;
+        publishCats();
+      }
     };
 
-    const maybeFinishCats = () => {
-      if (!shotsDone && screenshots.every((i) => measured.has(i.id) || i.size > 0)) {
-        shotsDone = true;
-        onCategory({ category: 'screenshots', status: 'done', done: screenshots.length, total: screenshots.length });
-      }
-      if (!videosDone && videos.every((i) => measured.has(i.id) || i.size > 0)) {
-        videosDone = true;
-        onCategory({ category: 'videos', status: 'done', done: videos.length, total: videos.length });
-      }
-    };
+    const maybeFinishCats = () => publishCats();
 
     // Every still is analyzed once (dHash + blur together) and counted as processed or skipped.
-    const accounted = new Set<string>();
     const analysis: AnalysisCount = { processed: 0, skipped: 0, total: stills.length };
     const account = (item: Item) => {
       if (accounted.has(item.id)) return;
@@ -447,7 +494,12 @@ export async function scanLibraryWithIO(
         await mapPool(batch, workers, async (item) => {
           if (cancelled(signal)) return;
           await enrichOne(item, 'size');
-          measured.add(item.id);
+          if (!measured.has(item.id)) {
+            measured.add(item.id);
+            if (item.isScreenshot) shotSized++;
+            else if (item.isVideo) videoSized++;
+            else stillSized++;
+          }
         }, () => reportProgress(false, 'photos'));
         reportProgress(true, 'photos');
         emit(photos, screenshots, livePhotos, videos, photoCount, videoCount);
@@ -528,13 +580,13 @@ export async function scanLibraryWithIO(
     stages.hashing.done = stages.hashing.total;
     stages.blur.done = stages.blur.total;
     stages.blur.complete = true;
-    percentFloor = 100;
+    const workTotal = Math.max(1, sizeQueue.length + stills.length);
     pushProgress({
       phase: 'analyzing',
-      done: sizeQueue.length,
-      total: sizeQueue.length,
+      done: workTotal,
+      total: workTotal,
       libraryTotal,
-      percent: 100,
+      label: 'Scan complete',
       analysis: { ...analysis },
       complete: analysisComplete(analysis),
     }, true);

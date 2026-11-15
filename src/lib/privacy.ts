@@ -1,4 +1,4 @@
-export const PRIVACY_UPDATED = '14 November 2026';
+export const PRIVACY_UPDATED = '15 November 2026';
 
 export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   {
@@ -19,7 +19,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'What is stored on your device',
-    p: 'Ai Klenzer stores a few small preferences locally: whether you have finished the intro, how many free items you have used today, the running total of space you have cleared, whether you turned reminders on, and whether you chose not to see the Recently Deleted reminder again. It also keeps an on-device scan cache (file sizes and tiny perceptual hashes, keyed by photo id and modification date) so later scans can skip unchanged items, plus temporary thumbnails you can clear in the app. None of that cache is uploaded. Deleting the app removes this local data.',
+    p: 'Ai Klenzer stores a few small preferences locally: whether you have finished the intro, how many free items you have used today, the running total of space you have cleared, whether cleanup reminders are on, and whether you chose not to see the Recently Deleted reminder again. It also keeps the last scan result and an on-device scan cache (file sizes and tiny perceptual hashes, keyed by photo id and modification date) so the next launch can show what it already found and later scans can skip unchanged items, plus temporary thumbnails you can clear in the app. None of that cache is uploaded. Deleting the app removes this local data.',
   },
   {
     h: 'Purchases',
@@ -31,11 +31,11 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Reminders',
-    p: 'If you choose to turn them on (after your first scan), Ai Klenzer schedules a local reminder every 3 days with your current used and total storage. The reminder is created and delivered by your phone itself: no server is involved, nothing is sent to us, and no push token is collected. Opening the app cancels and reschedules it with fresh numbers. Turn them off any time in Ai Klenzer Settings, which cancels all scheduled reminders.',
+    p: 'Cleanup reminders are on unless you turn them off. Ai Klenzer schedules a local notification every 3 days at 8:00 AM, with the amount ready to review when a scan has measured one. Buying Ai Klenzer Pro does not turn them off. The reminder is created and delivered by your phone itself: no server is involved, nothing is sent to us, and no push token is collected. Opening the app reschedules the next ones with a fresh size. Turn them off any time with the Cleanup reminders switch in Settings, which cancels the scheduled reminders. That switch works whether or not you have bought Pro.',
   },
   {
     h: 'Permissions',
-    p: 'Photo and video library access is the only permission Ai Klenzer needs to scan. Contacts access is optional and only requested when you open Merge Contacts. Face ID is optional and only used to unlock Secret Album. Notification permission is optional and only requested if you choose reminders. You can change or revoke any of these at any time in your device Settings; Ai Klenzer will still open but cannot scan without photo access.',
+    p: 'Photo and video library access is the only permission Ai Klenzer needs to scan. It is requested when you tap Get started or Scan, not on a later cold launch. Contacts access is optional and only requested when you open Merge Contacts. Face ID is optional and only used to unlock Secret Album. Notification permission is requested when you start a scan or turn Cleanup reminders on, so the phone can say when a scan finishes and deliver the local reminder. You can change or revoke any of these at any time in your device Settings; Ai Klenzer will still open but cannot scan without photo access.',
   },
   {
     h: 'Children',

@@ -77,7 +77,7 @@ function Row({ row, index }: { row: CleanRow; index: number }) {
       </View>
       <View style={{ flex: 1, gap: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-          <Text style={styles.rowTitle} numberOfLines={1}>{k.title}</Text>
+          <Text style={styles.rowTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{k.title}</Text>
           <Text style={styles.rowMeta}>
             {row.kind === 'temp' && row.status !== 'done' ? '' : `${row.count.toLocaleString()} items · `}
             {row.bytes > 0 ? formatBytes(row.bytes) : ''}

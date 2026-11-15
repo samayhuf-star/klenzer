@@ -4,15 +4,16 @@ import * as Notifications from 'expo-notifications';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Alert, AppState, Linking, Platform } from 'react-native';
-import { formatBytes } from './format';
+import { shouldStartScan } from './launch-scan';
+import { loadScanResult, saveScanResult } from './scan-result-cache';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
-import { disableReminders, enableReminders, isScanNotification, permissionState, remindersPref, remindersAsked, markRemindersAsked, scheduleReminders, askNotificationPermissionOnScanStart, notifyScanComplete } from './reminders';
+import { disableReminders, enableReminders, remindersPref, scheduleReminders, askNotificationPermissionOnScanStart, notifyScanComplete } from './reminders';
 import { beginShortBackgroundTask, endShortBackgroundTask } from 'live-photo-convert';
 import { initIAP, onEntitlementChange, refreshEntitlements } from './purchases';
-import { withTimeout } from './scan-logic';
+import { readyToReviewBytes, withTimeout } from './scan-logic';
 import { reclaimableBytes } from './reclaim';
 import {
   consumeAllowance,
@@ -135,7 +136,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const afterUnlock = useRef<CleanPlan | null>(null);
   const afterUnlockConvert = useRef<{ items: Item[]; videoBytes: number } | null>(null);
   const signal = useRef({ cancelled: false });
-  const handledNotif = useRef<string | null>(null);
   const scanningRef = useRef(false);
   const scanIncomplete = useRef(false);
   const progressRef = useRef<Progress | null>(null);
@@ -145,6 +145,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const accessRequest = useRef<Promise<Access> | null>(null);
   // The latest scan() call wins after its permission awaits, so a tap and the AppState restart never run two scans.
   const scanToken = useRef(0);
+  const resultRef = useRef<ScanResult | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -163,6 +165,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         allowanceRef.current = stored;
         setAllowance(stored);
         if (DEMO) setResult(demoScanResult());
+        else {
+          const cached = await loadScanResult();
+          if (cached) {
+            resultRef.current = cached;
+            setResult(cached);
+          }
+        }
         scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';
       } catch {}
       setReady(true);
@@ -173,7 +182,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (ok) setIsPro(await withTimeout(refreshEntitlements(), 4000, false));
         } catch {}
         try {
-          setRemindersState((await remindersPref()) && (await permissionState()) === 'granted');
+          // Preference only. Permission is asked later, after a scan the user started, never here.
+          setRemindersState(await remindersPref());
         } catch {}
         try {
           const p = await readPhotoPermission();
@@ -270,18 +280,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, 1500);
   }, [refreshDisk]);
 
-  // Cancel and reschedule the 3-day local reminder with fresh used/total on open and foreground.
-  const reminderInfo = useRef({ used: 0, total: 0 });
+  // Reschedule local 8:00 AM reminders on open and when the app returns. Never asks for permission here.
+  const reminderInfo = useRef({ reclaimBytes: 0, isPro: false });
   useEffect(() => {
-    reminderInfo.current = { used: disk.used, total: disk.total };
-  }, [disk.used, disk.total]);
+    resultRef.current = result;
+    reminderInfo.current = { reclaimBytes: readyToReviewBytes(result), isPro };
+  }, [isPro, result]);
   useEffect(() => {
     if (!ready) return;
-    const plan = () => scheduleReminders({ usedBytes: reminderInfo.current.used, totalBytes: reminderInfo.current.total });
+    const plan = () => void scheduleReminders(reminderInfo.current);
     plan();
     const sub = AppState.addEventListener('change', (st) => st === 'active' && plan());
     return () => sub.remove();
-  }, [ready, disk.used, disk.total]);
+  }, [ready]);
 
   const setReminders = useCallback(async (on: boolean) => {
     if (!on) {
@@ -289,28 +300,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRemindersState(false);
       return 'off' as const;
     }
-    const ok = await enableReminders({ usedBytes: disk.used, totalBytes: disk.total });
-    setRemindersState(ok);
+    // The switch stays on to match the choice. A system denial comes back as 'blocked'
+    // so Settings can point at the iOS notification switch. Apple 4.5.4: the toggle always works.
+    const ok = await enableReminders({ reclaimBytes: readyToReviewBytes(resultRef.current), isPro: reminderInfo.current.isPro });
+    setRemindersState(true);
     return ok ? ('on' as const) : ('blocked' as const);
-  }, [disk.used, disk.total]);
-
-  // Right after the first scan the user has just seen how much space is wasted, so that is the moment to offer reminders.
-  const askAboutReminders = useCallback(
-    async (reclaim: number) => {
-      try {
-        if (await remindersAsked()) return;
-        await markRemindersAsked();
-        if ((await permissionState()) === 'denied') return;
-        const body = reclaim > 0 ? `We found ${formatBytes(reclaim)} you can clear. Want a gentle reminder every few days?` : 'Want a gentle reminder every few days to check your storage?';
-        Alert.alert('Remind me to clean up?', body, [
-          { text: 'Not now', style: 'cancel' },
-          { text: 'Yes, remind me', onPress: () => void setReminders(true) },
-        ]);
-      } catch {}
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [disk.used, disk.total],
-  );
+  }, []);
 
   const markScanIncomplete = (on: boolean) => {
     scanIncomplete.current = on;
@@ -362,20 +357,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             setProgress(p);
           },
           onCategory: (p) => setScanCats((prev) => ({ ...prev, [p.category]: p })),
-          onPartial: (partial) => setResult({ ...partial }),
+          onPartial: (partial) => {
+            const next = { ...partial };
+            resultRef.current = next;
+            setResult(next);
+            if (saveTimer.current) clearTimeout(saveTimer.current);
+            saveTimer.current = setTimeout(() => {
+              if (resultRef.current) void saveScanResult(resultRef.current);
+            }, 1500);
+          },
           onError: (message) => setScanError(message),
         },
         signal.current,
         { initialPercent: opts.resume ? (progressRef.current?.percent ?? 0) : 0 },
       );
       if (!signal.current.cancelled) {
+        resultRef.current = r;
         setResult(r);
         markScanIncomplete(false);
         const reclaim = reclaimableBytes(r, tempBytes());
         AsyncStorage.setItem(KEYS.reclaim, String(reclaim)).catch(() => {});
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        void saveScanResult(r);
         // Fires on completion (processed + skipped == total), in the foreground or within the background task window.
         void notifAsk.then(() => notifyScanComplete(reclaim));
-        if (!opts.resume) askAboutReminders(reclaim);
+        void scheduleReminders({ reclaimBytes: readyToReviewBytes(r), isPro: reminderInfo.current.isPro });
       }
     } catch (e) {
       setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');
@@ -387,16 +393,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setScanning(false);
       setProgress(null);
       refreshDisk();
+      if (resultRef.current) void saveScanResult(resultRef.current);
     }
-  }, [refreshAccess, requestAccess, refreshDisk, askAboutReminders]);
+  }, [refreshAccess, requestAccess, refreshDisk]);
 
   const scanRef = useRef(scan);
   useEffect(() => {
     scanRef.current = scan;
   }, [scan]);
 
-  // If a scan was in progress when the app left the foreground, resume from the SQLite cache
-  // without wiping results. A short iOS background task may let the current scan finish, but we do not promise background processing.
+  // Coming back to the foreground never starts a scan by itself.
+  // The only exception is a Scan tap that is still waiting on the Photos prompt (pendingScan).
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => {
       if (st !== 'active') return;
@@ -405,28 +412,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const prev = accessRef.current;
         const next = await refreshAccess();
         if (scanningRef.current) return;
-        // Access granted in the Photos sheet or in Settings: start the scan the user already asked for.
+        if (!shouldStartScan('user-tapped-scan')) return;
         if (shouldStartScanAfterAccessChange({ prev, next, pendingScan: pendingScan.current, scanning: scanningRef.current })) {
           void scanRef.current();
-          return;
         }
-        if (scanIncomplete.current && canScan(next)) void scanRef.current({ resume: true });
       })();
     });
     return () => sub.remove();
   }, [refreshAccess]);
 
-  // Tapping a reminder opens the app and starts a scan. Never request notification permission here.
+  // A reminder or a finished-scan notice only opens the app. It does not scan and it does not delete.
   useEffect(() => {
     if (!ready || !onboarded) return;
     const handle = (response: Notifications.NotificationResponse | null) => {
       if (!response) return;
-      if (!isScanNotification(response.notification.request.content.data)) return;
-      const id = `${response.notification.request.identifier}:${String(response.notification.date)}`;
-      if (handledNotif.current === id) return;
-      handledNotif.current = id;
       void Notifications.clearLastNotificationResponseAsync?.();
-      void scanRef.current();
     };
     Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
     const sub = Notifications.addNotificationResponseReceivedListener(handle);
@@ -490,30 +490,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           patch((r) => r.map((x) => (x.kind === media[i].kind ? { ...x, status: 'done', done: x.count, note: undefined } : x)));
           await new Promise((res) => setTimeout(res, 350));
         }
-        setResult(
-          (r) =>
-            r && {
-              ...r,
-              photoCount: r.photoCount - all.filter((i) => !i.isVideo).length,
-              videoCount: r.videoCount - all.filter((i) => i.isVideo).length,
-              screenshots: r.screenshots.filter((i) => !gone.has(i.id)),
-              largeVideos: r.largeVideos.filter((i) => !gone.has(i.id)),
-              shortVideos: (r.shortVideos ?? []).filter((i) => !gone.has(i.id)),
-              screenRecordings: (r.screenRecordings ?? []).filter((i) => !gone.has(i.id)),
-              livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
-              blurry: r.blurry.filter((i) => !gone.has(i.id)),
-              photos: (r.photos ?? []).filter((i) => !gone.has(i.id)),
-              duplicates: r.duplicates
-                .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
-                .filter((g) => g.items.length > 1),
-              similar: r.similar
-                .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
-                .filter((g) => g.items.length > 1),
-              duplicateVideos: r.duplicateVideos
-                .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
-                .filter((g) => g.items.length > 1),
-            },
-        );
+        setResult((r) => {
+          if (!r) return r;
+          const next = {
+            ...r,
+            photoCount: r.photoCount - all.filter((i) => !i.isVideo).length,
+            videoCount: r.videoCount - all.filter((i) => i.isVideo).length,
+            screenshots: r.screenshots.filter((i) => !gone.has(i.id)),
+            largeVideos: r.largeVideos.filter((i) => !gone.has(i.id)),
+            shortVideos: (r.shortVideos ?? []).filter((i) => !gone.has(i.id)),
+            screenRecordings: (r.screenRecordings ?? []).filter((i) => !gone.has(i.id)),
+            livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
+            blurry: r.blurry.filter((i) => !gone.has(i.id)),
+            photos: (r.photos ?? []).filter((i) => !gone.has(i.id)),
+            duplicates: r.duplicates
+              .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
+              .filter((g) => g.items.length > 1),
+            similar: r.similar
+              .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
+              .filter((g) => g.items.length > 1),
+            duplicateVideos: r.duplicateVideos
+              .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
+              .filter((g) => g.items.length > 1),
+          };
+          resultRef.current = next;
+          void saveScanResult(next);
+          return next;
+        });
       }
 
       const count = plan.reduce((n, p) => n + (p.kind === 'temp' ? 0 : p.items.length), 0);

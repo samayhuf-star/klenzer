@@ -10,7 +10,7 @@
     "backgroundColor": "#F6F8FC",
     "ios": {
       "bundleIdentifier": "com.krosz.klenzer",
-      "buildNumber": "25",
+      "buildNumber": "30",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

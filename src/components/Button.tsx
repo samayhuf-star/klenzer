@@ -21,7 +21,9 @@ export function Button({ label, onPress, variant = 'primary', icon, busy, disabl
   const inner = (
     <View style={styles.row}>
       {busy ? <ActivityIndicator color={textColor} /> : icon}
-      <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+      <Text style={[styles.label, { color: textColor }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.3}>
+        {label}
+      </Text>
     </View>
   );
   return (
@@ -47,7 +49,7 @@ export function Button({ label, onPress, variant = 'primary', icon, busy, disabl
 
 const styles = StyleSheet.create({
   wrap: { borderRadius: radius.pill, overflow: 'hidden' },
-  fill: { paddingVertical: 17, paddingHorizontal: 26, alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  label: { fontFamily: fonts.bold, fontSize: 17, letterSpacing: 0.1 },
+  fill: { paddingVertical: 17, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, maxWidth: '100%' },
+  label: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 17, letterSpacing: 0.1, textAlign: 'center' },
 });
