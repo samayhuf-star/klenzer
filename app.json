@@ -121,7 +121,6 @@
           "enableBackgroundRemoteNotifications": false
         }
       ],
-      "expo-iap",
       [
         "expo-contacts",
         {

@@ -5,3 +5,6 @@ export const TERMS_URL = 'https://klenzer.online/terms';
 export const SUPPORT_URL = 'https://klenzer.online/support';
 export const APP_NAME = 'Ai Klenzer - Phone Storage Cleaner';
 export const APP_SHORT_NAME = 'Ai Klenzer';
+
+/** RevenueCat entitlement that unlocks Pro. */
+export const RC_ENTITLEMENT = 'klenzer_pro';
