@@ -474,7 +474,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'active', note: 'Waiting for your confirmation' })));
         const ok = await deleteItems(all);
         if (!ok) {
-          patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'cancelled', note: 'Cancelled. Nothing was deleted.' })), {
+          patch((r) => r.map((x) => (x.kind === 'temp' ? x : { ...x, status: 'cancelled', note: 'Not deleted' })), {
             phase: 'cancelled',
             freed,
           });
@@ -528,7 +528,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       pollDisk();
       return all.length + (ti >= 0 ? 1 : 0);
     } catch {
-      patch((r) => r, { phase: 'error', freed });
+      // Leave finished rows alone. Stop anything still spinning on "Waiting for your confirmation".
+      patch((r) => r.map((x) => (x.status === 'active' ? { ...x, status: 'pending', note: 'Not removed' } : x)), {
+        phase: 'error',
+        freed,
+      });
       refreshDisk();
       return 0;
     }

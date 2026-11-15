@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
@@ -26,10 +26,14 @@ const RENEW_NOTE = IS_IOS
   ? 'Renews automatically until you cancel in Settings, under your Apple ID subscriptions.'
   : 'Renews automatically until you cancel in your Google Play subscriptions.';
 
+/** iPhone SE is 667pt and iPhone 8 Plus is 736pt. Taller phones keep the button in the list. */
+const PIN_CTA_BELOW_HEIGHT = 740;
+
 const PERKS = ['Review duplicates, screenshots and big videos, then delete only what you choose', 'Scanning always stays free', 'Your photos never leave your phone'];
 
 export default function Paywall() {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { result, completeUnlock } = useStore();
   const reclaim = scanReclaimableBytes(result);
   const [offers, setOffers] = useState<PlansLoad | null>(null);
@@ -53,6 +57,9 @@ export default function Paywall() {
   const plans = offers?.plans ?? [];
   const chosen = plans.find((p) => p.kind === sel) ?? plans[0];
   const loading = offers === null;
+  const showPlans = !loading && plans.length > 0;
+  // Short phones pin the purchase button. Plans, the renewal line and the legal links scroll above it.
+  const pinCta = showPlans && windowHeight < PIN_CTA_BELOW_HEIGHT;
 
   const close = () => {
     router.back();
@@ -91,6 +98,49 @@ export default function Paywall() {
 
   const headline = reclaim > 0 ? `${formatBytes(reclaim)} ready to review` : 'Unlock Ai Klenzer';
 
+  const unlockButton = (
+    <Button
+      label={busy ? 'Please wait' : 'Unlock Ai Klenzer'}
+      icon={<Ionicons name="sparkles" size={20} color="#fff" />}
+      onPress={purchase}
+      busy={busy}
+      style={pinCta ? undefined : { marginTop: 6 }}
+      testID="unlock"
+    />
+  );
+
+  const renewal = showPlans ? (
+    <Text style={styles.fine}>
+      {chosen?.kind === 'lifetime'
+        ? `${chosen.price} one time. No subscription, no renewal.`
+        : chosen?.trialDays
+          ? `${chosen.trialDays} days free, then ${chosen.price} per ${chosen.kind === 'yearly' ? 'year' : 'month'}. ${RENEW_NOTE}`
+          : chosen?.kind === 'yearly'
+            ? `${chosen.price} per year. ${RENEW_NOTE}`
+            : `${chosen?.price} per month. ${RENEW_NOTE}`}
+    </Text>
+  ) : null;
+
+  const legal = (
+    <View style={styles.links}>
+      <Text style={styles.link} onPress={doRestore} accessibilityRole="button">
+        Restore purchase
+      </Text>
+      <Text style={styles.dot}>·</Text>
+      <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} accessibilityRole="link">
+        Terms
+      </Text>
+      <Text style={styles.dot}>·</Text>
+      <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} accessibilityRole="link">
+        Privacy
+      </Text>
+      <Text style={styles.dot}>·</Text>
+      <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} accessibilityRole="link">
+        Support
+      </Text>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="paywall-screen">
       <LinearGradient colors={['#0B1020', '#1E3A8A']} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
@@ -103,7 +153,11 @@ export default function Paywall() {
         </Text>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24, gap: 12 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: pinCta ? 16 : insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
+        testID="paywall-scroll">
         <Animated.View entering={FadeInDown.duration(350)} style={styles.perks}>
           {PERKS.map((p) => (
             <View key={p} style={styles.perk}>
@@ -130,44 +184,19 @@ export default function Paywall() {
             {plans.map((p) => (
               <PlanCard key={p.kind} plan={p} selected={chosen?.kind === p.kind} onPress={() => setSel(p.kind)} />
             ))}
-            <Button
-              label={busy ? 'Please wait' : 'Unlock Ai Klenzer'}
-              icon={<Ionicons name="sparkles" size={20} color="#fff" />}
-              onPress={purchase}
-              busy={busy}
-              style={{ marginTop: 6 }}
-              testID="unlock"
-            />
-            <Text style={styles.fine}>
-              {chosen?.kind === 'lifetime'
-                ? `${chosen.price} one time. No subscription, no renewal.`
-                : chosen?.trialDays
-                  ? `${chosen.trialDays} days free, then ${chosen.price} per ${chosen.kind === 'yearly' ? 'year' : 'month'}. ${RENEW_NOTE}`
-                  : chosen?.kind === 'yearly'
-                    ? `${chosen.price} per year. ${RENEW_NOTE}`
-                    : `${chosen?.price} per month. ${RENEW_NOTE}`}
-            </Text>
+            {pinCta ? null : unlockButton}
+            {renewal}
           </>
         )}
 
-        <View style={styles.links}>
-          <Text style={styles.link} onPress={doRestore} accessibilityRole="button">
-            Restore purchase
-          </Text>
-          <Text style={styles.dot}>·</Text>
-          <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} accessibilityRole="link">
-            Terms
-          </Text>
-          <Text style={styles.dot}>·</Text>
-          <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} accessibilityRole="link">
-            Privacy
-          </Text>
-          <Text style={styles.dot}>·</Text>
-          <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} accessibilityRole="link">
-            Support
-          </Text>
-        </View>
+        {legal}
       </ScrollView>
+
+      {pinCta ? (
+        <View style={[styles.ctaBar, { paddingBottom: insets.bottom + 12 }]}>
+          {unlockButton}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -199,6 +228,9 @@ function PlanCard({ plan, selected, onPress }: { plan: Plan; selected: boolean; 
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1, overflow: 'hidden' },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 20, gap: 12 },
+  ctaBar: { paddingHorizontal: 20, paddingTop: 8, gap: 12, backgroundColor: colors.bg },
   hero: { paddingHorizontal: 22, paddingBottom: 28, borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg },
   close: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
   offerTag: { alignSelf: 'flex-start', backgroundColor: colors.amber, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5, marginBottom: 10 },
