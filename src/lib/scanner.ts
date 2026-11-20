@@ -15,6 +15,9 @@ export type Item = {
 
 export type DuplicateGroup = { key: string; items: Item[] };
 
+/** Max relative file-size difference for two photos to count as copies of each other. */
+const SIZE_TOLERANCE = 0.01;
+
 export type ScanResult = {
   scannedAt: number;
   photoCount: number;
@@ -99,11 +102,12 @@ export async function scanLibrary(
     after = page.endCursor;
   }
 
-  // Duplicates / near-identical: same capture second + same pixel dimensions.
+  // Candidates: same pixel dimensions + same capture time (to the millisecond).
+  // Bursts differ by milliseconds; the file-size check below drops anything that isn't a true copy.
   const buckets = new Map<string, MediaLibrary.Asset[]>();
   for (const a of photos) {
     if (isScreenshot(a)) continue;
-    const key = `${a.width}x${a.height}|${Math.round(a.creationTime / 1000)}`;
+    const key = `${a.width}x${a.height}|${a.creationTime}`;
     const list = buckets.get(key);
     if (list) list.push(a);
     else buckets.set(key, [a]);
@@ -117,18 +121,28 @@ export async function scanLibrary(
   const videoItems = videos.map(toItem).filter((v) => v.duration >= 3);
 
   // Measure sizes for everything we might show (bounded).
-  const toMeasure = [...dupItems.values(), ...screenshots.slice(0, MAX_MEASURE), ...videoItems.slice(0, MAX_MEASURE), ...liveItems.slice(0, MAX_MEASURE)];
+  const toMeasure = [...dupItems.values(), ...screenshots.slice(0, MAX_MEASURE), ...videoItems, ...liveItems.slice(0, MAX_MEASURE)];
   let measured = 0;
   onProgress({ phase: 'measuring', done: 0, total: toMeasure.length });
   await measureAll(toMeasure, () => onProgress({ phase: 'measuring', done: ++measured, total: toMeasure.length }), signal);
 
-  const duplicates: DuplicateGroup[] = dupAssets
-    .map(([key, list]) => ({
-      key,
-      // Largest file first: that's the one we keep by default.
-      items: list.map((a) => dupItems.get(a.id)!).sort((x, y) => y.size - x.size || x.creationTime - y.creationTime),
-    }))
-    .sort((a, b) => b.items[0].creationTime - a.items[0].creationTime);
+  // Verify candidates: keep only measured files whose sizes match within tolerance.
+  const duplicates: DuplicateGroup[] = [];
+  for (const [key, list] of dupAssets) {
+    const items = list.map((a) => dupItems.get(a.id)!).filter((i) => i.size > 0).sort((x, y) => y.size - x.size);
+    let cluster: Item[] = [];
+    const flush = (n: number) => {
+      if (cluster.length > 1) duplicates.push({ key: `${key}#${n}`, items: cluster });
+      cluster = [];
+    };
+    let n = 0;
+    for (const it of items) {
+      if (cluster.length && (cluster[0].size - it.size) / cluster[0].size > SIZE_TOLERANCE) flush(n++);
+      cluster.push(it);
+    }
+    flush(n);
+  }
+  duplicates.sort((a, b) => b.items[0].creationTime - a.items[0].creationTime);
 
   return {
     scannedAt: Date.now(),

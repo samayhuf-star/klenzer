@@ -1,0 +1,28 @@
+# Local Maestro flow. CI uses XCUITest so a StoreKit Configuration file can be
+# attached via `xcodebuild test -storeKitConfigurationPath`.
+appId: com.krosz.klenzer
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Get started"
+    commands:
+      - tapOn: "Get started"
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - tapOn:
+          text: "Continue"
+          optional: true
+      - tapOn:
+          text: "Get started"
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 2000
+- assertNotVisible: "Sign in to Apple Account"
+- assertNotVisible: "Allow Access to Your Photos"
+- takeScreenshot: 01-home
