@@ -12,7 +12,10 @@
       "bundleIdentifier": "com.krosz.klenzer",
       "supportsTablet": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -43,6 +46,9 @@
             ]
           }
         ]
+      },
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "android": {
@@ -72,6 +78,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production",
+          "disableLocation": true
+        }
+      ],
       "expo-router",
       "expo-font",
       [
@@ -104,8 +117,7 @@
           }
         }
       ],
-      "expo-web-browser",
-      "./plugins/withoutPushEntitlement"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -115,7 +127,8 @@
       "eas": {
         "projectId": "c6034b7f-62d6-487e-aff1-f013636ae0b5"
       },
-      "privacyPolicyUrl": "https://klenzer.online/klenzer-app/privacy/"
+      "privacyPolicyUrl": "https://klenzer.online/klenzer-app/privacy/",
+      "oneSignalAppId": "6849a926-8ea6-4413-8531-b6fab30ce812"
     },
     "owner": "krosz",
     "description": "Klenzer is a private, on-device photo clutter cleaner. It finds duplicate photos, screenshots and large videos, and deletes only what you choose."

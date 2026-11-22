@@ -15,11 +15,15 @@ Klenzer's single purpose is to find duplicate photos, screenshots, Live Photos a
 **Video demo (required):** record ~30-60 s on a real device or emulator showing: (1) permission prompt, (2) tap "Scan my library", (3) the three result categories, (4) open Duplicates, select items, (5) tap Delete, (6) the Android system confirmation, (7) the success screen. Upload as an unlisted YouTube link.
 
 ## Data safety
-- Collects or shares user data: **No** (all processing on device; local notifications are scheduled on the device and send nothing).
-- Data encrypted in transit / deletion request: not applicable.
+- Collects or shares user data: **Yes, collected** once remote push (OneSignal) ships. Photos, videos and scan results stay on device.
+  - Data type: **Device or other IDs** (push token, OneSignal install ID). Collected, not shared for advertising; OneSignal acts as a service provider.
+  - Data type: **App interactions** (notification delivered / opened), if OneSignal outcomes are kept on.
+  - Purpose: **App functionality** and **Analytics**. Collection is **optional** (only after the user turns notifications on).
+- Data encrypted in transit: **Yes**. Deletion request: by email to the support address.
+- Until the push build ships, the answer stays **No** (local notifications only).
 - Privacy policy URL: https://klenzer-privacy-krosz.vercel.app
 
 ## Other App content forms
 - Ads: **No**. Target audience: **18+**, not designed for children. News app / government / financial / health: **No**.
 - Content rating (IARC): Utility; no UGC, no violence, no purchases → expect **Everyone**.
-- Permissions notice: `POST_NOTIFICATIONS` is optional and only requested if the user turns on reminders.
+- Permissions notice: `POST_NOTIFICATIONS` is optional and only requested if the user turns on notifications.

@@ -38,7 +38,7 @@ export default function Settings() {
           <Row icon="leaf-outline" label="Space freed" value={formatBytes(lifetimeFreed)} />
           <View style={styles.row}>
             <Ionicons name="notifications-outline" size={22} color={colors.blue} />
-            <Text style={styles.label}>Cleanup reminders</Text>
+            <Text style={styles.label}>Notifications</Text>
             <Switch value={reminders} onValueChange={toggle} trackColor={{ true: colors.blue }} />
           </View>
         </View>

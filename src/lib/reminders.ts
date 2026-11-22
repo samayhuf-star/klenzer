@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { formatBytes } from './format';
+import { disablePush, enablePush, syncPush } from './push';
 
 /**
- * Local, on-device reminders only: no push server, no tokens, no data leaves the phone.
- * They are opt-in, capped, and pushed back every time the user opens the app, so people who
+ * Local, on-device reminders. These are scheduled by the phone itself and need no server.
+ * Remote push (OneSignal) is separate and lives in ./push; it is switched by the same opt-in.
+ * Reminders are opt-in, capped, and pushed back every time the user opens the app, so people who
  * use Klenzer regularly are not nagged and lapsed users hear from us only a handful of times.
  */
 const KEY = 'klenzer.reminders.v1';
@@ -59,7 +61,9 @@ const at = (daysFromNow: number) => {
 export async function scheduleReminders(opts: { pendingBytes?: number } = {}): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
-    if (!(await remindersPref()) || (await permissionState()) !== 'granted') return;
+    const on = (await remindersPref()) && (await permissionState()) === 'granted';
+    await syncPush(on);
+    if (!on) return;
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Reminders', importance: Notifications.AndroidImportance.DEFAULT });
     }
@@ -93,6 +97,7 @@ export async function enableReminders(pendingBytes?: number): Promise<boolean> {
     }
     if (state !== 'granted') return false;
     await savePref(true);
+    await enablePush();
     await scheduleReminders({ pendingBytes });
     return true;
   } catch {
@@ -102,6 +107,7 @@ export async function enableReminders(pendingBytes?: number): Promise<boolean> {
 
 export async function disableReminders(): Promise<void> {
   await savePref(false);
+  await disablePush();
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch {}
