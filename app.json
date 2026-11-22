@@ -155,8 +155,10 @@
       "router": {},
       "eas": {
         "projectId": "c6034b7f-62d6-487e-aff1-f013636ae0b5"
-      }
+      },
+      "privacyPolicyUrl": "https://klenzer.online/klenzer-app/privacy/"
     },
-    "owner": "krosz"
+    "owner": "krosz",
+    "description": "Klenzer is a private, on-device photo clutter cleaner. It finds duplicate photos, screenshots and large videos, and deletes only what you choose."
   }
 }
