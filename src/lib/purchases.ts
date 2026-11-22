@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform } from 'react-native';
 import Purchases, {
   CustomerInfo,
@@ -97,9 +98,28 @@ function configure(): boolean {
   return true;
 }
 
+const SYNCED_KEY = 'klenzer.rc.synced.v1';
+
+/**
+ * Versions up to 1.1.1 sold Pro through StoreKit directly, so RevenueCat has never seen those receipts.
+ * Send them once, silently. syncPurchases does not show the Apple ID prompt (restorePurchases can).
+ * The flag is only set after a successful sync, so a failed attempt is retried on the next launch.
+ */
+async function syncLegacyPurchasesOnce(): Promise<void> {
+  try {
+    if ((await AsyncStorage.getItem(SYNCED_KEY)) === '1') return;
+    await Purchases.syncPurchases();
+    await AsyncStorage.setItem(SYNCED_KEY, '1');
+  } catch (e) {
+    logErr('syncPurchases', e);
+  }
+}
+
 /** Configure RevenueCat and listen for customer changes. Never restores — that can prompt for the Apple ID. */
 export async function initIAP(): Promise<boolean> {
-  return configure();
+  if (!configure()) return false;
+  if (!DEMO) await syncLegacyPurchasesOnce();
+  return true;
 }
 
 const isCancel = (e: unknown) => {
@@ -222,6 +242,19 @@ export async function restore(): Promise<RestoreResult> {
     if (isCancel(e)) return 'cancelled';
     logErr('restore', e);
     return 'error';
+  }
+}
+
+/** RevenueCat Customer Center: manage, cancel, restore, refund request. Falls back to the store's own page. */
+export async function openCustomerCenter(): Promise<void> {
+  try {
+    if (!configure()) throw new Error('not configured');
+    const ui = require('react-native-purchases-ui') as typeof import('react-native-purchases-ui');
+    await ui.default.presentCustomerCenter();
+    emitPro(await Purchases.getCustomerInfo());
+  } catch (e) {
+    logErr('customerCenter', e);
+    await manageSubscriptions();
   }
 }
 

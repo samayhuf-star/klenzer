@@ -3,11 +3,13 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { APP_SHORT_NAME } from './config';
 import { nextReminderDates, REMINDER_COUNT, REMINDER_TITLE, reminderBody, shouldScheduleReminders } from './reminder-plan';
+import { syncPush } from './push';
 import { scanCompleteBody } from './scan-complete';
 export { scanCompleteBody };
 
 /**
- * Local, on-device reminders only: no push server, no tokens, no data leaves the phone.
+ * Local, on-device reminders: scheduled by the phone itself, no server involved.
+ * Remote push (OneSignal) is separate, lives in ./push, and has its own opt-in switch in Settings.
  * On by default. A local notification every 3 days at 8:00 AM, rewritten whenever the
  * app opens so the size stays current. Buying Pro does not cancel them. The Settings
  * toggle always can. Notification permission is requested by the caller, never from here
@@ -71,6 +73,8 @@ export async function scheduleReminders(opts: ReminderInfo = {}): Promise<void> 
   try {
     const enabled = await remindersPref();
     const granted = (await permissionState()) === 'granted';
+    // Remote push follows its own opt-in; revoking the OS permission unsubscribes the device.
+    await syncPush(granted);
     await Notifications.cancelAllScheduledNotificationsAsync();
     if (!shouldScheduleReminders({ enabled, permissionGranted: granted, isPro: opts.isPro })) return;
     if (Platform.OS === 'android') {

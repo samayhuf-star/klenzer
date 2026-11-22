@@ -16,7 +16,7 @@ App version in `app.json`: 1.1.1. EAS production builds take the version and bui
 - Swipe to Organize, Merge Contacts, and Secret Album
 - Confirm-before-delete (a single system dialog for the whole selection)
 - Optional local reminder (no push server)
-- Ai Klenzer Pro: yearly, monthly (7-day trial when eligible), or a one-time lifetime unlock
+- Ai Klenzer Pro: monthly (free trial when eligible) or a one-time lifetime unlock
 
 ## Tech stack
 
@@ -24,7 +24,8 @@ App version in `app.json`: 1.1.1. EAS production builds take the version and bui
 - `expo-media-library` for on-device PhotoKit / Android media access
 - `expo-sqlite` for the scan cache; native thumbnail hashing for Duplicate, Similar, and Blurry
 - `expo-notifications` for local reminders and the scan-complete notification (no push server)
-- StoreKit 2 / Play Billing via `expo-iap` (no RevenueCat)
+- Purchases through RevenueCat (`react-native-purchases`), entitlement `klenzer_pro`; Customer Center in Settings
+- Opt-in remote push through OneSignal (Settings > Tips and updates)
 - EAS Build profiles: `production`, `simulator`, `preview`, `development`
 
 ## Identifiers

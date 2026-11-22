@@ -3,12 +3,15 @@ import * as Application from 'expo-application';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
 import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../components/PressableScale';
 import { formatBytes } from '../lib/format';
 import { APP_SHORT_NAME, SUPPORT_URL, TERMS_URL } from '../lib/config';
-import { manageSubscriptions, restore } from '../lib/purchases';
+import * as Notifications from 'expo-notifications';
+import { disablePush, enablePush, pushConfigured, pushPref } from '../lib/push';
+import { openCustomerCenter, restore } from '../lib/purchases';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
 
@@ -22,6 +25,28 @@ export default function Settings() {
         { text: 'Open Settings', onPress: openSettings },
       ]);
     }
+  };
+  const [push, setPush] = useState(false);
+  useEffect(() => {
+    pushPref().then(setPush).catch(() => {});
+  }, []);
+  const togglePush = async (on: boolean) => {
+    if (!on) {
+      setPush(false);
+      await disablePush();
+      return;
+    }
+    let p = await Notifications.getPermissionsAsync().catch(() => null);
+    if (p && !p.granted && p.canAskAgain) p = await Notifications.requestPermissionsAsync().catch(() => null);
+    if (!p?.granted) {
+      Alert.alert('Notifications are off', 'Turn on notifications for Ai Klenzer in Settings to get tips and updates.', [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Open Settings', onPress: openSettings },
+      ]);
+      return;
+    }
+    setPush(true);
+    await enablePush();
   };
   const doRestore = async () => {
     const r = await restore();
@@ -54,12 +79,19 @@ export default function Settings() {
             onPress={doRestore}
             chevron
           />
-          {isPro ? <Row icon="card-outline" label="Manage subscription" onPress={() => void manageSubscriptions()} chevron /> : null}
+          {isPro ? <Row icon="card-outline" label="Manage subscription" onPress={() => void openCustomerCenter()} chevron /> : null}
           <View style={styles.row}>
             <Ionicons name="notifications-outline" size={22} color={colors.blue} />
             <Text style={styles.label} numberOfLines={2}>Cleanup reminders</Text>
             <Switch value={reminders} onValueChange={toggle} trackColor={{ true: colors.blue }} />
           </View>
+          {pushConfigured ? (
+            <View style={styles.row}>
+              <Ionicons name="megaphone-outline" size={22} color={colors.blue} />
+              <Text style={styles.label} numberOfLines={2}>Tips and updates</Text>
+              <Switch value={push} onValueChange={togglePush} trackColor={{ true: colors.blue }} accessibilityLabel="Tips and updates notifications" />
+            </View>
+          ) : null}
         </View>
         <View style={styles.card}>
           <Row icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => router.push('/privacy')} chevron />

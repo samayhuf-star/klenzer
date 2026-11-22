@@ -1,9 +1,9 @@
-export const PRIVACY_UPDATED = '15 November 2026';
+export const PRIVACY_UPDATED = '22 November 2026';
 
 export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   {
     h: 'The short version',
-    p: 'Your photos, videos and contacts stay on this device and are never uploaded. There is no account and no sign-in. Purchase status for Ai Klenzer Pro is handled by the Apple App Store or Google Play on your device. The app does not collect a name, email address, payment card details, or an account ID.',
+    p: 'Your photos, videos and contacts stay on this device and are never uploaded. There is no account and no sign-in. Purchases of Ai Klenzer Pro are made through the Apple App Store or Google Play, and RevenueCat checks the purchase status for us using a random ID for this install. The app does not collect a name, email address or payment card details. If you turn on Tips and updates, a notification service receives a device push token (see Notifications below).',
   },
   {
     h: 'What Ai Klenzer accesses',
@@ -23,7 +23,7 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Purchases',
-    p: 'Scanning and reviewing your library is free. Without Ai Klenzer Pro you get 50 free items each day, shared across deleting photos and videos, merging contacts and adding photos to Secret Album, counted on the device only. Ai Klenzer Pro removes that limit and adds Convert Live Photo to still. Pro is a one-time lifetime unlock or an auto-renewing yearly or monthly subscription. Yearly and monthly show a 7-day free trial in the app only when the store says this account is eligible. The lifetime unlock has no trial. Payment is handled on the device by the Apple App Store (StoreKit) or Google Play Billing. Ai Klenzer does not use RevenueCat, and it does not collect a name, email, or payment card. You can restore a previous purchase from Settings or the Ai Klenzer Pro screen. Prices come from the store and are not hard-coded.',
+    p: 'Scanning and reviewing your library is free. Without Ai Klenzer Pro you get 50 free items each day, shared across deleting photos and videos, merging contacts and adding photos to Secret Album, counted on the device only. Ai Klenzer Pro removes that limit and adds Convert Live Photo to still. Pro is a one-time lifetime unlock or an auto-renewing monthly subscription. Monthly shows a free trial in the app only when the store says this account is eligible. The lifetime unlock has no trial. Payment is handled by the Apple App Store or Google Play Billing. We use RevenueCat to confirm and restore purchases. RevenueCat receives a random ID created for this install, the store receipt (which product was bought and when), the country of the store account, and device details such as model, operating system and app version. It does not receive your name, email, payment card or photos, and this data is not used for advertising. You can restore a previous purchase from Settings or the Ai Klenzer Pro screen. Prices come from the store and are not hard-coded.',
   },
   {
     h: 'Deleting photos',
@@ -31,7 +31,11 @@ export const PRIVACY_SECTIONS: { h: string; p: string }[] = [
   },
   {
     h: 'Reminders',
-    p: 'Cleanup reminders are on unless you turn them off. Ai Klenzer schedules a local notification every 3 days at 8:00 AM, with the amount ready to review when a scan has measured one. Buying Ai Klenzer Pro does not turn them off. The reminder is created and delivered by your phone itself: no server is involved, nothing is sent to us, and no push token is collected. Opening the app reschedules the next ones with a fresh size. Turn them off any time with the Cleanup reminders switch in Settings, which cancels the scheduled reminders. That switch works whether or not you have bought Pro.',
+    p: 'Cleanup reminders are on unless you turn them off. Ai Klenzer schedules a local notification every 3 days at 8:00 AM, with the amount ready to review when a scan has measured one. Buying Ai Klenzer Pro does not turn them off. The reminder is created and delivered by your phone itself: no server is involved and nothing is sent to us. Opening the app reschedules the next ones with a fresh size. Turn them off any time with the Cleanup reminders switch in Settings, which cancels the scheduled reminders. That switch works whether or not you have bought Pro.',
+  },
+  {
+    h: 'Notifications',
+    p: 'Tips and updates are off unless you turn them on in Settings. If you do, Ai Klenzer registers this device with OneSignal, the service we use to send and measure push notifications. OneSignal receives the device push token, a random identifier it creates for this install, your IP address, device details (model, operating system, language, time zone, country, mobile carrier and app version), when the app is opened, and whether a notification was delivered or opened. We use this only to send Ai Klenzer notifications and to see how many are delivered and opened. It is not linked to your name, email or photos, and it is not used for advertising or sold. Nothing is sent to OneSignal before you turn Tips and updates on, including if you had Cleanup reminders on in an earlier version. Turning the switch off unsubscribes the device; you can also email us to have the record deleted.',
   },
   {
     h: 'Permissions',
