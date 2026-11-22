@@ -16,7 +16,7 @@ import {
   type OriginResult,
 } from './origin-logic';
 import { scanOrigins, type OriginProgress } from './origin-scan';
-import { getCachedOrigin, putCachedOrigin } from './scan-cache';
+import { getCached, getCachedOrigin, putCachedOrigin } from './scan-cache';
 import { withTimeout, type Item } from './scan-logic';
 
 const ALBUM_PAGE = 500;
@@ -100,6 +100,9 @@ async function inspect(item: Item, opts: { wantText: boolean }): Promise<Origin 
 }
 
 async function hash(item: Item): Promise<string | null> {
+  // The main scan fingerprints every photo for Similar and Blurry. Reuse that when it is already saved.
+  const known = (await getCached(item.id, item.modificationTime))?.dhash;
+  if (known) return known;
   if (isScanAnalyzeSupported) return (await scanAnalyze(item.id, 256, NATIVE_TIMEOUT_MS))?.dhash ?? null;
   try {
     const info = await MediaLibrary.getAssetInfoAsync(item.id, { shouldDownloadFromNetwork: false });
@@ -115,6 +118,7 @@ export function scanOriginsOnDevice(
   photos: Item[],
   signal: { cancelled: boolean },
   onProgress?: (p: OriginProgress) => void,
+  onPartial?: (r: OriginResult) => void,
 ): Promise<OriginResult> {
-  return scanOrigins(photos, { chatAlbumIds, inspect, hash }, signal, onProgress);
+  return scanOrigins(photos, { chatAlbumIds, inspect, hash }, signal, onProgress, onPartial);
 }

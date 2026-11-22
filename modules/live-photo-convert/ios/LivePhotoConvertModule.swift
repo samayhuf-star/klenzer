@@ -24,6 +24,21 @@ public class LivePhotoConvertModule: Module {
       return rows
     }
 
+    // Size of the original photo or video file as Photos records it. Works for originals that are
+    // stored only in iCloud, and never downloads anything.
+    AsyncFunction("assetFileSize") { (id: String) -> Double in
+      guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject else {
+        return 0
+      }
+      let want: PHAssetResourceType = asset.mediaType == .video ? .video : .photo
+      let resources = PHAssetResource.assetResources(for: asset)
+      let pick = resources.first(where: { $0.type == want }) ?? resources.first
+      if let pick, let n = pick.value(forKey: "fileSize") as? NSNumber {
+        return max(0, n.doubleValue)
+      }
+      return 0
+    }
+
     AsyncFunction("convertToStills") { (ids: [String]) -> [String: Any] in
       try await convertAll(ids: ids)
     }

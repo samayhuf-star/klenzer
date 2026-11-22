@@ -194,7 +194,8 @@ describe('scan completion', () => {
       {
         getPage: pagedIO(assets),
         enrich: async (item, mode) => ({
-          size: 2 * MB + item.width,
+          // Real burst shots never share an exact byte size. Identical size, dimensions and fingerprint is a Duplicate.
+          size: 2 * MB + item.width + Number(item.id.replace(/\D/g, '') || 0),
           dhash: mode === 'size' ? null : hashOf(item.id),
           blur: mode === 'size' ? null : blurry.has(item.id) ? 20 : 900,
         }),

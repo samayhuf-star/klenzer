@@ -136,6 +136,29 @@ function toGroups(buckets: Map<string, Item[]>, used: Set<string>): DuplicateGro
   return groups;
 }
 
+/**
+ * The same file saved more than once, on any date and under any name: identical byte size,
+ * identical dimensions and an identical picture fingerprint. Pictures saved twice from a chat or
+ * the web have different dates and names, so the capture-second and file-name keys never see them.
+ */
+function identicalFileGroups(items: Item[], used: Set<string>): DuplicateGroup[] {
+  const buckets = new Map<string, Item[]>();
+  for (const item of items) {
+    if (used.has(item.id) || item.isVideo || !(item.size > 0) || !item.dhash) continue;
+    const key = `id:${item.size}|${item.width}x${item.height}|${item.dhash}`;
+    const list = buckets.get(key);
+    if (list) list.push(item);
+    else buckets.set(key, [item]);
+  }
+  const groups: DuplicateGroup[] = [];
+  for (const [key, list] of buckets) {
+    if (list.length < 2) continue;
+    for (const i of list) used.add(i.id);
+    groups.push({ key, items: [...list].sort((a, b) => a.creationTime - b.creationTime) });
+  }
+  return groups;
+}
+
 export function groupExact(items: Item[]): DuplicateGroup[] {
   const byMeta = new Map<string, Item[]>();
   const byName = new Map<string, Item[]>();
@@ -152,7 +175,7 @@ export function groupExact(items: Item[]): DuplicateGroup[] {
     }
   }
   const used = new Set<string>();
-  const groups = [...toGroups(byMeta, used), ...toGroups(byName, used)];
+  const groups = [...toGroups(byMeta, used), ...toGroups(byName, used), ...identicalFileGroups(items, used)];
   return groups.sort((a, b) => b.items[0].creationTime - a.items[0].creationTime);
 }
 

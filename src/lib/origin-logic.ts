@@ -196,3 +196,18 @@ export function buildOriginResult(rows: OriginInput[]): OriginResult {
 
   return { forwarded: [...repeated, ...single], aiImages };
 }
+
+/**
+ * Lay the two folders over the photos a scan currently holds. The folders can be filled while the
+ * main scan is still measuring, so sizes are taken from the scan's own items, and photos that are
+ * no longer in the library are dropped.
+ */
+export function applyOrigin(photos: Item[], origin: OriginResult): OriginResult {
+  const byId = new Map(photos.map((p) => [p.id, p]));
+  const lay = (items: Item[]) =>
+    items.flatMap((i) => {
+      const live = byId.get(i.id);
+      return live ? [{ ...i, size: live.size || i.size }] : [];
+    });
+  return { forwarded: lay(origin.forwarded), aiImages: lay(origin.aiImages) };
+}

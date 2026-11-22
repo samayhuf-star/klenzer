@@ -20,6 +20,8 @@ export type OriginProgress = { done: number; total: number };
 export const ORIGIN_WORKERS = 4;
 export const ORIGIN_TIMEOUT_MS = 12_000;
 export const ORIGIN_MAX_INSPECT = 12_000;
+/** The folders on screen are refreshed after this many photos, so they fill while the pass runs. */
+export const ORIGIN_PARTIAL_EVERY = 200;
 
 async function pool<T>(items: T[], workers: number, fn: (item: T) => Promise<void>) {
   let next = 0;
@@ -39,6 +41,7 @@ export async function scanOrigins(
   io: OriginIO,
   signal: { cancelled: boolean } = { cancelled: false },
   onProgress?: (p: OriginProgress) => void,
+  onPartial?: (r: OriginResult) => void,
 ): Promise<OriginResult> {
   const workers = io.workers ?? ORIGIN_WORKERS;
   const timeout = io.inspectTimeoutMs ?? ORIGIN_TIMEOUT_MS;
@@ -54,7 +57,18 @@ export async function scanOrigins(
     .slice(0, io.maxInspect ?? ORIGIN_MAX_INSPECT)
     .map((item) => ({ ...item }));
 
-  const rows: OriginInput[] = [];
+  // Pictures in a chat app's album are known before any file is opened, so they show straight away.
+  const rowById = new Map<string, OriginInput>();
+  for (const item of candidates) {
+    if (chatIds.has(item.id)) rowById.set(item.id, { item, inChatAlbum: true, origin: null });
+  }
+  const currentRows = () => [...rowById.values()];
+  const publish = () => {
+    if (onPartial && !signal.cancelled) onPartial(buildOriginResult(currentRows()));
+  };
+  onProgress?.({ done: 0, total: candidates.length });
+  if (rowById.size) publish();
+
   let done = 0;
   await pool(candidates, workers, async (item) => {
     if (signal.cancelled) return;
@@ -62,10 +76,12 @@ export async function scanOrigins(
     // Text is only checked where it can change the answer: pictures not already known to be from a chat.
     const wantText = !inChatAlbum && !isChatFilename(item.filename);
     const origin = await withTimeout(io.inspect(item, { wantText }), timeout, null);
-    rows.push({ item, inChatAlbum, origin });
+    rowById.set(item.id, { item, inChatAlbum, origin });
     onProgress?.({ done: ++done, total: candidates.length });
+    if (done % ORIGIN_PARTIAL_EVERY === 0) publish();
   });
   if (signal.cancelled) return { forwarded: [], aiImages: [] };
+  const rows = currentRows();
 
   // Only pictures headed for the Forwarded folder need a fingerprint.
   const first = buildOriginResult(rows);

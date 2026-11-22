@@ -40,7 +40,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const {
     disk, access, canAskAgain, openSettings, manageLimited,
-    scanning, progress, scanCats, originBusy, result, scan, cancelScan, refreshDisk, scanError,
+    scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, refreshDisk, scanError,
   } = useStore();
   const [section, setSection] = useState<Section>('photos');
   const reduceMotion = useReducedMotion();
@@ -128,6 +128,9 @@ export default function Home() {
   const reviewBytes = shown ? readyToReviewBytes(shown) : 0;
   const reviewValue = !shown ? 'Scan to see' : reviewBytes > 0 ? formatBytes(reviewBytes) : hasReviewableItems(shown) ? 'In groups' : 'All clear';
   const photoBar = categoryBarPercent(barSource.photos);
+  // Forwarded and AI Images have their own pass and their own percent. It starts once the library is read.
+  const originSpin = originBusy || previewScanning || (showScanning && reading);
+  const originBar = previewScanning ? photoBar : originPct;
   const shotBar = categoryBarPercent(barSource.screenshots);
   const videoBar = categoryBarPercent(barSource.videos);
   const enter = (i: number) => (rm ? undefined : FadeInDown.delay(60 * i).springify().damping(18));
@@ -293,8 +296,8 @@ export default function Home() {
               {showLive && (
                 <CatCard i={5} kind="live" title="Live Photos" count={shown?.livePhotos.length ?? 0} bytes={shown ? sum(shown.livePhotos) : 0} spinning={photosSpin} reduceMotion={rm} pct={photoBar} />
               )}
-              <CatCard i={6} kind="forwarded" title="Forwarded" count={shown?.forwarded?.length ?? 0} bytes={shown ? sum(shown.forwarded ?? []) : 0} spinning={photosSpin || originBusy} reduceMotion={rm} pct={photoBar} />
-              <CatCard i={7} kind="aiImages" title="AI Images" count={shown?.aiImages?.length ?? 0} bytes={shown ? sum(shown.aiImages ?? []) : 0} spinning={photosSpin || originBusy} reduceMotion={rm} pct={photoBar} />
+              <CatCard i={6} kind="forwarded" title="Forwarded" count={shown?.forwarded?.length ?? 0} bytes={shown ? sum(shown.forwarded ?? []) : 0} spinning={originSpin} reduceMotion={rm} pct={originBar} />
+              <CatCard i={7} kind="aiImages" title="AI Images" count={shown?.aiImages?.length ?? 0} bytes={shown ? sum(shown.aiImages ?? []) : 0} spinning={originSpin} reduceMotion={rm} pct={originBar} />
             </View>
           )}
 

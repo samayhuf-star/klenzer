@@ -7,6 +7,7 @@ import { Alert, AppState, Linking, Platform } from 'react-native';
 import { shouldStartScan } from './launch-scan';
 import { loadScanResult, saveScanResult } from './scan-result-cache';
 import { scanOriginsOnDevice } from './origin-device';
+import { applyOrigin, type OriginResult } from './origin-logic';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
@@ -67,8 +68,10 @@ type Ctx = {
   scanning: boolean;
   progress: Progress | null;
   scanCats: CategoryScanMap;
-  /** True while the Forwarded and AI Images folders are being filled, after the main scan. */
+  /** True while the Forwarded and AI Images folders are being filled. Runs beside the main scan. */
   originBusy: boolean;
+  /** How far the Forwarded and AI Images pass is, 0 to 100. */
+  originPct: number;
   result: ScanResult | null;
   scan: () => Promise<void>;
   cancelScan: () => void;
@@ -124,6 +127,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [scanCats, setScanCats] = useState<CategoryScanMap>(idleCats);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [originBusy, setOriginBusy] = useState(false);
+  const [originPct, setOriginPct] = useState(0);
+  // What the Forwarded and AI Images pass has found so far in the current scan.
+  const originRef = useRef<OriginResult | null>(null);
   const [lifetimeFreed, setLifetimeFreed] = useState(0);
   const [lifetimeItems, setLifetimeItems] = useState(0);
   const [lastFreed, setLastFreed] = useState<LastFreed | null>(null);
@@ -343,6 +349,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       videos: { category: 'videos', status: 'running', done: 0, total: 0 },
     });
     markScanIncomplete(true);
+    // Forwarded and AI Images run beside the main scan, from the moment the library has been read.
+    // They do not wait for sizes or the blur check, and they show what they find as they go.
+    const sig = signal.current;
+    originRef.current = null;
+    let originStarted = false;
+    const withOrigin = (base: ScanResult): ScanResult => {
+      const o = originRef.current;
+      // Until this scan's pass reports, keep the last folders on screen.
+      if (!o) return { ...base, forwarded: resultRef.current?.forwarded ?? [], aiImages: resultRef.current?.aiImages ?? [] };
+      return { ...base, ...applyOrigin(base.photos, o) };
+    };
+    const startOrigin = (photos: Item[]) => {
+      if (originStarted) return;
+      originStarted = true;
+      setOriginBusy(true);
+      setOriginPct(0);
+      const publish = (o: OriginResult) => {
+        if (sig.cancelled || signal.current !== sig) return;
+        originRef.current = o;
+        const current = resultRef.current;
+        if (!current) return;
+        const next = withOrigin(current);
+        resultRef.current = next;
+        setResult(next);
+      };
+      let lastTick = 0;
+      void scanOriginsOnDevice(
+        photos,
+        sig,
+        (p) => {
+          const t = Date.now();
+          if (t - lastTick < 400 && p.done < p.total) return;
+          lastTick = t;
+          if (signal.current === sig) setOriginPct(p.total > 0 ? Math.round((p.done / p.total) * 100) : 0);
+        },
+        publish,
+      )
+        .then((o) => {
+          if (sig.cancelled) return;
+          publish(o);
+          if (signal.current === sig && resultRef.current) void saveScanResult(resultRef.current);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (signal.current === sig) setOriginBusy(false);
+        });
+    };
     // Ask only when a scan starts, never on launch. A denial must not stop the scan.
     // The completion notification waits for this answer, so a scan that ends while the prompt is up still notifies.
     const notifAsk = askNotificationPermissionOnScanStart().catch(() => false);
@@ -362,9 +415,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           },
           onCategory: (p) => setScanCats((prev) => ({ ...prev, [p.category]: p })),
           onPartial: (partial) => {
-            // The Forwarded and AI Images folders are filled after this scan. Keep the last ones on screen until then.
-            const next = { ...partial, forwarded: resultRef.current?.forwarded ?? [], aiImages: resultRef.current?.aiImages ?? [] };
+            const next = withOrigin(partial);
             resultRef.current = next;
+            // The first result arrives as soon as the library is read. That is enough to start the second pass.
+            if (partial.photoCount + partial.videoCount > 0) startOrigin(partial.photos);
             setResult(next);
             if (saveTimer.current) clearTimeout(saveTimer.current);
             saveTimer.current = setTimeout(() => {
@@ -377,8 +431,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         { initialPercent: opts.resume ? (progressRef.current?.percent ?? 0) : 0 },
       );
       if (!signal.current.cancelled) {
-        r.forwarded = resultRef.current?.forwarded ?? [];
-        r.aiImages = resultRef.current?.aiImages ?? [];
+        Object.assign(r, withOrigin(r));
         resultRef.current = r;
         setResult(r);
         markScanIncomplete(false);
@@ -389,28 +442,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fires on completion (processed + skipped == total), in the foreground or within the background task window.
         void notifAsk.then(() => notifyScanComplete(reclaim));
         void scheduleReminders({ reclaimBytes: readyToReviewBytes(r), isPro: reminderInfo.current.isPro });
-        // Forwarded and AI Images: a second, lighter pass over the photos just found. It does not hold up the scan.
-        const sig = signal.current;
-        const scannedAt = r.scannedAt;
-        setOriginBusy(true);
-        void scanOriginsOnDevice(r.photos, sig)
-          .then((o) => {
-            const current = resultRef.current;
-            if (sig.cancelled || !current || current.scannedAt !== scannedAt) return;
-            const present = new Set(current.photos.map((i) => i.id));
-            const next = {
-              ...current,
-              forwarded: o.forwarded.filter((i) => present.has(i.id)),
-              aiImages: o.aiImages.filter((i) => present.has(i.id)),
-            };
-            resultRef.current = next;
-            setResult(next);
-            void saveScanResult(next);
-          })
-          .catch(() => {})
-          .finally(() => {
-            if (signal.current === sig) setOriginBusy(false);
-          });
+        // An empty library never sent a first result, so the second pass starts here and clears the folders.
+        startOrigin(r.photos);
       }
     } catch (e) {
       setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');
@@ -773,9 +806,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, scanCats, originBusy, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
+      disk, refreshDisk, scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, originBusy, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

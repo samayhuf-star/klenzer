@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library/legacy';
-import { isScanAnalyzeSupported, scanAnalyze, scanThumb } from 'live-photo-convert';
+import { assetFileSize, isAssetSizeSupported, isScanAnalyzeSupported, scanAnalyze, scanThumb } from 'live-photo-convert';
 import { isPhotoDeleteCancelled } from './delete-cancel';
 import { analyzeForScan } from './icloud-thumb';
 import { analyzeThumb } from './image-hash';
@@ -47,6 +47,7 @@ export {
 const PAGE = 400;
 const INFO_TIMEOUT_MS = 8000;
 const HASH_TIMEOUT_MS = 8000;
+const SIZE_TIMEOUT_MS = 4000;
 const PAGE_TIMEOUT_MS = 20000;
 
 async function assetInfo(id: string): Promise<{ localUri: string | null } | null> {
@@ -67,7 +68,9 @@ async function assetInfo(id: string): Promise<{ localUri: string | null } | null
 async function enrichDevice(item: Item, mode: 'size' | 'hash' | 'blur') {
   const wantHash = mode === 'hash' || mode === 'blur';
   const cached = await getCached(item.id, item.modificationTime);
-  if (cached && !wantHash) return { size: cached.size, dhash: cached.dhash, blur: cached.blur };
+  // A size of 0 was saved for originals kept only in iCloud. Photos knows their size, so ask again.
+  const sizeMissing = !!cached && cached.size === 0 && isAssetSizeSupported;
+  if (cached && !wantHash && !sizeMissing) return { size: cached.size, dhash: cached.dhash, blur: cached.blur };
   if (cached && (cached.dhash != null || cached.size === 0) && wantHash) {
     if (cached.dhash != null && (mode !== 'blur' || cached.blur != null)) {
       return { size: cached.size, dhash: cached.dhash, blur: cached.blur };
@@ -76,7 +79,7 @@ async function enrichDevice(item: Item, mode: 'size' | 'hash' | 'blur') {
 
   let size = cached?.size ?? 0;
   // The native analyzer reads Photos directly, so a hash/blur pass only asks for the file when it still needs the size.
-  const needInfo = !cached || !wantHash || !isScanAnalyzeSupported;
+  const needInfo = !sizeMissing && (!cached || !wantHash || !isScanAnalyzeSupported);
   const info = needInfo ? await assetInfo(item.id) : null;
   const uri = info?.localUri ?? null;
   if (uri && !cached) {
@@ -86,6 +89,9 @@ async function enrichDevice(item: Item, mode: 'size' | 'hash' | 'blur') {
       size = 0;
     }
   }
+
+  // Original not on this phone (iCloud): take the size Photos records. Nothing is downloaded.
+  if (size === 0 && isAssetSizeSupported) size = await withTimeout(assetFileSize(item.id), SIZE_TIMEOUT_MS, 0);
 
   let dhash: string | null = cached?.dhash ?? null;
   let blur: number | null = cached?.blur ?? null;

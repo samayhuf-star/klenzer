@@ -13,6 +13,7 @@ export type ConvertResult = {
 type NativeAPI = {
   pairedVideoSizes: (ids: string[]) => Promise<PairedVideoSize[]>;
   convertToStills: (ids: string[]) => Promise<ConvertResult>;
+  assetFileSize?: (id: string) => Promise<number>;
   scanThumb?: (id: string, targetPx: number, timeoutMs: number) => Promise<string | null>;
   scanAnalyze?: (id: string, targetPx: number, timeoutMs: number) => Promise<{ ok: boolean; dhash?: string; blur?: number } | null>;
   scanOrigin?: (
@@ -54,6 +55,20 @@ export async function convertToStills(ids: string[]): Promise<ConvertResult> {
     throw new Error('Convert to still is available on iPhone.');
   }
   return Native.convertToStills(ids);
+}
+
+/** True when this build can read a file's size from Photos without the original being on the phone. */
+export const isAssetSizeSupported = Platform.OS === 'ios' && typeof Native?.assetFileSize === 'function';
+
+/** Bytes of the original file as Photos records it, iCloud-only originals included. 0 if unknown. Nothing is downloaded. */
+export async function assetFileSize(id: string): Promise<number> {
+  if (!Native?.assetFileSize) return 0;
+  try {
+    const n = await Native.assetFileSize(id);
+    return typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /** Small scan thumbnail from Photos, iCloud allowed. Temp JPEG file URI, or null if unavailable. */
