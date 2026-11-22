@@ -1,12 +1,12 @@
 import { StyleProp, StyleSheet, Text, TextStyle } from 'react-native';
-import { remainingLine } from '../lib/gating';
+import { FREE_DAILY_ACTIONS, remainingLine } from '../lib/gating';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../theme';
 
 /** Subtle "3 free items left today" line. Hidden for Pro. */
 export function FreeLeftNote({ style }: { style?: StyleProp<TextStyle> }) {
   const { isPro, freeLeft } = useStore();
-  if (isPro) return null;
+  if (isPro || FREE_DAILY_ACTIONS === 0) return null;
   return (
     <Text style={[styles.note, style]} testID="free-left">
       {remainingLine(freeLeft)}

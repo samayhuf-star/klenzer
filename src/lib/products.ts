@@ -1,6 +1,6 @@
 /** Store product catalog. Data-driven so a new product ID can be added without changing the paywall layout. */
 
-export type PlanKind = 'yearly' | 'monthly' | 'lifetime';
+export type PlanKind = 'yearly' | 'monthly' | 'weekly' | 'lifetime';
 export type StoreProductType = 'in-app' | 'subs';
 
 export type ProductDef = {
@@ -15,11 +15,12 @@ export type ProductDef = {
 
 export const PRODUCT_CATALOG: ProductDef[] = [
   {
-    id: 'com.krosz.klenzer.lifetime',
-    kind: 'lifetime',
-    type: 'in-app',
-    title: 'Lifetime',
-    hint: 'Pay once, clean forever.',
+    id: 'com.krosz.klenzer.yearly',
+    kind: 'yearly',
+    type: 'subs',
+    title: 'Annual',
+    hint: 'Lowest price per week.',
+    badge: 'Best value',
   },
   {
     id: 'com.krosz.klenzer.monthly',
@@ -27,6 +28,20 @@ export const PRODUCT_CATALOG: ProductDef[] = [
     type: 'subs',
     title: 'Monthly',
     hint: 'Cancel any time.',
+  },
+  {
+    id: 'com.krosz.klenzer.weekly',
+    kind: 'weekly',
+    type: 'subs',
+    title: 'Weekly',
+    hint: 'Cancel any time.',
+  },
+  {
+    id: 'com.krosz.klenzer.lifetime',
+    kind: 'lifetime',
+    type: 'in-app',
+    title: 'Lifetime',
+    hint: 'Pay once, clean forever. No trial.',
   },
 ];
 

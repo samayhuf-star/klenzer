@@ -6,12 +6,12 @@
  * Pro: deleting photos and videos (bulk clean, the Swipe batch, Short and Screen Recordings),
  * merging contacts, adding items to the Secret Album, Compress and Convert Live Photos.
  *
- * Free users get FREE_DAILY_ACTIONS items per local day across deletes, merges and Secret Album adds.
- * Compress and Convert Live Photos have no free allowance.
+ * From 1.1.3 there is no free allowance: FREE_DAILY_ACTIONS is 0, so every Pro feature needs
+ * a trial or a plan. The allowance code stays so the limit can be raised again in one place.
  */
 
-/** Free items per local day, counted across deleted photos and videos, merged-away contacts and Secret Album adds. */
-export const FREE_DAILY_ACTIONS = 50;
+/** Free items per local day. 0 means cleaning, merging and Secret Album adds always need a trial or a plan. */
+export const FREE_DAILY_ACTIONS = 0;
 
 export type ProFeature = 'delete' | 'merge' | 'vault' | 'compress' | 'convert';
 
@@ -94,6 +94,7 @@ export type GateVerb = 'clean' | 'merge' | 'add';
 
 /** Copy for a batch that crosses the limit, e.g. "You have 3 free items left today. Upgrade to clean all 12." */
 export function crossLimitMessage(remaining: number, total: number, verb: GateVerb = 'clean'): string {
+  if (FREE_DAILY_ACTIONS === 0) return `Start your free trial to ${verb} all ${total.toLocaleString('en-US')}.`;
   const lead = remaining > 0 ? `You have ${plural(remaining, 'free item', 'free items')} left today.` : `You have used today’s ${FREE_DAILY_ACTIONS} free items.`;
   return `${lead} Upgrade to ${verb} all ${total.toLocaleString('en-US')}.`;
 }

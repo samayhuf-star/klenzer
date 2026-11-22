@@ -29,6 +29,7 @@ const RENEW_NOTE = IS_IOS
 /** iPhone SE is 667pt and iPhone 8 Plus is 736pt. Taller phones keep the button in the list. */
 const PIN_CTA_BELOW_HEIGHT = 740;
 
+const PERIOD: Record<Plan['kind'], string> = { yearly: 'year', monthly: 'month', weekly: 'week', lifetime: 'purchase' };
 const PERKS = ['Review duplicates, screenshots and big videos, then delete only what you choose', 'Scanning always stays free', 'Your photos never leave your phone'];
 
 export default function Paywall() {
@@ -37,7 +38,7 @@ export default function Paywall() {
   const { result, completeUnlock } = useStore();
   const reclaim = scanReclaimableBytes(result);
   const [offers, setOffers] = useState<PlansLoad | null>(null);
-  const [sel, setSel] = useState<Plan['kind']>('lifetime');
+  const [sel, setSel] = useState<Plan['kind']>('yearly');
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -112,12 +113,10 @@ export default function Paywall() {
   const renewal = showPlans ? (
     <Text style={styles.fine}>
       {chosen?.kind === 'lifetime'
-        ? `${chosen.price} one time. No subscription, no renewal.`
+        ? `${chosen.price} one time. No subscription, no renewal, no free trial.`
         : chosen?.trialDays
-          ? `${chosen.trialDays} days free, then ${chosen.price} per ${chosen.kind === 'yearly' ? 'year' : 'month'}. ${RENEW_NOTE}`
-          : chosen?.kind === 'yearly'
-            ? `${chosen.price} per year. ${RENEW_NOTE}`
-            : `${chosen?.price} per month. ${RENEW_NOTE}`}
+          ? `${chosen.trialDays} days free, then ${chosen.price} per ${PERIOD[chosen.kind]}. ${RENEW_NOTE}`
+          : `${chosen?.price} per ${chosen ? PERIOD[chosen.kind] : 'month'}. ${RENEW_NOTE}`}
     </Text>
   ) : null;
 
@@ -149,7 +148,7 @@ export default function Paywall() {
         </PressableScale>
         <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>{headline}</Text>
         <Text style={styles.sub}>
-          {reclaim > 0 ? 'That is what is ready to review. Pro clears more than 50 items a day. You still choose every item.' : 'Scanning is free. Pro clears more than 50 items a day.'}
+          {reclaim > 0 ? 'That is what is ready to review. Start your free trial to clear it. You still choose every item.' : 'Scanning is free. Start your free trial to clean, merge contacts and use Secret Album.'}
         </Text>
       </LinearGradient>
 

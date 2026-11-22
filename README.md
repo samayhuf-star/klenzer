@@ -16,7 +16,7 @@ App version in `app.json`: 1.1.1. EAS production builds take the version and bui
 - Swipe to Organize, Merge Contacts, and Secret Album
 - Confirm-before-delete (a single system dialog for the whole selection)
 - Optional local reminder (no push server)
-- Ai Klenzer Pro: monthly (free trial when eligible) or a one-time lifetime unlock
+- Ai Klenzer Pro: weekly, monthly or annual subscription (7-day free trial when eligible) or a one-time lifetime unlock; no free allowance, scanning and reviewing stay free
 
 ## Tech stack
 

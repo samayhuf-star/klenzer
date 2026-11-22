@@ -41,11 +41,11 @@ export function freeTrialDays(p: ProductLike | null | undefined): number | null 
  */
 export function trialHint(plan: {
   price: string;
-  kind: 'monthly' | 'yearly' | 'lifetime';
+  kind: 'weekly' | 'monthly' | 'yearly' | 'lifetime';
   trialDays?: number | null;
   fallback: string;
 }): string {
   if (plan.kind === 'lifetime' || !plan.trialDays || plan.trialDays <= 0) return plan.fallback;
-  const period = plan.kind === 'yearly' ? 'year' : 'month';
+  const period = plan.kind === 'yearly' ? 'year' : plan.kind === 'weekly' ? 'week' : 'month';
   return `${plan.trialDays} days free, then ${plan.price}/${period}, cancel anytime`;
 }

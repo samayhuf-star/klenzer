@@ -167,7 +167,7 @@ async function fetchProducts(): Promise<Map<string, { product: PurchasesStorePro
 export async function loadPlans(): Promise<PlansLoad> {
   // Dev web screenshots only. Production never sets DEMO, so store prices stay live.
   if (DEMO) {
-    const priceFor = (kind: PlanKind) => (kind === 'yearly' ? '$19.99' : kind === 'monthly' ? '$3.99' : '$29.99');
+    const priceFor = (kind: PlanKind) => (kind === 'yearly' ? '$19.99' : kind === 'monthly' ? '$3.99' : kind === 'weekly' ? '$1.99' : '$29.99');
     return {
       plans: PRODUCT_CATALOG.map((def) => ({ ...def, price: priceFor(def.kind), product: null, pkg: null, trialDays: def.type === 'subs' ? 7 : null })),
       error: null,
