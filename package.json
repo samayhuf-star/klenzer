@@ -36,7 +36,6 @@
     "expo-web-browser": "~57.0.3",
     "jpeg-js": "^0.4.4",
     "live-photo-convert": "file:./modules/live-photo-convert",
-    "onesignal-expo-plugin": "^2.8.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",

@@ -10,7 +10,6 @@
     "backgroundColor": "#F6F8FC",
     "ios": {
       "bundleIdentifier": "com.krosz.klenzer",
-      "buildNumber": "30",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -86,13 +85,6 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "onesignal-expo-plugin",
-        {
-          "mode": "production",
-          "disableLocation": true
-        }
-      ],
       "expo-router",
       "expo-font",
       [
