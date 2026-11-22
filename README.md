@@ -12,7 +12,7 @@ This README is a draft (the GitHub repo `samayhuf-star/klenzer` has no root READ
 - Temporary-file cleanup for Klenzer’s own cache
 - Real device free/total storage figures
 - Confirm-before-delete (system dialog); on iOS, items go to Recently Deleted
-- Optional local reminder notifications (no push server)
+- Optional notifications: local reminders, plus remote push through OneSignal for users who opt in (branch `claude/onesignal-push`)
 - In-app privacy policy screen
 
 Later EAS builds from branches such as `revenuecat-integration` and `feat/lifetime-paywall` add a RevenueCat paywall (entitlement id `klenzer_pro`, including a one-time lifetime unlock). Those changes are **not** on `main` as of this draft (`main` `package.json` has no RevenueCat dependency, and `store/listing.md` still says “free, no in-app purchases (v1)”). Confirm which branch you are shipping before writing store copy.
