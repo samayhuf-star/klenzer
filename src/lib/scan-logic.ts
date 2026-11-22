@@ -15,6 +15,12 @@ export type Item = {
   blur?: number | null;
   isScreenshot?: boolean;
   isLive?: boolean;
+  /** Forwarded folder: why the picture is there. */
+  fwd?: 'repeat' | 'chat' | 'text';
+  /** Forwarded folder: how many copies of this picture are saved. */
+  copies?: number;
+  /** AI Images folder: the AI label found in the file. */
+  aiSource?: string;
 };
 
 export const BLUR_THRESHOLD = 80;
@@ -39,6 +45,10 @@ export type ScanResult = {
   blurry: Item[];
   /** Every still (regular, screenshot and Live Photo), largest first. Shown on the Photos card. */
   photos: Item[];
+  /** Pictures saved from chat apps, plus text-heavy memes and greetings. Repeats first. Filled after the main scan. */
+  forwarded: Item[];
+  /** Pictures whose file carries an AI label. Filled after the main scan. */
+  aiImages: Item[];
 };
 
 export const LARGE_VIDEO_BYTES = 100 * 1e6;
@@ -62,6 +72,8 @@ export const emptyScanResult = (): ScanResult => ({
   livePhotos: [],
   blurry: [],
   photos: [],
+  forwarded: [],
+  aiImages: [],
 });
 
 export const isScreenshotName = (filename: string, subtypes?: string[] | null) =>
@@ -330,6 +342,8 @@ export function buildScanResult(input: {
     livePhotos: [...input.livePhotos].sort((a, b) => b.size - a.size),
     blurry: [...(input.blurry ?? stills.filter((p) => p.blur != null && isBlurryVariance(p.blur)))].sort((a, b) => a.creationTime - b.creationTime),
     photos: [...input.photos, ...input.screenshots, ...input.livePhotos].sort((a, b) => b.size - a.size),
+    forwarded: [],
+    aiImages: [],
   };
 }
 

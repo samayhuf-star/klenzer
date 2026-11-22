@@ -25,9 +25,18 @@ const COPY = {
   shortVideos: { title: 'Short recordings', help: 'Clips of 10 seconds or less, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   screenRecordings: { title: 'Screen recordings', help: 'Recordings of your screen, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   videoDuplicates: { title: 'Duplicate videos', help: 'Videos with the same size, dimensions and capture time. We keep the largest file in each set; tap any video to change what’s selected.' },
+  forwarded: { title: 'Forwarded', help: 'Pictures saved from chat apps, plus memes and greeting cards. Ones you have more than once come first, marked with the number of copies. Nothing is selected by default.' },
+  aiImages: { title: 'AI Images', help: 'Pictures whose file carries an AI label, such as Content Credentials or the name of the AI tool. Pictures with no label are not listed. Nothing is selected by default.' },
   smart: { title: 'Smart Clean', help: 'Extra copies only. The largest file in each duplicate or similar set stays. Deselect anything you want to keep, then tap Delete. Nothing is removed until you confirm here and on the next screen.' },
 } as const;
 type Kind = keyof typeof COPY;
+
+/** Small label on a picture in the Forwarded and AI Images folders. */
+function flatBadge(kind: Kind, item: Item): string | undefined {
+  if (kind === 'forwarded') return item.fwd === 'repeat' && item.copies ? `×${item.copies}` : item.fwd === 'text' ? 'TEXT' : undefined;
+  if (kind === 'aiImages') return item.aiSource ? item.aiSource.toUpperCase().slice(0, 14) : undefined;
+  return undefined;
+}
 const GROUPED: Kind[] = ['duplicates', 'similar', 'videoDuplicates'];
 
 export default function Review() {
@@ -63,6 +72,8 @@ export default function Review() {
     if (kind === 'photos') return result?.photos ?? [];
     if (kind === 'shortVideos') return result?.shortVideos ?? [];
     if (kind === 'screenRecordings') return result?.screenRecordings ?? [];
+    if (kind === 'forwarded') return result?.forwarded ?? [];
+    if (kind === 'aiImages') return result?.aiImages ?? [];
     return result?.largeVideos ?? [];
   }, [kind, groups, result, smartFlat]);
 
@@ -186,7 +197,7 @@ export default function Review() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
           initialNumToRender={18}
           windowSize={7}
-          renderItem={({ item }) => renderThumb(item, cell)}
+          renderItem={({ item }) => renderThumb(item, cell, flatBadge(kind, item))}
         />
       )}
 

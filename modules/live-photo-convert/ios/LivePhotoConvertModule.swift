@@ -36,6 +36,10 @@ public class LivePhotoConvertModule: Module {
       await requestScanAnalyze(id: id, targetPx: targetPx, timeoutMs: timeoutMs)
     }
 
+    AsyncFunction("scanOrigin") { (id: String, needles: [[Int]], headBytes: Int, wantText: Bool, timeoutMs: Int) -> [String: Any] in
+      await requestScanOrigin(id: id, needles: needles, headBytes: headBytes, wantText: wantText, timeoutMs: timeoutMs)
+    }
+
     // Extra seconds for an in-flight scan after the user leaves. This is the standard
     // UIApplication background task, not a background-processing entitlement.
     Function("beginShortBackgroundTask") {

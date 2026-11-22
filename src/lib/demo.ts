@@ -71,6 +71,11 @@ export function demoScanResult(): ScanResult {
     livePhotos: photos.slice(0, 8).map((p) => ({ ...p, isLive: true })),
     blurry: photos.slice(10, 16),
     photos,
+    forwarded: [
+      ...[0, 1, 2].map((k) => demoItem(800 + k, { uri: pic('27'), filename: `IMG-20261101-WA000${k}.jpg`, width: 1200, height: 1600, size: 240_000, fwd: 'repeat' as const, copies: 3 })),
+      ...Array.from({ length: 9 }, (_, i) => demoItem(810 + i, { filename: `IMG-20261102-WA00${10 + i}.jpg`, width: 1200, height: 1600, size: 180_000 + i * 21_000, fwd: i % 3 === 0 ? ('text' as const) : ('chat' as const) })),
+    ],
+    aiImages: Array.from({ length: 6 }, (_, i) => demoItem(830 + i, { filename: `image-${i + 1}.png`, width: 1024, height: 1024, size: 1_400_000 + i * 90_000, aiSource: ['ChatGPT', 'Midjourney', 'Adobe Firefly'][i % 3] })),
   };
 }
 

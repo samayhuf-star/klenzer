@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { Alert, AppState, Linking, Platform } from 'react-native';
 import { shouldStartScan } from './launch-scan';
 import { loadScanResult, saveScanResult } from './scan-result-cache';
+import { scanOriginsOnDevice } from './origin-device';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
@@ -66,6 +67,8 @@ type Ctx = {
   scanning: boolean;
   progress: Progress | null;
   scanCats: CategoryScanMap;
+  /** True while the Forwarded and AI Images folders are being filled, after the main scan. */
+  originBusy: boolean;
   result: ScanResult | null;
   scan: () => Promise<void>;
   cancelScan: () => void;
@@ -120,6 +123,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<Progress | null>(null);
   const [scanCats, setScanCats] = useState<CategoryScanMap>(idleCats);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [originBusy, setOriginBusy] = useState(false);
   const [lifetimeFreed, setLifetimeFreed] = useState(0);
   const [lifetimeItems, setLifetimeItems] = useState(0);
   const [lastFreed, setLastFreed] = useState<LastFreed | null>(null);
@@ -358,7 +362,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           },
           onCategory: (p) => setScanCats((prev) => ({ ...prev, [p.category]: p })),
           onPartial: (partial) => {
-            const next = { ...partial };
+            // The Forwarded and AI Images folders are filled after this scan. Keep the last ones on screen until then.
+            const next = { ...partial, forwarded: resultRef.current?.forwarded ?? [], aiImages: resultRef.current?.aiImages ?? [] };
             resultRef.current = next;
             setResult(next);
             if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -372,6 +377,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         { initialPercent: opts.resume ? (progressRef.current?.percent ?? 0) : 0 },
       );
       if (!signal.current.cancelled) {
+        r.forwarded = resultRef.current?.forwarded ?? [];
+        r.aiImages = resultRef.current?.aiImages ?? [];
         resultRef.current = r;
         setResult(r);
         markScanIncomplete(false);
@@ -382,6 +389,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fires on completion (processed + skipped == total), in the foreground or within the background task window.
         void notifAsk.then(() => notifyScanComplete(reclaim));
         void scheduleReminders({ reclaimBytes: readyToReviewBytes(r), isPro: reminderInfo.current.isPro });
+        // Forwarded and AI Images: a second, lighter pass over the photos just found. It does not hold up the scan.
+        const sig = signal.current;
+        const scannedAt = r.scannedAt;
+        setOriginBusy(true);
+        void scanOriginsOnDevice(r.photos, sig)
+          .then((o) => {
+            const current = resultRef.current;
+            if (sig.cancelled || !current || current.scannedAt !== scannedAt) return;
+            const present = new Set(current.photos.map((i) => i.id));
+            const next = {
+              ...current,
+              forwarded: o.forwarded.filter((i) => present.has(i.id)),
+              aiImages: o.aiImages.filter((i) => present.has(i.id)),
+            };
+            resultRef.current = next;
+            setResult(next);
+            void saveScanResult(next);
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (signal.current === sig) setOriginBusy(false);
+          });
       }
     } catch (e) {
       setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');
@@ -503,6 +532,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             livePhotos: r.livePhotos.filter((i) => !gone.has(i.id)),
             blurry: r.blurry.filter((i) => !gone.has(i.id)),
             photos: (r.photos ?? []).filter((i) => !gone.has(i.id)),
+            forwarded: (r.forwarded ?? []).filter((i) => !gone.has(i.id)),
+            aiImages: (r.aiImages ?? []).filter((i) => !gone.has(i.id)),
             duplicates: r.duplicates
               .map((g) => ({ ...g, items: g.items.filter((i) => !gone.has(i.id)) }))
               .filter((g) => g.items.length > 1),
@@ -742,9 +773,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
+      disk, refreshDisk, scanning, progress, scanCats, originBusy, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, originBusy, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

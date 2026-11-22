@@ -27,6 +27,13 @@ async function db(): Promise<SQLite.SQLiteDatabase | null> {
               dhash TEXT,
               blur REAL
             );
+            CREATE TABLE IF NOT EXISTS origin_cache (
+              id TEXT PRIMARY KEY NOT NULL,
+              modificationTime INTEGER NOT NULL,
+              hasCamera INTEGER NOT NULL DEFAULT 0,
+              aiTag TEXT,
+              textRatio REAL
+            );
           `);
           return opened;
         }),
@@ -73,13 +80,49 @@ export async function putCached(row: CachedAsset): Promise<void> {
   } catch {}
 }
 
+export type CachedOrigin = { id: string; modificationTime: number; hasCamera: number; aiTag: string | null; textRatio: number | null };
+
+/** What a photo's file said about where it came from, kept so later scans do not open the file again. */
+export async function getCachedOrigin(id: string, modificationTime: number): Promise<CachedOrigin | null> {
+  try {
+    const database = await db();
+    if (!database) return null;
+    const row = await withTimeout(
+      database.getFirstAsync<CachedOrigin>(
+        'SELECT id, modificationTime, hasCamera, aiTag, textRatio FROM origin_cache WHERE id = ? AND modificationTime = ?',
+        [id, modificationTime],
+      ),
+      3000,
+      null,
+    );
+    return row ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function putCachedOrigin(row: CachedOrigin): Promise<void> {
+  try {
+    const database = await db();
+    if (!database) return;
+    await withTimeout(
+      database.runAsync(
+        'INSERT OR REPLACE INTO origin_cache (id, modificationTime, hasCamera, aiTag, textRatio) VALUES (?, ?, ?, ?, ?)',
+        [row.id, row.modificationTime, row.hasCamera, row.aiTag, row.textRatio],
+      ).then(() => true),
+      3000,
+      false,
+    );
+  } catch {}
+}
+
 /** Drop cache rows for assets that are no longer in the library (or whose id is gone). */
 export async function pruneCache(liveIds: string[]): Promise<void> {
   try {
     const database = await db();
     if (!database) return;
     if (!liveIds.length) {
-      await database.execAsync('DELETE FROM asset_cache');
+      await database.execAsync('DELETE FROM asset_cache; DELETE FROM origin_cache;');
       return;
     }
     const keep = new Set(liveIds);
@@ -90,6 +133,7 @@ export async function pruneCache(liveIds: string[]): Promise<void> {
       const part = stale.slice(i, i + chunk);
       const marks = part.map(() => '?').join(',');
       await database.runAsync(`DELETE FROM asset_cache WHERE id IN (${marks})`, part);
+      await database.runAsync(`DELETE FROM origin_cache WHERE id IN (${marks})`, part);
     }
   } catch {}
 }

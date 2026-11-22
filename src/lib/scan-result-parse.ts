@@ -47,6 +47,8 @@ export function serializeScanResult(result: ScanResult): string {
     livePhotos: (result.livePhotos ?? []).map(slimItem),
     blurry: (result.blurry ?? []).map(slimItem),
     photos: (result.photos ?? []).map(slimItem),
+    forwarded: (result.forwarded ?? []).map(slimItem),
+    aiImages: (result.aiImages ?? []).map(slimItem),
   };
   return JSON.stringify(slim);
 }
@@ -74,6 +76,8 @@ export function parseStoredScanResult(raw: string | null | undefined): ScanResul
       livePhotos: asItems(v.livePhotos),
       blurry: asItems(v.blurry),
       photos: asItems(v.photos),
+      forwarded: asItems(v.forwarded),
+      aiImages: asItems(v.aiImages),
     };
   } catch {
     return null;

@@ -16,5 +16,5 @@ Pod::Spec.new do |s|
   s.static_framework = true
   s.source_files   = '*.{h,m,mm,swift}'
   s.dependency 'ExpoModulesCore'
-  s.frameworks     = 'Photos'
+  s.frameworks     = 'Photos', 'Vision', 'ImageIO'
 end
