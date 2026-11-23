@@ -15,6 +15,7 @@ import { PressableScale } from '../components/PressableScale';
 import { demoShot } from '../lib/demo';
 import { formatBytes, formatFreeAmount, formatMarketedTotal, tileNote } from '../lib/format';
 import { KINDS, Kind } from '../lib/kinds';
+import { openCustomerCenter } from '../lib/purchases';
 import { categoryBarPercent } from '../lib/scan-progress';
 import { dupExtraCount, dupReclaimable, hasReviewableItems, readyToReviewBytes, sum } from '../lib/scan-logic';
 import { scanStartAction } from '../lib/photo-access';
@@ -40,7 +41,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const {
     disk, access, canAskAgain, openSettings, manageLimited,
-    scanning, progress, scanCats, originBusy, result, scan, cancelScan, refreshDisk, scanError,
+    scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, refreshDisk, scanError, isPro,
   } = useStore();
   const [section, setSection] = useState<Section>('photos');
   const reduceMotion = useReducedMotion();
@@ -146,10 +147,18 @@ export default function Home() {
               <FitText style={styles.brandSub} lines={2} minScale={0.8}>Your library, tidied on this iPhone</FitText>
             </View>
           </View>
-          <PressableScale onPress={() => router.push('/paywall')} accessibilityLabel="Ai Klenzer Pro" style={styles.pro} testID="open-paywall">
-            <Ionicons name="star" size={12} color={colors.lime} />
-            <FitText style={styles.proText} minScale={0.8}>Pro</FitText>
-          </PressableScale>
+          {isPro ? (
+            // Already on Pro: the pill confirms it and opens subscription management, never the plans.
+            <PressableScale onPress={() => void openCustomerCenter()} accessibilityLabel="Ai Klenzer Pro is active" accessibilityHint="Opens subscription management" style={styles.pro} testID="pro-active">
+              <Ionicons name="checkmark-circle" size={14} color={colors.lime} />
+              <FitText style={styles.proText} minScale={0.8}>Pro</FitText>
+            </PressableScale>
+          ) : (
+            <PressableScale onPress={() => router.push('/paywall')} accessibilityLabel="Ai Klenzer Pro" style={styles.pro} testID="open-paywall">
+              <Ionicons name="star" size={12} color={colors.lime} />
+              <FitText style={styles.proText} minScale={0.8}>Pro</FitText>
+            </PressableScale>
+          )}
           <PressableScale onPress={() => router.push('/settings')} accessibilityLabel="Settings" accessibilityHint="Opens settings" style={styles.iconBtn} testID="open-settings">
             <Ionicons name="options-outline" size={20} color={colors.ink} />
           </PressableScale>
@@ -286,15 +295,15 @@ export default function Home() {
 
           {section === 'photos' && (
             <View style={styles.grid} testID="home-grid-photos" key="photos">
-              <CatCard i={1} kind="similar" title="Similar" count={shown ? dupExtraCount(shown.similar) : 0} bytes={shown ? dupReclaimable(shown.similar) : 0} spinning={photosSpin} reduceMotion={rm} pct={photoBar} />
-              <CatCard i={2} kind="duplicates" title="Duplicate" count={shown ? dupExtraCount(shown.duplicates) : 0} bytes={shown ? dupReclaimable(shown.duplicates) : 0} spinning={photosSpin} reduceMotion={rm} pct={photoBar} />
+              {/* Similar holds exact copies and look-alikes together. */}
+              <CatCard i={1} kind="similar" title="Similar" count={shown ? dupExtraCount(shown.similar) + dupExtraCount(shown.duplicates) : 0} bytes={shown ? dupReclaimable(shown.similar) + dupReclaimable(shown.duplicates) : 0} spinning={photosSpin} reduceMotion={rm} pct={photoBar} />
               <CatCard i={3} kind="blurry" title="Blurry" count={shown?.blurry.length ?? 0} bytes={shown ? sum(shown.blurry) : 0} spinning={photosSpin} reduceMotion={rm} pct={photoBar} />
               <CatCard i={4} kind="screenshots" title="Screenshots" count={shown?.screenshots.length ?? 0} bytes={shown ? sum(shown.screenshots) : 0} spinning={shotsSpin} reduceMotion={rm} pct={shotBar} />
               {showLive && (
                 <CatCard i={5} kind="live" title="Live Photos" count={shown?.livePhotos.length ?? 0} bytes={shown ? sum(shown.livePhotos) : 0} spinning={photosSpin} reduceMotion={rm} pct={photoBar} />
               )}
-              <CatCard i={6} kind="forwarded" title="Chat images" count={shown?.forwarded?.length ?? 0} bytes={shown ? sum(shown.forwarded ?? []) : 0} spinning={originBusy} reduceMotion={rm} pct={0} />
-              <CatCard i={7} kind="aiImages" title="AI Images" count={shown?.aiImages?.length ?? 0} bytes={shown ? sum(shown.aiImages ?? []) : 0} spinning={originBusy} reduceMotion={rm} pct={0} />
+              <CatCard i={6} kind="forwarded" title="Chat images" count={shown?.forwarded?.length ?? 0} bytes={shown ? sum(shown.forwarded ?? []) : 0} spinning={originBusy} reduceMotion={rm} pct={originPct} />
+              <CatCard i={7} kind="aiImages" title="AI Images" count={shown?.aiImages?.length ?? 0} bytes={shown ? sum(shown.aiImages ?? []) : 0} spinning={originBusy} reduceMotion={rm} pct={originPct} />
             </View>
           )}
 

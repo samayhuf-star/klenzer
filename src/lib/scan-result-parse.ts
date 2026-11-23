@@ -78,6 +78,7 @@ export function parseStoredScanResult(raw: string | null | undefined): ScanResul
       photos: asItems(v.photos),
       forwarded: asItems(v.forwarded),
       aiImages: asItems(v.aiImages),
+      originAt: typeof v.originAt === 'number' ? v.originAt : undefined,
     };
   } catch {
     return null;

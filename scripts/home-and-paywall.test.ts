@@ -58,9 +58,11 @@ describe('home layout', () => {
   });
   it('has the Photos, Videos and Contacts switcher and no Compress row', () => {
     assert.match(home, /<Segmented/);
-    for (const kind of ['similar', 'duplicates', 'blurry', 'screenshots', 'videoDuplicates', 'shortVideos', 'screenRecordings']) {
+    for (const kind of ['similar', 'blurry', 'screenshots', 'forwarded', 'aiImages', 'videoDuplicates', 'shortVideos', 'screenRecordings']) {
       assert.match(home, new RegExp(`kind="${kind}"`));
     }
+    // Exact copies are shown inside Similar, so the Photos tab has no separate Duplicate card.
+    assert.doesNotMatch(home, /kind="duplicates"/);
     assert.doesNotMatch(home, /Want to save up extra space\?/);
   });
   it('the large scan card is the only progress indicator and has no ellipsis', () => {

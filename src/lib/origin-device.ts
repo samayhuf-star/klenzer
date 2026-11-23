@@ -110,12 +110,14 @@ async function hash(item: Item): Promise<string | null> {
   }
 }
 
-/** Fill the Forwarded and AI Images folders for the photos a scan found. */
-export function scanOriginsOnDevice(
+/** Fill the Chat images and AI Images folders for the photos a scan found. Rejects when Photos access is missing. */
+export async function scanOriginsOnDevice(
   photos: Item[],
   signal: { cancelled: boolean },
   onProgress?: (p: OriginProgress) => void,
   onEarly?: (r: OriginResult) => void,
 ): Promise<OriginResult> {
+  const permission = await MediaLibrary.getPermissionsAsync(false, ['photo', 'video']);
+  if (!permission.granted) throw new Error('Photos access is needed');
   return scanOrigins(photos, { chatAlbumIds, inspect, hash }, signal, onProgress, onEarly);
 }

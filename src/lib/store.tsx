@@ -67,8 +67,10 @@ type Ctx = {
   scanning: boolean;
   progress: Progress | null;
   scanCats: CategoryScanMap;
-  /** True while the Forwarded and AI Images folders are being filled, after the main scan. */
+  /** True while the Chat images and AI Images folders are being filled. */
   originBusy: boolean;
+  /** How far that pass is, 0 to 100. */
+  originPct: number;
   result: ScanResult | null;
   scan: () => Promise<void>;
   cancelScan: () => void;
@@ -114,6 +116,49 @@ function withSizes(items: Item[], photos: Item[]): Item[] {
   });
 }
 
+type OriginCtx = {
+  signal: { current: { cancelled: boolean } };
+  resultRef: { current: ScanResult | null };
+  setResult: (r: ScanResult) => void;
+  setOriginBusy: (busy: boolean) => void;
+  setOriginPct: (pct: number) => void;
+};
+
+/** Chat images and AI Images. Runs beside a scan, and once on launch for a saved scan that never had it. */
+function startOriginPass(ctx: OriginCtx, photos: Item[]) {
+  const sig = ctx.signal.current;
+  const apply = (o: { forwarded: Item[]; aiImages: Item[] }, final: boolean) => {
+    const current = ctx.resultRef.current;
+    if (sig.cancelled || ctx.signal.current !== sig || !current) return;
+    const present = new Set(current.photos.map((i) => i.id));
+    const next: ScanResult = {
+      ...current,
+      forwarded: withSizes(o.forwarded.filter((i) => present.has(i.id)), current.photos),
+      // Until the pass ends, keep the AI pictures found by the last scan on screen.
+      aiImages: final ? withSizes(o.aiImages.filter((i) => present.has(i.id)), current.photos) : current.aiImages,
+    };
+    if (final) next.originAt = Date.now();
+    ctx.resultRef.current = next;
+    ctx.setResult(next);
+    if (final) void saveScanResult(next);
+  };
+  ctx.setOriginBusy(true);
+  ctx.setOriginPct(0);
+  let lastPct = 0;
+  const tick = (p: { done: number; total: number }) => {
+    const pct = p.total > 0 ? Math.floor((p.done / p.total) * 100) : 0;
+    if (pct === lastPct || ctx.signal.current !== sig) return;
+    lastPct = pct;
+    ctx.setOriginPct(pct);
+  };
+  void scanOriginsOnDevice(photos, sig, tick, (early) => apply(early, false))
+    .then((o) => apply(o, true))
+    .catch(() => {})
+    .finally(() => {
+      if (ctx.signal.current === sig) ctx.setOriginBusy(false);
+    });
+}
+
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
 
@@ -134,6 +179,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [scanCats, setScanCats] = useState<CategoryScanMap>(idleCats);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [originBusy, setOriginBusy] = useState(false);
+  const [originPct, setOriginPct] = useState(0);
   const [lifetimeFreed, setLifetimeFreed] = useState(0);
   const [lifetimeItems, setLifetimeItems] = useState(0);
   const [lastFreed, setLastFreed] = useState<LastFreed | null>(null);
@@ -184,6 +230,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (cached) {
             resultRef.current = cached;
             setResult(cached);
+            // A scan saved by an older build has no Chat images or AI Images yet. Fill them without a full rescan.
+            if (cached.photos.length && !cached.originAt) startOriginPass({ signal, resultRef, setResult, setOriginBusy, setOriginPct }, cached.photos);
           }
         }
         scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';
@@ -364,30 +412,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         videos: { ...c.videos, status: 'done' },
       }));
     let originStarted = false;
-    const startOrigins = (photos: Item[]) => {
-      const sig = signal.current;
-      const apply = (o: { forwarded: Item[]; aiImages: Item[] }, final: boolean) => {
-        const current = resultRef.current;
-        if (sig.cancelled || signal.current !== sig || !current) return;
-        const present = new Set(current.photos.map((i) => i.id));
-        const next = {
-          ...current,
-          forwarded: withSizes(o.forwarded.filter((i) => present.has(i.id)), current.photos),
-          // Until the pass ends, keep the AI pictures found by the last scan on screen.
-          aiImages: final ? withSizes(o.aiImages.filter((i) => present.has(i.id)), current.photos) : current.aiImages,
-        };
-        resultRef.current = next;
-        setResult(next);
-        if (final) void saveScanResult(next);
-      };
-      setOriginBusy(true);
-      void scanOriginsOnDevice(photos, sig, undefined, (early) => apply(early, false))
-        .then((o) => apply(o, true))
-        .catch(() => {})
-        .finally(() => {
-          if (signal.current === sig) setOriginBusy(false);
-        });
-    };
     try {
       const r = await scanLibrary(
         {
@@ -398,11 +422,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           onCategory: (p) => setScanCats((prev) => ({ ...prev, [p.category]: p })),
           onPartial: (partial) => {
             // The Forwarded and AI Images folders are filled after this scan. Keep the last ones on screen until then.
-            const next = { ...partial, forwarded: resultRef.current?.forwarded ?? [], aiImages: resultRef.current?.aiImages ?? [] };
+            const next = { ...partial, forwarded: resultRef.current?.forwarded ?? [], aiImages: resultRef.current?.aiImages ?? [], originAt: resultRef.current?.originAt };
             // Chat images and AI Images start as soon as the library has been read. They do not wait for the full scan.
             if (!originStarted && partial.photos.length) {
               originStarted = true;
-              startOrigins(partial.photos);
+              startOriginPass({ signal, resultRef, setResult, setOriginBusy, setOriginPct }, partial.photos);
             }
             resultRef.current = next;
             setResult(next);
@@ -419,6 +443,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!signal.current.cancelled) {
         r.forwarded = withSizes(resultRef.current?.forwarded ?? [], r.photos);
         r.aiImages = withSizes(resultRef.current?.aiImages ?? [], r.photos);
+        r.originAt = resultRef.current?.originAt;
         resultRef.current = r;
         setResult(r);
         markScanIncomplete(false);
@@ -791,9 +816,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
-      disk, refreshDisk, scanning, progress, scanCats, originBusy, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
+      disk, refreshDisk, scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, originBusy, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
+    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

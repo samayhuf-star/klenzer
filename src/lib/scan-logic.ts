@@ -49,6 +49,8 @@ export type ScanResult = {
   forwarded: Item[];
   /** Pictures whose file carries an AI label. Filled after the main scan. */
   aiImages: Item[];
+  /** When the Chat images and AI Images pass last finished for this result. Missing on scans saved before it existed. */
+  originAt?: number;
 };
 
 export const LARGE_VIDEO_BYTES = 100 * 1e6;

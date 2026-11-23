@@ -64,6 +64,8 @@ describe('category tile note', () => {
     assert.equal(tileNote(0, 0, true, 37), 'Scanning 37%');
     assert.equal(tileNote(0, 0, true, 0), 'Scanning');
     assert.equal(tileNote(0, 0, false, 100), 'None yet');
-    assert.equal(tileNote(0, 3, true, 50), 'items');
+    assert.equal(tileNote(0, 3, true, 50), 'Scanning 50%');
+    assert.equal(tileNote(2_000_000, 3, true, 50), 'Scanning 50%');
+    assert.equal(tileNote(0, 3, false, 50), 'items');
   });
 });

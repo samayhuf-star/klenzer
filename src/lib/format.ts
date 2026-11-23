@@ -68,9 +68,11 @@ export function scanLookingLine(total: number, percent: number): string {
 
 /** Never says None yet while the scan is still checking this group. A 0% category says Scanning, not a fake 1%. */
 export function tileNote(bytes: number, count: number, spinning: boolean, pct: number): string {
+  const p = Math.max(0, Math.min(99, Math.round(Number.isFinite(pct) ? pct : 0)));
+  // While a card is still being filled it always shows how far along it is, even once it has items.
+  if (spinning && p > 0) return `Scanning ${p}%`;
   if (bytes > 0) return formatBytes(bytes);
   if (count) return 'items';
   if (!spinning) return 'None yet';
-  const p = Math.max(0, Math.min(99, Math.round(Number.isFinite(pct) ? pct : 0)));
-  return p > 0 ? `Scanning ${p}%` : 'Scanning';
+  return 'Scanning';
 }

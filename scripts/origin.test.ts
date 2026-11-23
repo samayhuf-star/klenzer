@@ -204,3 +204,19 @@ describe('saved results', () => {
     assert.deepEqual([old.forwarded, old.aiImages], [[], []]);
   });
 });
+
+describe('repeats at scale', () => {
+  it('groups 20,000 chat images quickly and finds copies that differ by a few bits', () => {
+    const hex = (n: number) => (n * 2654435761 >>> 0).toString(16).padStart(8, '0') + ((n * 40503 + 977) * 2246822519 >>> 0).toString(16).padStart(8, '0');
+    const many = Array.from({ length: 20_000 }, (_, i) => item(`m${i}`, { dhash: hex(i + 1) }));
+    many.push(item('m90001', { dhash: 'f0f0f0f0f0f0f0f0' }), item('m90002', { dhash: 'f0f0f0f0f0f0f0f1' }), item('m90003', { dhash: 'f1f0f0f0f0f0f0f3' }));
+    const rows = many.map((i) => ({ item: i, inChatAlbum: true, origin: null }));
+    const started = Date.now();
+    const out = buildOriginResult(rows);
+    assert.ok(Date.now() - started < 3000, `took ${Date.now() - started} ms`);
+    const trio = out.forwarded.filter((i) => ['m90001', 'm90002', 'm90003'].includes(i.id));
+    assert.equal(trio.length, 3);
+    assert.ok(trio.every((i) => i.fwd === 'repeat' && i.copies === 3));
+    assert.equal(out.forwarded.length, 20_003);
+  });
+});

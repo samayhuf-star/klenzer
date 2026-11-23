@@ -140,20 +140,47 @@ export const isTextForward = (row: OriginInput) =>
 /** Two saved copies of one forward: same picture after the chat app recompressed it. */
 export const REPEAT_HAMMING_MAX = 4;
 
+/** Digit ranges of a 16-digit hash. With 5 bands, any two hashes within 4 bits share at least one. */
+const REPEAT_BANDS: [number, number][] = [[0, 3], [3, 6], [6, 9], [9, 12], [12, 16]];
+
 /** Sets of the same picture saved more than once. Any date, any size: forwards arrive weeks apart. */
 export function groupRepeats(items: Item[], maxHamming = REPEAT_HAMMING_MAX): DuplicateGroup[] {
-  const hashed = items.filter((i) => !!i.dhash);
+  const hashed = items.filter((i) => typeof i.dhash === 'string' && i.dhash.length === 16);
   const used = new Set<string>();
   const groups: DuplicateGroup[] = [];
-  // Close hashes can differ in the first digits, so compare within the whole set. The set is chat images only.
+  // A chat album can hold tens of thousands of pictures, so comparing every pair is too slow.
+  // Two hashes that differ in at most 4 bits differ in at most 4 of their 16 digits, so at least one of
+  // 5 digit bands is identical. Only pictures sharing a band are compared.
+  const bands = maxHamming < REPEAT_BANDS.length ? REPEAT_BANDS : null;
+  const buckets = new Map<string, number[]>();
+  if (bands) {
+    hashed.forEach((item, index) => {
+      bands.forEach(([from, to], b) => {
+        const key = `${b}:${(item.dhash as string).slice(from, to)}`;
+        const list = buckets.get(key);
+        if (list) list.push(index);
+        else buckets.set(key, [index]);
+      });
+    });
+  }
   for (let a = 0; a < hashed.length; a++) {
     const seed = hashed[a];
     if (used.has(seed.id)) continue;
     const members = [seed];
-    for (let b = a + 1; b < hashed.length; b++) {
+    const seen = new Set<number>([a]);
+    const consider = (b: number) => {
+      if (b <= a || seen.has(b)) return;
+      seen.add(b);
       const other = hashed[b];
-      if (used.has(other.id)) continue;
+      if (used.has(other.id)) return;
       if (hamming(seed.dhash as string, other.dhash as string) <= maxHamming) members.push(other);
+    };
+    if (bands) {
+      bands.forEach(([from, to], b) => {
+        for (const index of buckets.get(`${b}:${(seed.dhash as string).slice(from, to)}`) ?? []) consider(index);
+      });
+    } else {
+      for (let b = a + 1; b < hashed.length; b++) consider(b);
     }
     if (members.length < 2) continue;
     for (const m of members) used.add(m.id);

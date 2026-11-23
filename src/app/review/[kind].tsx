@@ -16,7 +16,7 @@ import { colors, fonts, radius, shadow } from '../../theme';
 
 const COPY = {
   duplicates: { title: 'Duplicate', help: 'Photos with the same size and capture time, plus near-identical shots. We keep the largest file in each set; tap any photo to change what’s selected.' },
-  similar: { title: 'Similar', help: 'Near-identical photos. We keep the largest file in each set; tap any photo to change what’s selected.' },
+  similar: { title: 'Similar', help: 'Exact copies first, then near-identical photos. We keep the largest file in each set; tap any photo to change what’s selected.' },
   blurry: { title: 'Blurry', help: 'Photos that look out of focus. Nothing is selected by default. Tap the ones you want to clear.' },
   screenshots: { title: 'Screenshots', help: 'Nothing is selected by default. Tap the ones you want to clear.' },
   videos: { title: 'Large videos', help: 'Videos over 100 MB, biggest first. Nothing is selected by default.' },
@@ -47,7 +47,8 @@ export default function Review() {
   const { width } = useWindowDimensions();
 
   const groups: DuplicateGroup[] = useMemo(() => {
-    if (kind === 'similar') return result?.similar ?? [];
+    // Similar shows exact copies first, then look-alikes.
+    if (kind === 'similar') return [...(result?.duplicates ?? []), ...(result?.similar ?? [])];
     if (kind === 'videoDuplicates') return result?.duplicateVideos ?? [];
     if (kind === 'smart') return [];
     return result?.duplicates ?? [];
@@ -177,7 +178,7 @@ export default function Review() {
           renderItem={({ item: g }) => (
             <View style={styles.group}>
               <Text style={styles.groupMeta}>
-                {formatDate(g.items[0].creationTime)} · {g.items.length} similar
+                {formatDate(g.items[0].creationTime)} · {g.items.length} {kind === 'similar' && !g.key.startsWith('sim:') ? 'identical' : 'similar'}
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
                 {g.items.map((i, k) => renderThumb(i, (width - 40 - 32 - gap * 2) / 3, k === 0 ? 'BEST' : undefined))}
