@@ -16,6 +16,7 @@ import { demoShot } from '../lib/demo';
 import { formatBytes, formatFreeAmount, formatMarketedTotal, tileNote } from '../lib/format';
 import { KINDS, Kind } from '../lib/kinds';
 import { openCustomerCenter } from '../lib/purchases';
+import { consumePlansAfterOnboarding } from '../lib/after-onboarding';
 import { categoryBarPercent } from '../lib/scan-progress';
 import { dupExtraCount, dupReclaimable, hasReviewableItems, readyToReviewBytes, sum } from '../lib/scan-logic';
 import { scanStartAction } from '../lib/photo-access';
@@ -44,6 +45,10 @@ export default function Home() {
     scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, refreshDisk, scanError, isPro,
   } = useStore();
   const [section, setSection] = useState<Section>('photos');
+  // The last onboarding screen can ask for the plans. Home is the first screen that can open them.
+  useEffect(() => {
+    if (consumePlansAfterOnboarding()) router.push('/paywall');
+  }, []);
   const reduceMotion = useReducedMotion();
   const prevCats = useRef(scanCats);
   const wasScanning = useRef(scanning);
