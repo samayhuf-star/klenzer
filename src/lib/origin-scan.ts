@@ -69,8 +69,8 @@ export async function scanOrigins(
   await pool(candidates, workers, async (item) => {
     if (signal.cancelled) return;
     const inChatAlbum = chatIds.has(item.id);
-    // Text is only checked where it can change the answer: pictures not already known to be from a chat.
-    const wantText = !inChatAlbum && !isChatFilename(item.filename);
+    // Text cover decides whether a picture joins the folder, and which tab of it (meme, document, photo) it sits under.
+    const wantText = true;
     const origin = await withTimeout(io.inspect(item, { wantText }), timeout, null);
     rows.push({ item, inChatAlbum, origin });
     onProgress?.({ done: ++done, total: candidates.length });

@@ -17,6 +17,8 @@ export type Item = {
   isLive?: boolean;
   /** Forwarded folder: why the picture is there. */
   fwd?: 'repeat' | 'chat' | 'text';
+  /** Chat images: what kind of picture it is, from how much of it is text. */
+  fwdType?: 'meme' | 'doc' | 'photo';
   /** Forwarded folder: how many copies of this picture are saved. */
   copies?: number;
   /** AI Images folder: the AI label found in the file. */

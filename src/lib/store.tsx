@@ -230,8 +230,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (cached) {
             resultRef.current = cached;
             setResult(cached);
-            // A scan saved by an older build has no Chat images or AI Images yet. Fill them without a full rescan.
-            if (cached.photos.length && !cached.originAt) startOriginPass({ signal, resultRef, setResult, setOriginBusy, setOriginPct }, cached.photos);
+            // A scan saved by an older build has no Chat images or AI Images yet, or has them without types. Fill them without a full rescan.
+            if (cached.photos.length && (!cached.originAt || cached.forwarded.some((i) => !i.fwdType))) startOriginPass({ signal, resultRef, setResult, setOriginBusy, setOriginPct }, cached.photos);
           }
         }
         scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';

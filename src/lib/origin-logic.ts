@@ -123,7 +123,35 @@ export function exifHasCamera(exif: unknown): boolean {
 /** A picture counts as text-heavy (a meme, quote or greeting card) when text covers this much of it. */
 export const TEXT_HEAVY_RATIO = 0.12;
 
+/** A picture that is mostly text is treated as a document, note or bill, not a meme. */
+export const DOC_TEXT_RATIO = 0.35;
+
 export type ForwardedWhy = 'repeat' | 'chat' | 'text';
+export type ForwardedType = 'meme' | 'doc' | 'photo';
+
+/** Sort a chat image by how much of it is text. With no text reading it counts as a photo. */
+export function forwardedType(origin: Origin | null): ForwardedType {
+  const ratio = origin?.textRatio;
+  if (ratio == null) return 'photo';
+  if (ratio >= DOC_TEXT_RATIO) return 'doc';
+  return ratio >= TEXT_HEAVY_RATIO ? 'meme' : 'photo';
+}
+
+export type ForwardedTab = 'all' | 'repeat' | 'meme' | 'doc' | 'photo';
+export const FORWARDED_TABS: { value: ForwardedTab; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'repeat', label: 'Repeats' },
+  { value: 'meme', label: 'Memes and greetings' },
+  { value: 'doc', label: 'Documents and text' },
+  { value: 'photo', label: 'Other photos' },
+];
+
+/** Pictures shown under one tab of the Chat images folder. A repeated meme shows under both Repeats and Memes. */
+export function forwardedInTab(items: Item[], tab: ForwardedTab): Item[] {
+  if (tab === 'all') return items;
+  if (tab === 'repeat') return items.filter((i) => i.fwd === 'repeat');
+  return items.filter((i) => (i.fwdType ?? 'photo') === tab);
+}
 
 export type OriginInput = {
   item: Item;
@@ -199,8 +227,9 @@ export type OriginResult = { forwarded: Item[]; aiImages: Item[] };
 export function buildOriginResult(rows: OriginInput[]): OriginResult {
   const picked = new Map<string, { item: Item; why: ForwardedWhy }>();
   for (const row of rows) {
-    if (isChatImage(row)) picked.set(row.item.id, { item: row.item, why: 'chat' });
-    else if (isTextForward(row)) picked.set(row.item.id, { item: row.item, why: 'text' });
+    const item: Item = { ...row.item, fwdType: forwardedType(row.origin) };
+    if (isChatImage(row)) picked.set(item.id, { item, why: 'chat' });
+    else if (isTextForward(row)) picked.set(item.id, { item, why: 'text' });
   }
 
   const repeats = groupRepeats([...picked.values()].map((p) => p.item));

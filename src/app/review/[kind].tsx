@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FreeLeftNote } from '../../components/FreeLeftNote';
 import { PressableScale } from '../../components/PressableScale';
 import { formatBytes, formatDate, formatDuration } from '../../lib/format';
+import { FORWARDED_TABS, forwardedInTab, type ForwardedTab } from '../../lib/origin-logic';
 import { dupExtras, DuplicateGroup, Item } from '../../lib/scanner';
 import { useStore } from '../../lib/store';
 import { isConvertSupported, pairedVideoSizes } from 'live-photo-convert';
@@ -25,7 +26,7 @@ const COPY = {
   shortVideos: { title: 'Short recordings', help: 'Clips of 10 seconds or less, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   screenRecordings: { title: 'Screen recordings', help: 'Recordings of your screen, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   videoDuplicates: { title: 'Duplicate videos', help: 'Videos with the same size, dimensions and capture time. We keep the largest file in each set; tap any video to change what’s selected.' },
-  forwarded: { title: 'Chat images', help: 'Pictures saved from WhatsApp and other chat apps, plus memes and greeting cards. Ones you have more than once come first, marked with the number of copies. Nothing is selected by default.' },
+  forwarded: { title: 'Chat images', help: 'Pictures saved from WhatsApp and other chat apps, sorted by type. Ones you have more than once are marked with the number of copies. Nothing is selected by default.' },
   aiImages: { title: 'AI Images', help: 'Pictures whose file carries an AI label, such as Content Credentials or the name of the AI tool. Pictures with no label are not listed. Nothing is selected by default.' },
   smart: { title: 'Smart Clean', help: 'Extra copies only. The largest file in each duplicate or similar set stays. Deselect anything you want to keep, then tap Delete. Nothing is removed until you confirm here and on the next screen.' },
 } as const;
@@ -33,7 +34,7 @@ type Kind = keyof typeof COPY;
 
 /** Small label on a picture in the Forwarded and AI Images folders. */
 function flatBadge(kind: Kind, item: Item): string | undefined {
-  if (kind === 'forwarded') return item.fwd === 'repeat' && item.copies ? `×${item.copies}` : item.fwd === 'text' ? 'TEXT' : undefined;
+  if (kind === 'forwarded') return item.fwd === 'repeat' && item.copies ? `×${item.copies}` : undefined;
   if (kind === 'aiImages') return item.aiSource ? item.aiSource.toUpperCase().slice(0, 14) : undefined;
   return undefined;
 }
@@ -64,6 +65,15 @@ export default function Review() {
     }
     return out;
   }, [kind, result]);
+  // Chat images: which type is on screen. Tabs with nothing in them are hidden.
+  const [fwdTab, setFwdTab] = useState<ForwardedTab>('all');
+  const fwdTabs = useMemo(
+    () =>
+      kind === 'forwarded'
+        ? FORWARDED_TABS.map((t) => ({ ...t, count: forwardedInTab(result?.forwarded ?? [], t.value).length })).filter((t) => t.value === 'all' || t.count > 0)
+        : [],
+    [kind, result],
+  );
   const flat: Item[] = useMemo(() => {
     if (kind === 'smart') return smartFlat;
     if (kind === 'duplicates' || kind === 'similar' || kind === 'videoDuplicates') return groups.flatMap((g) => g.items);
@@ -73,10 +83,10 @@ export default function Review() {
     if (kind === 'photos') return result?.photos ?? [];
     if (kind === 'shortVideos') return result?.shortVideos ?? [];
     if (kind === 'screenRecordings') return result?.screenRecordings ?? [];
-    if (kind === 'forwarded') return result?.forwarded ?? [];
+    if (kind === 'forwarded') return forwardedInTab(result?.forwarded ?? [], fwdTab);
     if (kind === 'aiImages') return result?.aiImages ?? [];
     return result?.largeVideos ?? [];
-  }, [kind, groups, result, smartFlat]);
+  }, [kind, groups, result, smartFlat, fwdTab]);
 
   const [sel, setSel] = useState<Set<string>>(
     () => new Set(kind === 'smart' ? smartFlat.map((i) => i.id) : GROUPED.includes(kind) ? groups.flatMap((g) => dupExtras(g).map((i) => i.id)) : []),
@@ -107,6 +117,12 @@ export default function Review() {
       return n;
     });
   }, []);
+
+  // Changing tab clears the selection, so nothing off screen is ever deleted.
+  const pickFwdTab = (tab: ForwardedTab) => {
+    setFwdTab(tab);
+    setSel(new Set());
+  };
 
   const allSelected = flat.length > 0 && chosen.length === flat.length;
   const selectAll = () => setSel(allSelected ? new Set() : new Set(flat.map((i) => i.id)));
@@ -146,6 +162,20 @@ export default function Review() {
   const header = (
     <View style={{ gap: 12, paddingBottom: 14 }}>
       <Text style={styles.help}>{COPY[kind].help}</Text>
+      {fwdTabs.length > 1 && (
+        <View style={styles.tabs}>
+          {fwdTabs.map((t) => (
+            <Pressable
+              key={t.value}
+              onPress={() => pickFwdTab(t.value)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: fwdTab === t.value }}
+              style={[styles.tab, fwdTab === t.value && styles.tabOn]}>
+              <Text style={[styles.tabText, fwdTab === t.value && styles.tabTextOn]}>{t.label} · {t.count.toLocaleString()}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
       {!grouped && (
         <Pressable onPress={selectAll} accessibilityRole="button" style={styles.selAll}>
           <Text style={styles.selAllText}>{allSelected ? 'Deselect all' : `Select all ${flat.length.toLocaleString()}`}</Text>
@@ -296,6 +326,11 @@ const styles = StyleSheet.create({
   back: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', zIndex: 3, ...shadow },
   title: { flex: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 18, color: colors.ink, marginHorizontal: 8 },
   help: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.ink2 },
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tab: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  tabOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  tabText: { fontFamily: fonts.semi, fontSize: 13, color: colors.ink2 },
+  tabTextOn: { color: '#FFFFFF' },
   selAll: { alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.blueSoft },
   selAllText: { fontFamily: fonts.semi, fontSize: 14, color: colors.blue },
   group: { backgroundColor: colors.card, borderRadius: radius.md, padding: 16, gap: 10 },

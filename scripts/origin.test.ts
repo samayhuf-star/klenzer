@@ -8,6 +8,8 @@ import {
   bytesToBinaryString,
   detectAiTag,
   exifHasCamera,
+  forwardedInTab,
+  forwardedType,
   isChatAlbumTitle,
   isChatFilename,
   isOriginCandidate,
@@ -140,7 +142,7 @@ describe('origin pass', () => {
         return i.id === 'r5' ? '0000000000000000' : 'aaaaaaaaaaaaaaaa';
       },
     });
-    assert.deepEqual(asked, { r1: false, r2: false, r5: true, r6: true });
+    assert.deepEqual(asked, { r1: true, r2: true, r5: true, r6: true });
     assert.deepEqual(hashed.sort(), ['r1', 'r2', 'r5']);
     assert.deepEqual(new Set(out.forwarded.slice(0, 2).map((i) => i.id)), new Set(['r1', 'r2']));
     assert.ok(out.forwarded.slice(0, 2).every((i) => i.fwd === 'repeat' && i.copies === 2));
@@ -218,5 +220,30 @@ describe('repeats at scale', () => {
     assert.equal(trio.length, 3);
     assert.ok(trio.every((i) => i.fwd === 'repeat' && i.copies === 3));
     assert.equal(out.forwarded.length, 20_003);
+  });
+});
+
+describe('chat image types', () => {
+  it('sorts by how much of the picture is text', () => {
+    assert.equal(forwardedType(null), 'photo');
+    assert.equal(forwardedType(origin({ textRatio: null })), 'photo');
+    assert.equal(forwardedType(origin({ textRatio: 0.05 })), 'photo');
+    assert.equal(forwardedType(origin({ textRatio: 0.2 })), 'meme');
+    assert.equal(forwardedType(origin({ textRatio: 0.6 })), 'doc');
+  });
+  it('fills each tab, with a repeated meme under both Repeats and Memes', () => {
+    const out = buildOriginResult([
+      { item: item('w1', { dhash: 'ffff0000ffff0000' }), inChatAlbum: true, origin: origin({ textRatio: 0.2 }) },
+      { item: item('w2', { dhash: 'ffff0000ffff0000' }), inChatAlbum: true, origin: origin({ textRatio: 0.2 }) },
+      { item: item('w3'), inChatAlbum: true, origin: origin({ textRatio: 0.7 }) },
+      { item: item('w4'), inChatAlbum: true, origin: origin({ textRatio: 0.01 }) },
+      { item: item('w5'), inChatAlbum: true, origin: null },
+    ]);
+    const ids = (tab: Parameters<typeof forwardedInTab>[1]) => forwardedInTab(out.forwarded, tab).map((i) => i.id).sort();
+    assert.deepEqual(ids('all'), ['w1', 'w2', 'w3', 'w4', 'w5']);
+    assert.deepEqual(ids('repeat'), ['w1', 'w2']);
+    assert.deepEqual(ids('meme'), ['w1', 'w2']);
+    assert.deepEqual(ids('doc'), ['w3']);
+    assert.deepEqual(ids('photo'), ['w4', 'w5']);
   });
 });
