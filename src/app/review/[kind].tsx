@@ -25,7 +25,7 @@ const COPY = {
   shortVideos: { title: 'Short recordings', help: 'Clips of 10 seconds or less, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   screenRecordings: { title: 'Screen recordings', help: 'Recordings of your screen, biggest first. Nothing is selected by default. Tap the ones you want to clear.' },
   videoDuplicates: { title: 'Duplicate videos', help: 'Videos with the same size, dimensions and capture time. We keep the largest file in each set; tap any video to change what’s selected.' },
-  forwarded: { title: 'Forwarded', help: 'Pictures saved from chat apps, plus memes and greeting cards. Ones you have more than once come first, marked with the number of copies. Nothing is selected by default.' },
+  forwarded: { title: 'Chat images', help: 'Pictures saved from WhatsApp and other chat apps, plus memes and greeting cards. Ones you have more than once come first, marked with the number of copies. Nothing is selected by default.' },
   aiImages: { title: 'AI Images', help: 'Pictures whose file carries an AI label, such as Content Credentials or the name of the AI tool. Pictures with no label are not listed. Nothing is selected by default.' },
   smart: { title: 'Smart Clean', help: 'Extra copies only. The largest file in each duplicate or similar set stays. Deselect anything you want to keep, then tap Delete. Nothing is removed until you confirm here and on the next screen.' },
 } as const;

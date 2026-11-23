@@ -13,7 +13,7 @@ export const KINDS: Record<Kind, { title: string; icon: string; tone: string; so
   shortVideos: { title: 'Short recordings', icon: 'timer-outline', tone: colors.sky, soft: colors.skySoft },
   screenRecordings: { title: 'Screen recordings', icon: 'recording-outline', tone: colors.coral, soft: colors.coralSoft },
   live: { title: 'Live Photos', icon: 'aperture', tone: '#0BAE86', soft: colors.mintSoft },
-  forwarded: { title: 'Forwarded', icon: 'arrow-redo', tone: '#0BAE86', soft: colors.mintSoft },
+  forwarded: { title: 'Chat images', icon: 'chatbubbles', tone: '#0BAE86', soft: colors.mintSoft },
   aiImages: { title: 'AI Images', icon: 'sparkles', tone: colors.violet, soft: colors.violetSoft },
   temp: { title: 'Temporary files', icon: 'folder-open', tone: colors.danger, soft: colors.dangerSoft },
 };

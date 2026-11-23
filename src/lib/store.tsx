@@ -104,6 +104,16 @@ type Ctx = {
 
 const KEYS = { allowance: 'klenzer.allowance.v1', onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1', hideRdSheet: 'klenzer.rdSheet.hide.v1', convertPending: 'klenzer.convert.pending.v1' };
 
+/** Chat images and AI Images are found before file sizes are measured. Take each size from the scan once it is known. */
+function withSizes(items: Item[], photos: Item[]): Item[] {
+  if (!items.length) return items;
+  const sizes = new Map(photos.map((p) => [p.id, p.size]));
+  return items.map((i) => {
+    const size = sizes.get(i.id);
+    return size && size !== i.size ? { ...i, size } : i;
+  });
+}
+
 const StoreCtx = createContext<Ctx>(null as never);
 export const useStore = () => useContext(StoreCtx);
 
@@ -353,6 +363,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         screenshots: { ...c.screenshots, status: 'done' },
         videos: { ...c.videos, status: 'done' },
       }));
+    let originStarted = false;
+    const startOrigins = (photos: Item[]) => {
+      const sig = signal.current;
+      const apply = (o: { forwarded: Item[]; aiImages: Item[] }, final: boolean) => {
+        const current = resultRef.current;
+        if (sig.cancelled || signal.current !== sig || !current) return;
+        const present = new Set(current.photos.map((i) => i.id));
+        const next = {
+          ...current,
+          forwarded: withSizes(o.forwarded.filter((i) => present.has(i.id)), current.photos),
+          // Until the pass ends, keep the AI pictures found by the last scan on screen.
+          aiImages: final ? withSizes(o.aiImages.filter((i) => present.has(i.id)), current.photos) : current.aiImages,
+        };
+        resultRef.current = next;
+        setResult(next);
+        if (final) void saveScanResult(next);
+      };
+      setOriginBusy(true);
+      void scanOriginsOnDevice(photos, sig, undefined, (early) => apply(early, false))
+        .then((o) => apply(o, true))
+        .catch(() => {})
+        .finally(() => {
+          if (signal.current === sig) setOriginBusy(false);
+        });
+    };
     try {
       const r = await scanLibrary(
         {
@@ -364,6 +399,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           onPartial: (partial) => {
             // The Forwarded and AI Images folders are filled after this scan. Keep the last ones on screen until then.
             const next = { ...partial, forwarded: resultRef.current?.forwarded ?? [], aiImages: resultRef.current?.aiImages ?? [] };
+            // Chat images and AI Images start as soon as the library has been read. They do not wait for the full scan.
+            if (!originStarted && partial.photos.length) {
+              originStarted = true;
+              startOrigins(partial.photos);
+            }
             resultRef.current = next;
             setResult(next);
             if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -377,8 +417,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         { initialPercent: opts.resume ? (progressRef.current?.percent ?? 0) : 0 },
       );
       if (!signal.current.cancelled) {
-        r.forwarded = resultRef.current?.forwarded ?? [];
-        r.aiImages = resultRef.current?.aiImages ?? [];
+        r.forwarded = withSizes(resultRef.current?.forwarded ?? [], r.photos);
+        r.aiImages = withSizes(resultRef.current?.aiImages ?? [], r.photos);
         resultRef.current = r;
         setResult(r);
         markScanIncomplete(false);
@@ -389,28 +429,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fires on completion (processed + skipped == total), in the foreground or within the background task window.
         void notifAsk.then(() => notifyScanComplete(reclaim));
         void scheduleReminders({ reclaimBytes: readyToReviewBytes(r), isPro: reminderInfo.current.isPro });
-        // Forwarded and AI Images: a second, lighter pass over the photos just found. It does not hold up the scan.
-        const sig = signal.current;
-        const scannedAt = r.scannedAt;
-        setOriginBusy(true);
-        void scanOriginsOnDevice(r.photos, sig)
-          .then((o) => {
-            const current = resultRef.current;
-            if (sig.cancelled || !current || current.scannedAt !== scannedAt) return;
-            const present = new Set(current.photos.map((i) => i.id));
-            const next = {
-              ...current,
-              forwarded: o.forwarded.filter((i) => present.has(i.id)),
-              aiImages: o.aiImages.filter((i) => present.has(i.id)),
-            };
-            resultRef.current = next;
-            setResult(next);
-            void saveScanResult(next);
-          })
-          .catch(() => {})
-          .finally(() => {
-            if (signal.current === sig) setOriginBusy(false);
-          });
       }
     } catch (e) {
       setScanError(e instanceof Error && e.message ? e.message : 'The scan hit a problem. You can try again.');

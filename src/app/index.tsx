@@ -293,8 +293,8 @@ export default function Home() {
               {showLive && (
                 <CatCard i={5} kind="live" title="Live Photos" count={shown?.livePhotos.length ?? 0} bytes={shown ? sum(shown.livePhotos) : 0} spinning={photosSpin} reduceMotion={rm} pct={photoBar} />
               )}
-              <CatCard i={6} kind="forwarded" title="Forwarded" count={shown?.forwarded?.length ?? 0} bytes={shown ? sum(shown.forwarded ?? []) : 0} spinning={photosSpin || originBusy} reduceMotion={rm} pct={photoBar} />
-              <CatCard i={7} kind="aiImages" title="AI Images" count={shown?.aiImages?.length ?? 0} bytes={shown ? sum(shown.aiImages ?? []) : 0} spinning={photosSpin || originBusy} reduceMotion={rm} pct={photoBar} />
+              <CatCard i={6} kind="forwarded" title="Chat images" count={shown?.forwarded?.length ?? 0} bytes={shown ? sum(shown.forwarded ?? []) : 0} spinning={originBusy} reduceMotion={rm} pct={0} />
+              <CatCard i={7} kind="aiImages" title="AI Images" count={shown?.aiImages?.length ?? 0} bytes={shown ? sum(shown.aiImages ?? []) : 0} spinning={originBusy} reduceMotion={rm} pct={0} />
             </View>
           )}
 
@@ -377,13 +377,13 @@ function CatCard({
       <PressableScale onPress={open} accessibilityLabel={`${title}, ${count} items`} style={styles.tile}>
         <View style={styles.tileTop}>
           <View style={[styles.tileIcon, { backgroundColor: meta.soft }]}>
-            <Ionicons name={icon} size={20} color={meta.tone} />
+            <Ionicons name={icon} size={17} color={meta.tone} />
           </View>
           {spinning ? (
             <ActivityIndicator size="small" color={colors.blue} />
           ) : (
             <View style={styles.tileGo}>
-              <Ionicons name="arrow-forward" size={13} color={colors.ink2} />
+              <Ionicons name="arrow-forward" size={11} color={colors.ink2} />
             </View>
           )}
         </View>
@@ -499,17 +499,18 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 },
   sectionTitle: { flexShrink: 1, fontFamily: fonts.display, fontSize: 22, color: colors.ink, letterSpacing: -0.4 },
   sectionHint: { flexShrink: 1, maxWidth: '58%', fontFamily: fonts.medium, fontSize: 12.5, color: colors.ink3, textAlign: 'right' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
-  tileWrap: { width: '48.4%' },
-  tile: { backgroundColor: colors.card, borderRadius: 20, borderBottomLeftRadius: 6, padding: 14, minHeight: 142, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
+  // Three cards in a row. A fixed gap with flex-start keeps a short last row aligned to the left.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', columnGap: 8, rowGap: 8 },
+  tileWrap: { width: '31.4%' },
+  tile: { backgroundColor: colors.card, borderRadius: 16, borderBottomLeftRadius: 6, padding: 10, minHeight: 122, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
   tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  tileIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  tileGo: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
-  tileTitle: { fontFamily: fonts.semi, fontSize: 14, color: colors.ink2, marginTop: 14, width: '100%' },
+  tileIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  tileGo: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  tileTitle: { fontFamily: fonts.semi, fontSize: 12.5, color: colors.ink2, marginTop: 10, width: '100%' },
   tileNums: { marginTop: 2, gap: 1 },
-  tileCount: { fontFamily: fonts.display, fontSize: 26, color: colors.ink, letterSpacing: -0.6, width: '100%' },
-  tileBytes: { fontFamily: fonts.semi, fontSize: 12.5, color: colors.ink3, width: '100%' },
-  tileAccent: { position: 'absolute', left: 14, bottom: 0, width: 28, height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  tileCount: { fontFamily: fonts.display, fontSize: 21, color: colors.ink, letterSpacing: -0.5, width: '100%' },
+  tileBytes: { fontFamily: fonts.semi, fontSize: 11, color: colors.ink3, width: '100%' },
+  tileAccent: { position: 'absolute', left: 10, bottom: 0, width: 28, height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
   contactCard: { backgroundColor: colors.card, borderRadius: 20, borderBottomLeftRadius: 6, padding: 18, gap: 8, borderWidth: 1, borderColor: colors.line },
   contactTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.ink, marginTop: 6 },
   contactBody: { fontFamily: fonts.body, fontSize: 14, color: colors.ink2, lineHeight: 20 },

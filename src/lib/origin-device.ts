@@ -115,6 +115,7 @@ export function scanOriginsOnDevice(
   photos: Item[],
   signal: { cancelled: boolean },
   onProgress?: (p: OriginProgress) => void,
+  onEarly?: (r: OriginResult) => void,
 ): Promise<OriginResult> {
-  return scanOrigins(photos, { chatAlbumIds, inspect, hash }, signal, onProgress);
+  return scanOrigins(photos, { chatAlbumIds, inspect, hash }, signal, onProgress, onEarly);
 }

@@ -39,6 +39,8 @@ export async function scanOrigins(
   io: OriginIO,
   signal: { cancelled: boolean } = { cancelled: false },
   onProgress?: (p: OriginProgress) => void,
+  /** Called as soon as the chat albums are read, so the Chat images card fills before any file is opened. */
+  onEarly?: (r: OriginResult) => void,
 ): Promise<OriginResult> {
   const workers = io.workers ?? ORIGIN_WORKERS;
   const timeout = io.inspectTimeoutMs ?? ORIGIN_TIMEOUT_MS;
@@ -49,10 +51,18 @@ export async function scanOrigins(
   } catch {}
 
   const candidates = [...photos]
-    .filter(isOriginCandidate)
+    // Everything in a chat app's album counts, whatever its file type.
+    .filter((p) => isOriginCandidate(p) || (!p.isVideo && chatIds.has(p.id)))
     .sort((a, b) => b.creationTime - a.creationTime)
     .slice(0, io.maxInspect ?? ORIGIN_MAX_INSPECT)
     .map((item) => ({ ...item }));
+
+  if (onEarly && !signal.cancelled) {
+    const early = buildOriginResult(
+      candidates.filter((i) => chatIds.has(i.id) || isChatFilename(i.filename)).map((item) => ({ item, inChatAlbum: chatIds.has(item.id), origin: null })),
+    );
+    if (early.forwarded.length) onEarly(early);
+  }
 
   const rows: OriginInput[] = [];
   let done = 0;

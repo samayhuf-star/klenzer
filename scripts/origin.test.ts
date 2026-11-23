@@ -161,6 +161,31 @@ describe('origin pass', () => {
     assert.deepEqual(out.aiImages.map((i) => i.id), ['s3']);
     assert.deepEqual(out.forwarded, []);
   });
+  it('fills chat images from the albums before any file is opened, including HEIC and Live Photos in a chat album', async () => {
+    let inspected = 0;
+    let early: string[] = [];
+    let inspectedAtEarly = -1;
+    const out = await scanOrigins(
+      [item('v1', { filename: 'IMG_0001.HEIC' }), item('v2', { isLive: true }), item('v3', { filename: 'IMG_0003.HEIC' }), item('v4', { isVideo: true })],
+      {
+        chatAlbumIds: async () => new Set(['v1', 'v2', 'v4']),
+        inspect: async () => {
+          inspected++;
+          return origin();
+        },
+        hash: async () => null,
+      },
+      { cancelled: false },
+      undefined,
+      (r) => {
+        early = r.forwarded.map((i) => i.id).sort();
+        inspectedAtEarly = inspected;
+      },
+    );
+    assert.deepEqual(early, ['v1', 'v2']);
+    assert.equal(inspectedAtEarly, 0);
+    assert.deepEqual(out.forwarded.map((i) => i.id).sort(), ['v1', 'v2']);
+  });
   it('a cancelled pass returns nothing', async () => {
     const signal = { cancelled: true };
     const out = await scanOrigins([item('t1')], { chatAlbumIds: async () => new Set(['t1']), inspect: async () => origin(), hash: async () => null }, signal);
