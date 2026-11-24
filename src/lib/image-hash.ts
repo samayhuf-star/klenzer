@@ -48,6 +48,29 @@ export function dHashFromGray(gray: Float64Array, srcW: number, srcH: number): s
   return hex;
 }
 
+/** Mean red, green and blue of each cell of a 3 by 3 grid, one hex digit (0 to 15) apiece. 27 digits. */
+export function colorSignature(rgba: Uint8Array, width: number, height: number): string {
+  const sums = new Float64Array(27);
+  const counts = new Float64Array(9);
+  for (let y = 0; y < height; y++) {
+    const cy = Math.min(2, Math.floor((y * 3) / height));
+    for (let x = 0; x < width; x++) {
+      const cell = cy * 3 + Math.min(2, Math.floor((x * 3) / width));
+      const o = (y * width + x) * 4;
+      sums[cell * 3] += rgba[o];
+      sums[cell * 3 + 1] += rgba[o + 1];
+      sums[cell * 3 + 2] += rgba[o + 2];
+      counts[cell] += 1;
+    }
+  }
+  let out = '';
+  for (let i = 0; i < 27; i++) {
+    const mean = counts[Math.floor(i / 3)] ? sums[i] / counts[Math.floor(i / 3)] : 0;
+    out += Math.min(15, Math.floor(mean / 16)).toString(16);
+  }
+  return out;
+}
+
 export function hamming(a: string, b: string): number {
   if (!a || !b || a.length !== b.length) return 64;
   let n = 0;
@@ -89,7 +112,7 @@ function toFileUri(uri: string): string {
 }
 
 /** Resize a local image file to 32×32, then compute dHash and Laplacian variance. */
-export async function analyzeThumb(localUri: string): Promise<{ dhash: string; blur: number } | null> {
+export async function analyzeThumb(localUri: string): Promise<{ dhash: string; blur: number; chash: string } | null> {
   try {
     const result = await ImageManipulator.manipulateAsync(
       toFileUri(localUri),
@@ -107,6 +130,7 @@ export async function analyzeThumb(localUri: string): Promise<{ dhash: string; b
     return {
       dhash: dHashFromGray(gray, decoded.width, decoded.height),
       blur: laplacianVariance(gray, decoded.width, decoded.height),
+      chash: colorSignature(decoded.data as Uint8Array, decoded.width, decoded.height),
     };
   } catch {
     return null;

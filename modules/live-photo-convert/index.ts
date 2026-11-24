@@ -14,14 +14,14 @@ type NativeAPI = {
   pairedVideoSizes: (ids: string[]) => Promise<PairedVideoSize[]>;
   convertToStills: (ids: string[]) => Promise<ConvertResult>;
   scanThumb?: (id: string, targetPx: number, timeoutMs: number) => Promise<string | null>;
-  scanAnalyze?: (id: string, targetPx: number, timeoutMs: number) => Promise<{ ok: boolean; dhash?: string; blur?: number } | null>;
+  scanAnalyze?: (id: string, targetPx: number, timeoutMs: number) => Promise<{ ok: boolean; dhash?: string; blur?: number; chash?: string } | null>;
   scanOrigin?: (
     id: string,
     needles: number[][],
     headBytes: number,
     wantText: boolean,
     timeoutMs: number,
-  ) => Promise<{ ok: boolean; hasCamera?: boolean; hits?: number[]; textRatio?: number } | null>;
+  ) => Promise<{ ok: boolean; hasCamera?: boolean; hits?: number[]; textRatio?: number; textLines?: number } | null>;
   beginShortBackgroundTask?: () => void;
   endShortBackgroundTask?: () => void;
 };
@@ -73,12 +73,12 @@ export const isScanAnalyzeSupported = Platform.OS === 'ios' && typeof Native?.sc
  * dHash and blur for one photo, computed natively from a small Photos thumbnail (iCloud allowed,
  * never the full-size original). Null on failure or timeout so the scan skips the photo.
  */
-export async function scanAnalyze(id: string, targetPx: number, timeoutMs: number): Promise<{ dhash: string; blur: number } | null> {
+export async function scanAnalyze(id: string, targetPx: number, timeoutMs: number): Promise<{ dhash: string; blur: number; chash: string | null } | null> {
   if (!Native?.scanAnalyze) return null;
   try {
     const r = await Native.scanAnalyze(id, targetPx, timeoutMs);
     if (!r || !r.ok || typeof r.dhash !== 'string' || r.dhash.length !== 16 || typeof r.blur !== 'number' || !Number.isFinite(r.blur)) return null;
-    return { dhash: r.dhash, blur: r.blur };
+    return { dhash: r.dhash, blur: r.blur, chash: typeof r.chash === 'string' && r.chash.length === 27 ? r.chash : null };
   } catch {
     return null;
   }
@@ -87,7 +87,7 @@ export async function scanAnalyze(id: string, targetPx: number, timeoutMs: numbe
 /** True when this build can read a photo's camera details, AI labels and text cover natively. */
 export const isScanOriginSupported = Platform.OS === 'ios' && typeof Native?.scanOrigin === 'function';
 
-export type ScanOriginNative = { hasCamera: boolean; hits: number[]; textRatio: number | null };
+export type ScanOriginNative = { hasCamera: boolean; hits: number[]; textRatio: number | null; textLines: number | null };
 
 /**
  * What one photo's original file says about where it came from. Read on-device; never downloaded from
@@ -109,6 +109,7 @@ export async function scanOrigin(
       hasCamera: !!r.hasCamera,
       hits: Array.isArray(r.hits) ? r.hits.filter((n) => Number.isInteger(n)) : [],
       textRatio: typeof r.textRatio === 'number' && Number.isFinite(r.textRatio) ? r.textRatio : null,
+      textLines: typeof r.textLines === 'number' && Number.isFinite(r.textLines) ? r.textLines : null,
     };
   } catch {
     return null;

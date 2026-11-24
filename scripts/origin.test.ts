@@ -9,7 +9,10 @@ import {
   detectAiTag,
   exifHasCamera,
   forwardedInTab,
+  colorsClose,
   forwardedType,
+  groupRepeats,
+  hashHasDetail,
   isChatAlbumTitle,
   isChatFilename,
   isOriginCandidate,
@@ -33,6 +36,8 @@ const item = (id: string, extra: Partial<Item> = {}): Item => ({
   ...extra,
 });
 const origin = (o: Partial<Origin> = {}): Origin => ({ hasCamera: false, aiTag: null, textRatio: null, ...o });
+const C1 = 'a'.repeat(27);
+const C2 = '2'.repeat(27);
 const bytes = (text: string) => bytesToBinaryString(new Uint8Array(Buffer.from(text, 'latin1')));
 
 describe('chat sources', () => {
@@ -93,9 +98,9 @@ describe('AI labels', () => {
 describe('folders', () => {
   it('puts repeats first with a copy count, then single chat images and text-heavy forwards', () => {
     const rows = [
-      { item: item('p1', { dhash: 'ffff0000ffff0000' }), inChatAlbum: true, origin: origin() },
-      { item: item('p2', { dhash: 'ffff0000ffff0001' }), inChatAlbum: true, origin: origin() },
-      { item: item('p3', { dhash: 'ffff0000ffff0000' }), inChatAlbum: true, origin: origin() },
+      { item: item('p1', { dhash: 'ffff0000ffff0000', chash: C1 }), inChatAlbum: true, origin: origin() },
+      { item: item('p2', { dhash: 'ffff0000ffff0001', chash: C1 }), inChatAlbum: true, origin: origin() },
+      { item: item('p3', { dhash: 'ffff0000ffff0000', chash: C1 }), inChatAlbum: true, origin: origin() },
       { item: item('p4', { dhash: '0123456789abcdef' }), inChatAlbum: true, origin: origin() },
       { item: item('p5', { filename: 'good-morning.jpg' }), inChatAlbum: false, origin: origin({ textRatio: 0.3 }) },
       { item: item('p6', { filename: 'IMG_0006.JPG' }), inChatAlbum: false, origin: origin({ hasCamera: true, textRatio: 0.4 }) },
@@ -141,6 +146,7 @@ describe('origin pass', () => {
         hashed.push(i.id);
         return i.id === 'r5' ? '0000000000000000' : 'aaaaaaaaaaaaaaaa';
       },
+      color: async () => C1,
     });
     assert.deepEqual(asked, { r1: true, r2: true, r5: true, r6: true });
     assert.deepEqual(hashed.sort(), ['r1', 'r2', 'r5']);
@@ -211,7 +217,7 @@ describe('repeats at scale', () => {
   it('groups 20,000 chat images quickly and finds copies that differ by a few bits', () => {
     const hex = (n: number) => (n * 2654435761 >>> 0).toString(16).padStart(8, '0') + ((n * 40503 + 977) * 2246822519 >>> 0).toString(16).padStart(8, '0');
     const many = Array.from({ length: 20_000 }, (_, i) => item(`m${i}`, { dhash: hex(i + 1) }));
-    many.push(item('m90001', { dhash: 'f0f0f0f0f0f0f0f0' }), item('m90002', { dhash: 'f0f0f0f0f0f0f0f1' }), item('m90003', { dhash: 'f1f0f0f0f0f0f0f3' }));
+    many.push(item('m90001', { dhash: 'f0f0f0f0f0f0f0f0', chash: C1 }), item('m90002', { dhash: 'f0f0f0f0f0f0f0f1', chash: C1 }), item('m90003', { dhash: 'f1f0f0f0f0f0f0f3', chash: C1 }));
     const rows = many.map((i) => ({ item: i, inChatAlbum: true, origin: null }));
     const started = Date.now();
     const out = buildOriginResult(rows);
@@ -227,14 +233,16 @@ describe('chat image types', () => {
   it('sorts by how much of the picture is text', () => {
     assert.equal(forwardedType(null), 'photo');
     assert.equal(forwardedType(origin({ textRatio: null })), 'photo');
-    assert.equal(forwardedType(origin({ textRatio: 0.05 })), 'photo');
-    assert.equal(forwardedType(origin({ textRatio: 0.2 })), 'meme');
+    assert.equal(forwardedType(origin({ textRatio: 0.02, textLines: 1 })), 'photo');
+    assert.equal(forwardedType(origin({ textRatio: 0.1, textLines: 2 })), 'meme');
     assert.equal(forwardedType(origin({ textRatio: 0.6 })), 'doc');
+    // Text boxes cover only the lines, so a page of small print is a document by its line count.
+    assert.equal(forwardedType(origin({ textRatio: 0.12, textLines: 14 })), 'doc');
   });
   it('fills each tab, with a repeated meme under both Repeats and Memes', () => {
     const out = buildOriginResult([
-      { item: item('w1', { dhash: 'ffff0000ffff0000' }), inChatAlbum: true, origin: origin({ textRatio: 0.2 }) },
-      { item: item('w2', { dhash: 'ffff0000ffff0000' }), inChatAlbum: true, origin: origin({ textRatio: 0.2 }) },
+      { item: item('w1', { dhash: 'ffff0000ffff0000', chash: C1 }), inChatAlbum: true, origin: origin({ textRatio: 0.2 }) },
+      { item: item('w2', { dhash: 'ffff0000ffff0000', chash: C1 }), inChatAlbum: true, origin: origin({ textRatio: 0.2 }) },
       { item: item('w3'), inChatAlbum: true, origin: origin({ textRatio: 0.7 }) },
       { item: item('w4'), inChatAlbum: true, origin: origin({ textRatio: 0.01 }) },
       { item: item('w5'), inChatAlbum: true, origin: null },
@@ -245,5 +253,55 @@ describe('chat image types', () => {
     assert.deepEqual(ids('meme'), ['w1', 'w2']);
     assert.deepEqual(ids('doc'), ['w3']);
     assert.deepEqual(ids('photo'), ['w4', 'w5']);
+  });
+});
+
+describe('repeats are real repeats', () => {
+  const flat = '0000000000000001';
+  it('never calls flat pictures repeats, whatever their colours', () => {
+    assert.equal(hashHasDetail(flat), false);
+    assert.equal(hashHasDetail('ffffffffffffffff'), false);
+    assert.equal(hashHasDetail('ffff0000ffff0000'), true);
+    const flats = Array.from({ length: 40 }, (_, i) => item(`f${i}`, { dhash: flat, chash: C1 }));
+    assert.deepEqual(groupRepeats(flats), []);
+  });
+  it('keeps a black picture and a yellow one apart even when their hashes match', () => {
+    const black = '1'.repeat(27);
+    const yellow = 'ffe0'.repeat(7).slice(0, 27);
+    assert.equal(colorsClose(black, yellow), false);
+    assert.equal(colorsClose(C1, C1), true);
+    const pics = [
+      item('b1', { dhash: 'ffff0000ffff0000', chash: black }),
+      item('y1', { dhash: 'ffff0000ffff0000', chash: yellow }),
+      item('b2', { dhash: 'ffff0000ffff0001', chash: black }),
+    ];
+    const groups = groupRepeats(pics);
+    assert.equal(groups.length, 1);
+    assert.deepEqual(groups[0].items.map((i) => i.id).sort(), ['b1', 'b2']);
+  });
+  it('needs the same shape, and leaves out pictures whose colours were not read', () => {
+    const tall = item('t1', { dhash: 'ffff0000ffff0000', chash: C1, width: 1000, height: 2000 });
+    const wide = item('t2', { dhash: 'ffff0000ffff0000', chash: C1, width: 2000, height: 1000 });
+    const noColor = item('t3', { dhash: 'ffff0000ffff0000', width: 1000, height: 2000 });
+    assert.deepEqual(groupRepeats([tall, wide]), []);
+    assert.deepEqual(groupRepeats([tall, noColor]), []);
+    // The shortlist step ignores colour, so it can name the pictures whose colours are worth reading.
+    assert.equal(groupRepeats([tall, noColor], undefined, false).length, 1);
+  });
+  it('the origin pass reads colours only for shortlisted pictures', async () => {
+    const asked: string[] = [];
+    const photos = [item('c1'), item('c2'), item('c3')];
+    const hashes: Record<string, string> = { c1: 'ffff0000ffff0000', c2: 'ffff0000ffff0000', c3: '0123456789abcdef' };
+    const out = await scanOrigins(photos, {
+      chatAlbumIds: async () => new Set(['c1', 'c2', 'c3']),
+      inspect: async () => origin(),
+      hash: async (i) => hashes[i.id],
+      color: async (i) => {
+        asked.push(i.id);
+        return i.id === 'c2' ? C2 : C1;
+      },
+    });
+    assert.deepEqual(asked.sort(), ['c1', 'c2']);
+    assert.equal(out.forwarded.some((i) => i.fwd === 'repeat'), false);
   });
 });

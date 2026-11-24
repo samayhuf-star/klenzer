@@ -1,6 +1,6 @@
 /** Forwarded and AI Images pass. Runs after the main scan. Injectable I/O so Node tests can drive it. */
 import { withTimeout, type Item } from './scan-logic';
-import { buildOriginResult, isChatFilename, isOriginCandidate, type Origin, type OriginInput, type OriginResult } from './origin-logic';
+import { buildOriginResult, groupRepeats, isChatFilename, isOriginCandidate, type Origin, type OriginInput, type OriginResult } from './origin-logic';
 
 export type OriginIO = {
   /** Ids of every photo inside a chat app's album or folder. */
@@ -9,6 +9,8 @@ export type OriginIO = {
   inspect: (item: Item, opts: { wantText: boolean }) => Promise<Origin | null>;
   /** Picture fingerprint, used to find the same forward saved more than once. */
   hash: (item: Item) => Promise<string | null>;
+  /** Colour fingerprint (27 hex digits). Tells a black picture from a yellow one when their shapes hash alike. */
+  color?: (item: Item) => Promise<string | null>;
   workers?: number;
   inspectTimeoutMs?: number;
   /** Newest photos checked per scan. Older ones are picked up from the cache on later scans. */
@@ -80,12 +82,25 @@ export async function scanOrigins(
   // Only pictures headed for the Forwarded folder need a fingerprint.
   const first = buildOriginResult(rows);
   const byId = new Map(rows.map((r) => [r.item.id, r.item]));
-  const toHash = first.forwarded.map((i) => byId.get(i.id)).filter((i): i is Item => !!i && !i.dhash);
-  await pool(toHash, workers, async (item) => {
+  const headed = first.forwarded.map((i) => byId.get(i.id)).filter((i): i is Item => !!i);
+  await pool(headed.filter((i) => !i.dhash), workers, async (item) => {
     if (signal.cancelled) return;
     const dhash = await withTimeout(io.hash(item), timeout, null);
     if (dhash) item.dhash = dhash;
   });
+
+  // Pictures whose shapes hash alike are only called repeats once their colours agree too, so read the colours
+  // of the shortlisted ones. This is a few hundred pictures, not the whole album.
+  if (io.color) {
+    const color = io.color;
+    const shortlist = groupRepeats(headed, undefined, false).flatMap((g) => g.items);
+    await pool(shortlist.filter((i) => !i.chash), workers, async (item) => {
+      if (signal.cancelled) return;
+      const chash = await withTimeout(color(item), timeout, null);
+      if (chash) item.chash = chash;
+    });
+  }
+  if (signal.cancelled) return { forwarded: [], aiImages: [] };
 
   return buildOriginResult(rows);
 }

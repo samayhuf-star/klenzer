@@ -65,7 +65,7 @@ async function inspectFresh(item: Item, wantText: boolean): Promise<Origin | nul
   if (isScanOriginSupported) {
     const r = await scanOrigin(item.id, AI_NEEDLE_BYTES, AI_HEAD_BYTES, wantText, NATIVE_TIMEOUT_MS);
     if (!r) return null;
-    return { hasCamera: r.hasCamera, aiTag: aiTagFromHits(r.hits), textRatio: r.textRatio };
+    return { hasCamera: r.hasCamera, aiTag: aiTagFromHits(r.hits), textRatio: r.textRatio, textLines: r.textLines };
   }
   // Android: the file is read directly. Text cover is an iPhone-only check for now.
   if (Platform.OS !== 'android') return null;
@@ -78,14 +78,14 @@ async function inspectFresh(item: Item, wantText: boolean): Promise<Origin | nul
   if (!info.localUri) return null;
   const head = readHead(info.localUri, AI_HEAD_BYTES);
   if (!head) return null;
-  return { hasCamera: exifHasCamera(info.exif), aiTag: detectAiTag(bytesToBinaryString(head)), textRatio: null };
+  return { hasCamera: exifHasCamera(info.exif), aiTag: detectAiTag(bytesToBinaryString(head)), textRatio: null, textLines: null };
 }
 
 async function inspect(item: Item, opts: { wantText: boolean }): Promise<Origin | null> {
   const cached = await getCachedOrigin(item.id, item.modificationTime);
   const canText = isScanOriginSupported;
   if (cached && (!opts.wantText || !canText || cached.textRatio != null)) {
-    return { hasCamera: cached.hasCamera === 1, aiTag: cached.aiTag, textRatio: cached.textRatio };
+    return { hasCamera: cached.hasCamera === 1, aiTag: cached.aiTag, textRatio: cached.textRatio, textLines: cached.textLines };
   }
   const fresh = await inspectFresh(item, opts.wantText);
   if (!fresh) return null;
@@ -95,6 +95,7 @@ async function inspect(item: Item, opts: { wantText: boolean }): Promise<Origin 
     hasCamera: fresh.hasCamera ? 1 : 0,
     aiTag: fresh.aiTag,
     textRatio: fresh.textRatio,
+    textLines: fresh.textLines ?? null,
   });
   return fresh;
 }
@@ -110,6 +111,17 @@ async function hash(item: Item): Promise<string | null> {
   }
 }
 
+async function color(item: Item): Promise<string | null> {
+  if (isScanAnalyzeSupported) return (await scanAnalyze(item.id, 256, NATIVE_TIMEOUT_MS))?.chash ?? null;
+  try {
+    const info = await MediaLibrary.getAssetInfoAsync(item.id, { shouldDownloadFromNetwork: false });
+    if (!info.localUri) return null;
+    return (await analyzeThumb(info.localUri))?.chash ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Fill the Chat images and AI Images folders for the photos a scan found. Rejects when Photos access is missing. */
 export async function scanOriginsOnDevice(
   photos: Item[],
@@ -119,5 +131,5 @@ export async function scanOriginsOnDevice(
 ): Promise<OriginResult> {
   const permission = await MediaLibrary.getPermissionsAsync(false, ['photo', 'video']);
   if (!permission.granted) throw new Error('Photos access is needed');
-  return scanOrigins(photos, { chatAlbumIds, inspect, hash }, signal, onProgress, onEarly);
+  return scanOrigins(photos, { chatAlbumIds, inspect, hash, color }, signal, onProgress, onEarly);
 }

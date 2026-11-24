@@ -69,6 +69,7 @@ func requestScanOrigin(id: String, needles: [[Int]], headBytes: Int, wantText: B
 
   var hasCamera = false
   var textRatio: Double? = nil
+  var textLines: Int? = nil
   if let source = CGImageSourceCreateWithData(data as CFData, nil) {
     if let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] {
       let tiff = props[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
@@ -89,7 +90,10 @@ func requestScanOrigin(id: String, needles: [[Int]], headBytes: Int, wantText: B
         kCGImageSourceThumbnailMaxPixelSize: originTextMaxPx,
       ]
       if let small = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbOptions as CFDictionary) {
-        textRatio = textCover(small)
+        if let cover = textCover(small) {
+          textRatio = cover.ratio
+          textLines = cover.lines
+        }
       }
     }
   }
@@ -98,25 +102,31 @@ func requestScanOrigin(id: String, needles: [[Int]], headBytes: Int, wantText: B
   if let textRatio {
     out["textRatio"] = textRatio
   }
+  if let textLines {
+    out["textLines"] = textLines
+  }
   return out
 }
 
-/// Share of the picture (0 to 1) covered by recognised text boxes. Nil if recognition fails.
-private func textCover(_ image: CGImage) -> Double? {
+/// Share of the picture (0 to 1) covered by recognised text boxes, and how many lines were found. Nil if recognition fails.
+/// Text shorter than `minimumTextHeight` of the picture's height is ignored, and the default (1/32) skips the small
+/// print of a document or chat screenshot, so it is lowered here.
+private func textCover(_ image: CGImage) -> (ratio: Double, lines: Int)? {
   let request = VNRecognizeTextRequest()
   request.recognitionLevel = .fast
   request.usesLanguageCorrection = false
+  request.minimumTextHeight = 0.012
   let handler = VNImageRequestHandler(cgImage: image, options: [:])
   do {
     try handler.perform([request])
   } catch {
     return nil
   }
-  guard let observations = request.results else { return 0 }
+  guard let observations = request.results else { return (0, 0) }
   var area = 0.0
   for observation in observations {
     let box = observation.boundingBox
     area += Double(box.width) * Double(box.height)
   }
-  return min(1.0, max(0.0, area))
+  return (min(1.0, max(0.0, area)), observations.count)
 }

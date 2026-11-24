@@ -109,19 +109,20 @@ func requestScanAnalyze(id: String, targetPx: Int, timeoutMs: Int) async -> [Str
     }
   }
 
-  guard let image, let gray = grayGrid(image) else {
+  guard let image, let grid = grayGrid(image) else {
     NSLog("[klenzer-scan] analyze skipped (no thumbnail within %ld ms)", timeoutMs)
     return ["ok": false]
   }
   return [
     "ok": true,
-    "dhash": dHash(gray, w: analyzeGrid, h: analyzeGrid),
-    "blur": laplacianVariance(gray, w: analyzeGrid, h: analyzeGrid),
+    "dhash": dHash(grid.gray, w: analyzeGrid, h: analyzeGrid),
+    "blur": laplacianVariance(grid.gray, w: analyzeGrid, h: analyzeGrid),
+    "chash": grid.color,
   ]
 }
 
 /// Draw the image stretched into a 32×32 RGBA grid and convert to luma (0.299 R + 0.587 G + 0.114 B).
-private func grayGrid(_ image: UIImage) -> [Double]? {
+private func grayGrid(_ image: UIImage) -> (gray: [Double], color: String)? {
   let side = analyzeGrid
   let bytesPerRow = side * 4
   var pixels = [UInt8](repeating: 0, count: side * bytesPerRow)
@@ -152,7 +153,33 @@ private func grayGrid(_ image: UIImage) -> [Double]? {
     let o = i * 4
     gray[i] = Double(pixels[o]) * 0.299 + Double(pixels[o + 1]) * 0.587 + Double(pixels[o + 2]) * 0.114
   }
-  return gray
+  return (gray, colorSignature(pixels, side: side))
+}
+
+/// Mean red, green and blue of each cell of a 3 by 3 grid, one hex digit (0 to 15) apiece. 27 digits.
+/// Matches colorSignature in src/lib/image-hash.ts. Tells a black picture from a yellow one when their shapes hash alike.
+private func colorSignature(_ pixels: [UInt8], side: Int) -> String {
+  var sums = [Double](repeating: 0, count: 27)
+  var counts = [Double](repeating: 0, count: 9)
+  for y in 0..<side {
+    let cy = min(2, (y * 3) / side)
+    for x in 0..<side {
+      let cell = cy * 3 + min(2, (x * 3) / side)
+      let o = (y * side + x) * 4
+      sums[cell * 3] += Double(pixels[o])
+      sums[cell * 3 + 1] += Double(pixels[o + 1])
+      sums[cell * 3 + 2] += Double(pixels[o + 2])
+      counts[cell] += 1
+    }
+  }
+  let digits = Array("0123456789abcdef")
+  var out = ""
+  for i in 0..<27 {
+    let n = counts[i / 3]
+    let mean = n > 0 ? sums[i] / n : 0
+    out.append(digits[min(15, Int(mean / 16))])
+  }
+  return out
 }
 
 private func dHash(_ gray: [Double], w: Int, h: Int) -> String {

@@ -17,6 +17,8 @@ export type Origin = {
   aiTag: string | null;
   /** Share of the picture covered by text, 0 to 1. Null when text was not checked. */
   textRatio: number | null;
+  /** Number of text lines found. Missing or null when text was not checked. */
+  textLines?: number | null;
 };
 
 /** Album and folder names that chat apps save received pictures into. */
@@ -120,20 +122,28 @@ export function exifHasCamera(exif: unknown): boolean {
   );
 }
 
-/** A picture counts as text-heavy (a meme, quote or greeting card) when text covers this much of it. */
-export const TEXT_HEAVY_RATIO = 0.12;
+/**
+ * Text boxes only cover the lines of text, not the gaps between them, so even a full page of small print
+ * covers well under half of the picture. A meme or greeting card has a few big lines; a document has many.
+ */
+export const TEXT_HEAVY_RATIO = 0.05;
 
-/** A picture that is mostly text is treated as a document, note or bill, not a meme. */
-export const DOC_TEXT_RATIO = 0.35;
+/** A picture with this many lines of text, or this much of it covered, is a document, note or bill. */
+export const DOC_TEXT_LINES = 8;
+export const DOC_TEXT_RATIO = 0.3;
+
+/** Chat images saved by a build before this date were sorted with older rules and are redone once on launch. */
+export const ORIGIN_RULES_AT = Date.parse('2026-11-24T00:00:00Z');
 
 export type ForwardedWhy = 'repeat' | 'chat' | 'text';
 export type ForwardedType = 'meme' | 'doc' | 'photo';
 
-/** Sort a chat image by how much of it is text. With no text reading it counts as a photo. */
+/** Sort a chat image by its text. With no text reading it counts as a photo. */
 export function forwardedType(origin: Origin | null): ForwardedType {
   const ratio = origin?.textRatio;
   if (ratio == null) return 'photo';
-  if (ratio >= DOC_TEXT_RATIO) return 'doc';
+  const lines = origin?.textLines ?? 0;
+  if (lines >= DOC_TEXT_LINES || ratio >= DOC_TEXT_RATIO) return 'doc';
   return ratio >= TEXT_HEAVY_RATIO ? 'meme' : 'photo';
 }
 
@@ -163,7 +173,7 @@ export const isChatImage = (row: OriginInput) =>
   row.inChatAlbum || (isChatFilename(row.item.filename) && !row.origin?.hasCamera);
 
 export const isTextForward = (row: OriginInput) =>
-  !!row.origin && !row.origin.hasCamera && row.origin.textRatio != null && row.origin.textRatio >= TEXT_HEAVY_RATIO;
+  !!row.origin && !row.origin.hasCamera && row.origin.textRatio != null && forwardedType(row.origin) !== 'photo';
 
 /** Two saved copies of one forward: same picture after the chat app recompressed it. */
 export const REPEAT_HAMMING_MAX = 4;
@@ -171,9 +181,61 @@ export const REPEAT_HAMMING_MAX = 4;
 /** Digit ranges of a 16-digit hash. With 5 bands, any two hashes within 4 bits share at least one. */
 const REPEAT_BANDS: [number, number][] = [[0, 3], [3, 6], [6, 9], [9, 12], [12, 16]];
 
-/** Sets of the same picture saved more than once. Any date, any size: forwards arrive weeks apart. */
-export function groupRepeats(items: Item[], maxHamming = REPEAT_HAMMING_MAX): DuplicateGroup[] {
-  const hashed = items.filter((i) => typeof i.dhash === 'string' && i.dhash.length === 16);
+const bitsIn = (hex: string) => {
+  let n = 0;
+  for (let i = 0; i < hex.length; i++) {
+    let x = parseInt(hex[i], 16) || 0;
+    while (x) {
+      n += x & 1;
+      x >>= 1;
+    }
+  }
+  return n;
+};
+
+/**
+ * A flat picture (plain background, a few big letters, a blank page) hashes to almost all zeros, so every such
+ * picture looks like every other one. Those hashes say nothing and are never used to call two pictures the same.
+ */
+export const MIN_HASH_BITS = 10;
+export const MAX_HASH_BITS = 54;
+export const hashHasDetail = (hash: string | null | undefined): boolean => {
+  if (typeof hash !== 'string' || hash.length !== 16) return false;
+  const n = bitsIn(hash);
+  return n >= MIN_HASH_BITS && n <= MAX_HASH_BITS;
+};
+
+/** Length of the colour fingerprint: a 3 by 3 grid, red, green and blue each, one hex digit apiece. */
+export const COLOR_SIG_LEN = 27;
+
+/** Two colour fingerprints of the same picture agree closely; a black picture and a yellow one never do. */
+export function colorsClose(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== COLOR_SIG_LEN || b.length !== COLOR_SIG_LEN) return false;
+  let sum = 0;
+  let max = 0;
+  for (let i = 0; i < COLOR_SIG_LEN; i++) {
+    const d = Math.abs((parseInt(a[i], 16) || 0) - (parseInt(b[i], 16) || 0));
+    sum += d;
+    if (d > max) max = d;
+  }
+  return max <= 4 && sum / COLOR_SIG_LEN <= 1.5;
+}
+
+/** A recompressed copy keeps its shape. */
+export function sameShape(a: Item, b: Item): boolean {
+  if (!(a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0)) return false;
+  const ra = a.width / a.height;
+  const rb = b.width / b.height;
+  return Math.abs(ra / rb - 1) <= 0.03;
+}
+
+/**
+ * Sets of the same picture saved more than once. Any date, any size: forwards arrive weeks apart.
+ * Pictures must have a detailed hash, the same shape and, when `needColor` is set, the same colours.
+ * Without `needColor` this only shortlists candidates, so the caller knows whose colours to read.
+ */
+export function groupRepeats(items: Item[], maxHamming = REPEAT_HAMMING_MAX, needColor = true): DuplicateGroup[] {
+  const hashed = items.filter((i) => hashHasDetail(i.dhash));
   const used = new Set<string>();
   const groups: DuplicateGroup[] = [];
   // A chat album can hold tens of thousands of pictures, so comparing every pair is too slow.
@@ -191,6 +253,10 @@ export function groupRepeats(items: Item[], maxHamming = REPEAT_HAMMING_MAX): Du
       });
     });
   }
+  const sameForward = (seed: Item, other: Item) =>
+    hamming(seed.dhash as string, other.dhash as string) <= maxHamming &&
+    sameShape(seed, other) &&
+    (!needColor || colorsClose(seed.chash, other.chash));
   for (let a = 0; a < hashed.length; a++) {
     const seed = hashed[a];
     if (used.has(seed.id)) continue;
@@ -201,7 +267,7 @@ export function groupRepeats(items: Item[], maxHamming = REPEAT_HAMMING_MAX): Du
       seen.add(b);
       const other = hashed[b];
       if (used.has(other.id)) return;
-      if (hamming(seed.dhash as string, other.dhash as string) <= maxHamming) members.push(other);
+      if (sameForward(seed, other)) members.push(other);
     };
     if (bands) {
       bands.forEach(([from, to], b) => {

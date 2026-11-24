@@ -25,6 +25,7 @@ function asGroups(v: unknown): DuplicateGroup[] {
 function slimItem(item: Item): Item {
   const copy: Item = { ...item };
   delete copy.dhash;
+  delete copy.chash;
   delete copy.blur;
   return copy;
 }

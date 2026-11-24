@@ -27,12 +27,13 @@ async function db(): Promise<SQLite.SQLiteDatabase | null> {
               dhash TEXT,
               blur REAL
             );
-            CREATE TABLE IF NOT EXISTS origin_cache (
+            CREATE TABLE IF NOT EXISTS origin_cache2 (
               id TEXT PRIMARY KEY NOT NULL,
               modificationTime INTEGER NOT NULL,
               hasCamera INTEGER NOT NULL DEFAULT 0,
               aiTag TEXT,
-              textRatio REAL
+              textRatio REAL,
+              textLines INTEGER
             );
           `);
           return opened;
@@ -80,7 +81,7 @@ export async function putCached(row: CachedAsset): Promise<void> {
   } catch {}
 }
 
-export type CachedOrigin = { id: string; modificationTime: number; hasCamera: number; aiTag: string | null; textRatio: number | null };
+export type CachedOrigin = { id: string; modificationTime: number; hasCamera: number; aiTag: string | null; textRatio: number | null; textLines: number | null };
 
 /** What a photo's file said about where it came from, kept so later scans do not open the file again. */
 export async function getCachedOrigin(id: string, modificationTime: number): Promise<CachedOrigin | null> {
@@ -89,7 +90,7 @@ export async function getCachedOrigin(id: string, modificationTime: number): Pro
     if (!database) return null;
     const row = await withTimeout(
       database.getFirstAsync<CachedOrigin>(
-        'SELECT id, modificationTime, hasCamera, aiTag, textRatio FROM origin_cache WHERE id = ? AND modificationTime = ?',
+        'SELECT id, modificationTime, hasCamera, aiTag, textRatio, textLines FROM origin_cache2 WHERE id = ? AND modificationTime = ?',
         [id, modificationTime],
       ),
       3000,
@@ -107,8 +108,8 @@ export async function putCachedOrigin(row: CachedOrigin): Promise<void> {
     if (!database) return;
     await withTimeout(
       database.runAsync(
-        'INSERT OR REPLACE INTO origin_cache (id, modificationTime, hasCamera, aiTag, textRatio) VALUES (?, ?, ?, ?, ?)',
-        [row.id, row.modificationTime, row.hasCamera, row.aiTag, row.textRatio],
+        'INSERT OR REPLACE INTO origin_cache2 (id, modificationTime, hasCamera, aiTag, textRatio, textLines) VALUES (?, ?, ?, ?, ?, ?)',
+        [row.id, row.modificationTime, row.hasCamera, row.aiTag, row.textRatio, row.textLines],
       ).then(() => true),
       3000,
       false,
@@ -122,7 +123,7 @@ export async function pruneCache(liveIds: string[]): Promise<void> {
     const database = await db();
     if (!database) return;
     if (!liveIds.length) {
-      await database.execAsync('DELETE FROM asset_cache; DELETE FROM origin_cache;');
+      await database.execAsync('DELETE FROM asset_cache; DELETE FROM origin_cache; DELETE FROM origin_cache2;');
       return;
     }
     const keep = new Set(liveIds);
@@ -133,7 +134,7 @@ export async function pruneCache(liveIds: string[]): Promise<void> {
       const part = stale.slice(i, i + chunk);
       const marks = part.map(() => '?').join(',');
       await database.runAsync(`DELETE FROM asset_cache WHERE id IN (${marks})`, part);
-      await database.runAsync(`DELETE FROM origin_cache WHERE id IN (${marks})`, part);
+      await database.runAsync(`DELETE FROM origin_cache2 WHERE id IN (${marks})`, part);
     }
   } catch {}
 }

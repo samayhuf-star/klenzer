@@ -12,6 +12,8 @@ export type Item = {
   size: number;
   isVideo: boolean;
   dhash?: string | null;
+  /** Colour fingerprint (3 by 3 grid, 27 hex digits). Read only for pictures that might be repeats. */
+  chash?: string | null;
   blur?: number | null;
   isScreenshot?: boolean;
   isLive?: boolean;

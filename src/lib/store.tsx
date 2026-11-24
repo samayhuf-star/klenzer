@@ -7,6 +7,7 @@ import { Alert, AppState, Linking, Platform } from 'react-native';
 import { shouldStartScan } from './launch-scan';
 import { loadScanResult, saveScanResult } from './scan-result-cache';
 import { scanOriginsOnDevice } from './origin-device';
+import { ORIGIN_RULES_AT } from './origin-logic';
 import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
@@ -231,7 +232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             resultRef.current = cached;
             setResult(cached);
             // A scan saved by an older build has no Chat images or AI Images yet, or has them without types. Fill them without a full rescan.
-            if (cached.photos.length && (!cached.originAt || cached.forwarded.some((i) => !i.fwdType))) startOriginPass({ signal, resultRef, setResult, setOriginBusy, setOriginPct }, cached.photos);
+            if (cached.photos.length && (!cached.originAt || cached.originAt < ORIGIN_RULES_AT || cached.forwarded.some((i) => !i.fwdType))) startOriginPass({ signal, resultRef, setResult, setOriginBusy, setOriginPct }, cached.photos);
           }
         }
         scanIncomplete.current = (await AsyncStorage.getItem(KEYS.scanIncomplete)) === '1';
