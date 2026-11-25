@@ -217,10 +217,16 @@ export function onEntitlementChange(cb: (isPro: boolean) => void): () => void {
   };
 }
 
-export async function buy(plan: Plan): Promise<BuyResult> {
+/**
+ * `replaceProductId` is the subscription the person is switching away from. Apple switches plans inside
+ * one subscription group by itself. Google Play needs the old product named, or it would add a second
+ * subscription, so it is passed to RevenueCat for Android only.
+ */
+export async function buy(plan: Plan, replaceProductId?: string | null): Promise<BuyResult> {
   if (!configure() || !(plan.pkg || plan.product)) return 'error';
+  const change = Platform.OS === 'android' && replaceProductId ? { oldProductIdentifier: replaceProductId } : null;
   try {
-    const { customerInfo } = plan.pkg ? await Purchases.purchasePackage(plan.pkg) : await Purchases.purchaseStoreProduct(plan.product as PurchasesStoreProduct);
+    const { customerInfo } = plan.pkg ? await Purchases.purchasePackage(plan.pkg, null, change) : await Purchases.purchaseStoreProduct(plan.product as PurchasesStoreProduct, change);
     emitPro(customerInfo);
     return hasPro(customerInfo) ? 'purchased' : 'error';
   } catch (e) {
@@ -265,5 +271,34 @@ export async function manageSubscriptions(): Promise<void> {
     await Linking.openURL(info?.managementURL ?? (Platform.OS === 'ios' ? 'https://apps.apple.com/account/subscriptions' : 'https://play.google.com/store/account/subscriptions'));
   } catch (e) {
     logErr('manageSubscriptions', e);
+  }
+}
+
+export type PlanState = {
+  /** The active subscription plan, or null when there is none. */
+  subscription: PlanKind | null;
+  /** The store product ID of the active subscription, used when switching plans. */
+  subscriptionProductId: string | null;
+  /** True when the person already owns Lifetime. */
+  lifetime: boolean;
+};
+
+/** What the person owns right now, for the Settings plan screen. Errors read as "nothing owned". */
+export async function currentPlanState(): Promise<PlanState> {
+  const none: PlanState = { subscription: null, subscriptionProductId: null, lifetime: false };
+  if (!configure()) return none;
+  try {
+    const info = await Purchases.getCustomerInfo();
+    const lifetimeDef = PRODUCT_CATALOG.find((p) => p.kind === 'lifetime');
+    const lifetime = !!lifetimeDef && info.nonSubscriptionTransactions.some((t) => t.productIdentifier === lifetimeDef.id);
+    for (const raw of info.activeSubscriptions) {
+      const id = raw.split(':')[0];
+      const def = PRODUCT_CATALOG.find((p) => p.id === id && p.type === 'subs');
+      if (def) return { subscription: def.kind, subscriptionProductId: id, lifetime };
+    }
+    return { ...none, lifetime };
+  } catch (e) {
+    logErr('currentPlanState', e);
+    return none;
   }
 }

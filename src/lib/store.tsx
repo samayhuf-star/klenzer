@@ -12,7 +12,8 @@ import { DiskInfo, getDiskInfo, getDiskInfoSync } from './disk';
 import { Kind } from './kinds';
 import { CategoryProgress, deleteItems, Item, Progress, ScanCategory, ScanResult, scanLibrary } from './scanner';
 import { clearTemp, tempBytes } from './temp';
-import { disableReminders, enableReminders, remindersPref, scheduleReminders, askNotificationPermissionOnScanStart, notifyScanComplete } from './reminders';
+import { disableReminders, enableReminders, remindersPref, saveReminderHour, scheduleReminders, askNotificationPermissionOnScanStart, notifyScanComplete } from './reminders';
+import { EMPTY_PROFILE, parseProfile, serializeProfile, type Profile } from './onboarding-profile';
 import { beginShortBackgroundTask, endShortBackgroundTask } from 'live-photo-convert';
 import { initIAP, onEntitlementChange, refreshEntitlements } from './purchases';
 import { readyToReviewBytes, withTimeout } from './scan-logic';
@@ -57,7 +58,13 @@ const idleCats = (): CategoryScanMap => ({
 type Ctx = {
   ready: boolean;
   onboarded: boolean;
-  finishOnboarding: () => void;
+  /** Saves the onboarding answers, marks onboarding done and queues the paywall that follows it. */
+  finishOnboarding: (profile?: Profile) => void;
+  /** The person's onboarding answers. Stored on the device only. */
+  profile: Profile;
+  /** True from the end of onboarding until the first paywall has been closed or a plan bought. */
+  paywallPending: boolean;
+  clearPaywallPending: () => void;
   access: Access;
   canAskAgain: boolean;
   requestAccess: () => Promise<Access>;
@@ -73,7 +80,7 @@ type Ctx = {
   /** How far that pass is, 0 to 100. */
   originPct: number;
   result: ScanResult | null;
-  scan: () => Promise<void>;
+  scan: (opts?: { resume?: boolean; quietPrompts?: boolean }) => Promise<void>;
   cancelScan: () => void;
   cleaning: Cleaning | null;
   /** Runs a clean and resolves with how many gated items completed (media deleted, plus 1 if temporary files were cleared). */
@@ -105,7 +112,7 @@ type Ctx = {
   runGated: <T>(feature: ProFeature, items: T[], run: (items: T[]) => Promise<number>, verb?: GateVerb) => void;
 };
 
-const KEYS = { allowance: 'klenzer.allowance.v1', onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1', hideRdSheet: 'klenzer.rdSheet.hide.v1', convertPending: 'klenzer.convert.pending.v1' };
+const KEYS = { allowance: 'klenzer.allowance.v1', onboarded: 'klenzer.onboarded.v1', freed: 'klenzer.freed.v2', items: 'klenzer.items.v2', reclaim: 'klenzer.reclaim.v1', scanIncomplete: 'klenzer.scan.incomplete.v1', hideRdSheet: 'klenzer.rdSheet.hide.v1', convertPending: 'klenzer.convert.pending.v1', profile: 'klenzer.profile.v1', paywallPending: 'klenzer.paywall.pending.v1' };
 
 /** Chat images and AI Images are found before file sizes are measured. Take each size from the scan once it is known. */
 function withSizes(items: Item[], photos: Item[]): Item[] {
@@ -190,6 +197,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [scanError, setScanError] = useState<string | null>(null);
   const [reminders, setRemindersState] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
+  const [paywallPending, setPaywallPending] = useState(false);
   const [allowance, setAllowance] = useState<Allowance>(() => normalizeAllowance(null, new Date()));
   const allowanceRef = useRef(allowance);
   const [dayTick, setDayTick] = useState(0);
@@ -212,13 +221,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [o, f, it, hide] = await Promise.all([
+        const [o, f, it, hide, prof, pend] = await Promise.all([
           AsyncStorage.getItem(KEYS.onboarded),
           AsyncStorage.getItem(KEYS.freed),
           AsyncStorage.getItem(KEYS.items),
           AsyncStorage.getItem(KEYS.hideRdSheet),
+          AsyncStorage.getItem(KEYS.profile),
+          AsyncStorage.getItem(KEYS.paywallPending),
         ]);
         setOnboarded(o === '1' || DEMO);
+        setProfile(parseProfile(prof));
+        setPaywallPending(pend === '1' && !DEMO);
         setLifetimeFreed(Number(f) || 0);
         setLifetimeItems(Number(it) || 0);
         setHideRdSheetState(hide === '1');
@@ -261,9 +274,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Keep the unlocked state live: a purchase, a restore, or a refund all arrive here.
   useEffect(() => onEntitlementChange(setIsPro), []);
 
-  const finishOnboarding = useCallback(() => {
+  const finishOnboarding = useCallback((answers?: Profile) => {
+    if (answers) {
+      setProfile(answers);
+      AsyncStorage.setItem(KEYS.profile, serializeProfile(answers)).catch(() => {});
+      if (answers.reminderHour != null) void saveReminderHour(answers.reminderHour);
+    }
+    // The paywall follows onboarding once. It stays queued until the person closes it or buys a plan.
+    setPaywallPending(true);
+    AsyncStorage.setItem(KEYS.paywallPending, '1').catch(() => {});
     setOnboarded(true);
     AsyncStorage.setItem(KEYS.onboarded, '1').catch(() => {});
+  }, []);
+
+  const clearPaywallPending = useCallback(() => {
+    setPaywallPending(false);
+    AsyncStorage.removeItem(KEYS.paywallPending).catch(() => {});
   }, []);
 
   // One read-write request at a time: repeated taps share the same system prompt.
@@ -376,7 +402,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     else AsyncStorage.removeItem(KEYS.scanIncomplete).catch(() => {});
   };
 
-  const scan = useCallback(async (opts: { resume?: boolean } = {}) => {
+  const scan = useCallback(async (opts: { resume?: boolean; quietPrompts?: boolean } = {}) => {
     if (scanningRef.current) return;
     const token = ++scanToken.current;
     pendingScan.current = true;
@@ -404,7 +430,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     markScanIncomplete(true);
     // Ask only when a scan starts, never on launch. A denial must not stop the scan.
     // The completion notification waits for this answer, so a scan that ends while the prompt is up still notifies.
-    const notifAsk = askNotificationPermissionOnScanStart().catch(() => false);
+    // Onboarding scans start quietly: the reminders screen asks for notifications at its own moment.
+    const notifAsk = opts.quietPrompts ? Promise.resolve(false) : askNotificationPermissionOnScanStart().catch(() => false);
     beginShortBackgroundTask();
     const finishCats = () =>
       setScanCats((c) => ({
@@ -815,11 +842,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
-      ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess,
+      ready, onboarded, finishOnboarding, profile, paywallPending, clearPaywallPending, access, canAskAgain, requestAccess,
       openSettings: () => Linking.openSettings(), manageLimited,
       disk, refreshDisk, scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated,
     }),
-    [ready, onboarded, finishOnboarding, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
+    [ready, onboarded, finishOnboarding, profile, paywallPending, clearPaywallPending, access, canAskAgain, requestAccess, manageLimited, disk, refreshDisk, scanning, progress, scanCats, originBusy, originPct, result, scan, cancelScan, cleaning, clean, startClean, completeUnlock, isPro, tempSize, reminders, setReminders, lifetimeFreed, lifetimeItems, lastFreed, scanError, hideRdSheet, setHideRdSheet, startConvert, freeLeft, runGated],
   );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

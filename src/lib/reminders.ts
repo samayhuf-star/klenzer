@@ -22,6 +22,25 @@ const SCAN_COMPLETE_CHANNEL = 'scan-complete';
 export const SCAN_NOTIFICATION_ACTION = 'scan';
 export const REMINDER_ACTION = 'reminder';
 
+const HOUR_KEY = 'klenzer.reminders.hour.v1';
+
+/** Hour (0 to 23) the person picked in onboarding. Unset means the default 8:00. */
+export async function reminderHourPref(): Promise<number | undefined> {
+  try {
+    const raw = await AsyncStorage.getItem(HOUR_KEY);
+    const n = raw == null ? NaN : parseInt(raw, 10);
+    return Number.isInteger(n) && n >= 0 && n <= 23 ? n : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function saveReminderHour(hour: number): Promise<void> {
+  try {
+    await AsyncStorage.setItem(HOUR_KEY, String(hour));
+  } catch {}
+}
+
 export type ReminderInfo = {
   /** Bytes the last scan found ready to review. Omitted or 0 uses the generic line. */
   reclaimBytes?: number;
@@ -81,7 +100,7 @@ export async function scheduleReminders(opts: ReminderInfo = {}): Promise<void> 
       await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Reminders', importance: Notifications.AndroidImportance.DEFAULT });
     }
     const body = reminderBody(opts.reclaimBytes ?? 0);
-    const dates = nextReminderDates(new Date(), REMINDER_COUNT);
+    const dates = nextReminderDates(new Date(), REMINDER_COUNT, undefined, await reminderHourPref());
     for (const date of dates) {
       await Notifications.scheduleNotificationAsync({
         content: {

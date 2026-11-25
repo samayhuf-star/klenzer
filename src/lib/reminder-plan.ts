@@ -19,12 +19,12 @@ export function shouldScheduleReminders(input: { enabled: boolean; permissionGra
   return input.enabled && input.permissionGranted;
 }
 
-/** Next local 8:00 AM, then every 3 days. Every date is strictly after `now`. */
-export function nextReminderDates(now: Date, count = REMINDER_COUNT, intervalDays = REMINDER_INTERVAL_DAYS): Date[] {
+/** Next local reminder time (8:00 AM unless the person picked another hour in onboarding), then every 3 days. Every date is strictly after `now`. */
+export function nextReminderDates(now: Date, count = REMINDER_COUNT, intervalDays = REMINDER_INTERVAL_DAYS, hour = REMINDER_HOUR): Date[] {
   const n = Math.max(0, Math.floor(count));
   const step = Math.max(1, Math.floor(intervalDays));
   const first = new Date(now.getTime());
-  first.setHours(REMINDER_HOUR, REMINDER_MINUTE, 0, 0);
+  first.setHours(Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : REMINDER_HOUR, REMINDER_MINUTE, 0, 0);
   if (first.getTime() <= now.getTime()) first.setDate(first.getDate() + 1);
   const out: Date[] = [];
   for (let i = 0; i < n; i++) {
