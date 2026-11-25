@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { PressableScale } from '../components/PressableScale';
@@ -14,6 +14,7 @@ import { formatBytes } from '../lib/format';
 import { DEMO } from '../lib/demo';
 import { trialHint } from '../lib/introOffer';
 import { buy, defaultPlanKind, loadPlans, Plan, PLANS_UNAVAILABLE_MESSAGE, restore, type PlansLoad } from '../lib/purchases';
+import { paywallCopy } from '../lib/onboarding-profile';
 import { scanReclaimableBytes } from '../lib/reclaim';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../theme';
@@ -29,13 +30,19 @@ const RENEW_NOTE = IS_IOS
 /** iPhone SE is 667pt and iPhone 8 Plus is 736pt. Taller phones keep the button in the list. */
 const PIN_CTA_BELOW_HEIGHT = 740;
 
+/** Seconds before the close button appears on the first paywall, right after onboarding. */
+const CLOSE_DELAY_MS = 3000;
+
 const PERIOD: Record<Plan['kind'], string> = { yearly: 'year', monthly: 'month', weekly: 'week', lifetime: 'purchase' };
 const PERKS = ['Review duplicates, screenshots and big videos, then delete only what you choose', 'Scanning always stays free', 'Your photos never leave your phone'];
 
 export default function Paywall() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const { result, completeUnlock } = useStore();
+  const { source } = useLocalSearchParams<{ source?: string }>();
+  const afterOnboarding = source === 'onboarding';
+  const { result, completeUnlock, profile, clearPaywallPending } = useStore();
+  const [closeVisible, setCloseVisible] = useState(!afterOnboarding);
   const reclaim = scanReclaimableBytes(result);
   const [offers, setOffers] = useState<PlansLoad | null>(null);
   const [sel, setSel] = useState<Plan['kind']>('yearly');
@@ -43,11 +50,19 @@ export default function Paywall() {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (!afterOnboarding) return;
+    const t = setTimeout(() => setCloseVisible(true), CLOSE_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [afterOnboarding]);
+
+  useEffect(() => {
     let alive = true;
     loadPlans().then((o) => {
       if (!alive) return;
-      setOffers(o);
-      const kind = defaultPlanKind(o.plans.map((p) => p.kind));
+      // Lifetime is never sold here. It is offered in Settings, to people who already subscribe.
+      const shown = { ...o, plans: o.plans.filter((p) => p.kind !== 'lifetime') };
+      setOffers(shown);
+      const kind = defaultPlanKind(shown.plans.map((p) => p.kind));
       if (kind) setSel(kind);
     });
     return () => {
@@ -63,6 +78,7 @@ export default function Paywall() {
   const pinCta = showPlans && windowHeight < PIN_CTA_BELOW_HEIGHT;
 
   const close = () => {
+    clearPaywallPending();
     router.back();
   };
 
@@ -73,6 +89,7 @@ export default function Paywall() {
     setBusy(false);
     if (r === 'purchased') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      clearPaywallPending();
       completeUnlock();
     } else if (r === 'pending') {
       Alert.alert('Purchase pending', 'This purchase is waiting for approval. Ai Klenzer will unlock once it is confirmed.');
@@ -88,6 +105,7 @@ export default function Paywall() {
     setBusy(false);
     if (r === 'restored') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      clearPaywallPending();
       completeUnlock();
     } else if (r === 'none') {
       Alert.alert('Nothing to restore', `We couldn’t find a previous Ai Klenzer purchase on this ${ACCOUNT}.`);
@@ -97,11 +115,12 @@ export default function Paywall() {
     // 'cancelled': the user closed the sign-in prompt, so stay silent.
   };
 
-  const headline = reclaim > 0 ? `${formatBytes(reclaim)} ready to review` : 'Unlock Ai Klenzer';
+  const copy = paywallCopy(profile, reclaim, formatBytes(reclaim));
+  const headline = copy.title;
 
   const unlockButton = (
     <Button
-      label={busy ? 'Please wait' : 'Unlock Ai Klenzer'}
+      label={busy ? 'Please wait' : chosen?.trialDays ? 'Start free trial' : 'Continue'}
       icon={<Ionicons name="sparkles" size={20} color="#fff" />}
       onPress={purchase}
       busy={busy}
@@ -143,13 +162,17 @@ export default function Paywall() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="paywall-screen">
       <LinearGradient colors={['#0B1020', '#1E3A8A']} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-        <PressableScale onPress={close} accessibilityLabel="Close" style={styles.close}>
-          <Ionicons name="close" size={22} color="#fff" />
-        </PressableScale>
+        {closeVisible ? (
+          <Animated.View entering={FadeIn.duration(400)} style={styles.close}>
+            <PressableScale onPress={close} accessibilityLabel="Close" testID="paywall-close" style={styles.closeHit}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </PressableScale>
+          </Animated.View>
+        ) : (
+          <View style={styles.close} />
+        )}
         <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>{headline}</Text>
-        <Text style={styles.sub}>
-          {reclaim > 0 ? 'That is what is ready to review. Start your free trial to clear it. You still choose every item.' : 'Scanning is free. Start your free trial to clean, merge contacts and use Secret Album.'}
-        </Text>
+        <Text style={styles.sub}>{copy.sub}</Text>
       </LinearGradient>
 
       <ScrollView
@@ -232,6 +255,7 @@ const styles = StyleSheet.create({
   ctaBar: { paddingHorizontal: 20, paddingTop: 8, gap: 12, backgroundColor: colors.bg },
   hero: { paddingHorizontal: 22, paddingBottom: 28, borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg },
   close: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end' },
+  closeHit: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   offerTag: { alignSelf: 'flex-start', backgroundColor: colors.amber, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5, marginBottom: 10 },
   offerTagText: { fontFamily: fonts.bold, fontSize: 11.5, letterSpacing: 1.2, color: '#3A2300' },
   title: { fontFamily: fonts.display, fontSize: 34, color: '#fff', letterSpacing: -1, marginTop: 6, width: '100%' },
