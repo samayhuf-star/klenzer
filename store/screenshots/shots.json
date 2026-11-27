@@ -1,0 +1,75 @@
+{
+ "out": "/home/dev/ios-publish/work/klenzer/store/screenshots",
+ "prefix": "klenzer",
+ "bg": [
+  "#2f6bf0",
+  "#0b1f5c"
+ ],
+ "accent": "#7CF0DC",
+ "shots": [
+  {
+   "src": "/home/dev/ios-publish/work/klenzer/docs/release-1.1.1/screenshots/01-home.png",
+   "cap": [
+    "Free up space",
+    "in one tap"
+   ],
+   "sub": "Smart Clean finds what you do not need"
+  },
+  {
+   "src": "/home/dev/ios-publish/work/klenzer/docs/release-1.1.1/screenshots/03-similar-photos.png",
+   "cap": [
+    "Clear duplicate",
+    "& similar photos"
+   ],
+   "sub": "Keeps the best shot in every set"
+  },
+  {
+   "src": "/home/dev/ios-publish/work/klenzer/docs/release-1.1.1/screenshots/04-swipe.png",
+   "cap": [
+    "Swipe to sort",
+    "a whole month"
+   ],
+   "sub": "Left to delete, right to keep"
+  },
+  {
+   "src": "/tmp/claude-1000/-home-dev/b45e0c0f-e0ad-4202-ae52-613bca09bb6e/scratchpad/kz/o-o10.png",
+   "cap": [
+    "Your cleanup plan,",
+    "made for you"
+   ],
+   "sub": "Built from a one-minute quiz"
+  },
+  {
+   "src": "/home/dev/ios-publish/work/klenzer/docs/release-1.1.1/screenshots/02-scanning.png",
+   "cap": [
+    "Scans on your",
+    "iPhone only"
+   ],
+   "sub": "Duplicates, screenshots and videos"
+  },
+  {
+   "src": "/tmp/claude-1000/-home-dev/b45e0c0f-e0ad-4202-ae52-613bca09bb6e/scratchpad/kz/o-o8.png",
+   "cap": [
+    "Pick what",
+    "to clear"
+   ],
+   "sub": "Photos, screenshots, videos, contacts"
+  },
+  {
+   "src": "/tmp/claude-1000/-home-dev/b45e0c0f-e0ad-4202-ae52-613bca09bb6e/scratchpad/kz/o-o2.png",
+   "cap": [
+    "Your photos never",
+    "leave your phone"
+   ],
+   "sub": "Nothing is deleted without your OK"
+  },
+  {
+   "src": "/tmp/claude-1000/-home-dev/b45e0c0f-e0ad-4202-ae52-613bca09bb6e/scratchpad/kz/o-o9.png",
+   "cap": [
+    "Gentle cleanup",
+    "reminders"
+   ],
+   "sub": "Pick a time, or none at all"
+  }
+ ]
+}
